@@ -1,0 +1,468 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  color: #eaf2fb;
+  outline: none;
+  user-select: none;
+  touch-action: none;
+  --ok: #4ade80;
+  --bad: #ff5a6a;
+  --accent: #5ee6c9;
+  --gold: #ffd166;
+}
+.root:focus-visible {
+  box-shadow: inset 0 0 0 4px var(--accent);
+}
+.map,
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.overlay {
+  z-index: 50;
+}
+.mapLabel {
+  fill: #c9d6e2;
+  font-size: 24px;
+  font-weight: 700;
+}
+.grid {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.grid[data-on] {
+  opacity: 1;
+}
+.inRange {
+  fill: #ffd16633;
+  stroke: var(--gold);
+  stroke-width: 3;
+}
+.otherRange {
+  fill: #5ee6c90d;
+  stroke: #5ee6c980;
+  stroke-width: 2;
+  stroke-dasharray: 6 10;
+}
+.drone path {
+  fill: #ff8a7a;
+  stroke: #2a0d0d;
+  stroke-width: 3;
+}
+
+/* ───── 건물 그림 ───── */
+.art,
+.artGhost {
+  fill: #23384a;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.art .pad,
+.artGhost .pad {
+  fill: #1b2a24;
+  stroke-dasharray: 8 6;
+}
+.artGhost {
+  fill: #ffffff26;
+  stroke: #ffffffe6;
+}
+
+/* ───── 고스트 ───── */
+.ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 128px;
+  height: 128px;
+  pointer-events: none;
+  z-index: 20;
+}
+.ghost svg {
+  overflow: visible;
+  display: block;
+}
+.cell {
+  fill: #ffffff2e;
+  stroke: #ffffffb3;
+  stroke-width: 3;
+}
+.ghost[data-tint='ok'] .cell {
+  fill: #4ade8055;
+  stroke: var(--ok);
+}
+.ghost[data-tint='bad'] .cell {
+  fill: #ff5a6a4d;
+  stroke: var(--bad);
+}
+/* 모양 신호: 문제 칸은 빗금 + 점선 테두리 (색만으로 구분하지 않는다) */
+.ghost[data-tint='bad'][data-cue='full'] .cell[data-bad] {
+  fill: url(#bpp-hatch);
+  stroke-dasharray: 10 7;
+  stroke-width: 4;
+}
+.hatchBg {
+  fill: #ff5a6a33;
+}
+.hatchLine {
+  fill: #ff5a6acc;
+}
+.ghost[data-tint='bad'] .artGhost {
+  stroke: #ffd1d6;
+}
+
+/* ───── 사거리 ───── */
+.range {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 0;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 4px dashed #ffd166cc;
+  background: radial-gradient(circle, #ffd16614 0%, #ffd16626 100%);
+  pointer-events: none;
+  z-index: 15;
+}
+.range span {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 4px;
+  white-space: nowrap;
+  font-size: 22px;
+  color: var(--gold);
+  text-shadow: 0 2px 4px #000;
+}
+
+/* ───── 사유 문구 ───── */
+.reason {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px 8px 10px;
+  border-radius: 14px;
+  background: #1a070bee;
+  border: 3px dashed var(--bad);
+  color: #ffd1d6;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+}
+.reason[data-ok] {
+  background: #06180ff0;
+  border: 3px solid var(--ok);
+  color: #d4ffe2;
+}
+.reason > span {
+  display: flex;
+  flex-direction: column;
+}
+.reason b {
+  font-size: 26px;
+}
+.reason small {
+  font-size: 22px;
+  opacity: 0.85;
+}
+.icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ───── 터치 확인 · 취소 ───── */
+.confirm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 40;
+  pointer-events: none;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 170px;
+  height: 76px;
+  border-radius: 16px;
+  font-size: 26px;
+  font-weight: 700;
+  background: #2a3240;
+  color: #9aa7b6;
+  border: 3px dashed #6b7686;
+}
+.btn[data-ok] {
+  background: #166b3a;
+  color: #fff;
+  border: 3px solid var(--ok);
+}
+.btn[data-no] {
+  background: #3a1d23;
+  color: #ffd1d6;
+  border: 3px solid #ff8a96;
+}
+.btn svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.finger {
+  position: absolute;
+  left: -46px;
+  top: -40px;
+  width: 92px;
+  height: 120px;
+  border-radius: 46px 46px 40px 40px;
+  background: #e8c3a6d9;
+  border: 3px solid #fff8;
+  z-index: 45;
+  pointer-events: none;
+}
+.lead {
+  stroke: #ffffffd9;
+  stroke-width: 5;
+  stroke-dasharray: 6 8;
+  stroke-linecap: round;
+}
+.vp circle {
+  fill: #ffffff40;
+  stroke: #fff;
+  stroke-width: 4;
+}
+.vp path {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 2.5;
+}
+
+/* ───── 상단 · 목록 ───── */
+.top {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  top: 22px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.credits {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 20px;
+  border-radius: 14px;
+  background: #0d1824;
+  border: 2px solid #ffd16666;
+  font-size: 24px;
+}
+.credits svg {
+  width: 30px;
+  height: 30px;
+  fill: var(--gold);
+}
+.credits b {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 36px;
+  color: var(--gold);
+  min-width: 64px;
+  text-align: right;
+}
+.credits small {
+  font-size: 22px;
+  color: #b9c6d3;
+}
+.hint {
+  flex: 1;
+  font-size: 24px;
+  color: #c9d6e2;
+  text-align: center;
+}
+.mode {
+  padding: 6px 16px;
+  border-radius: 12px;
+  border: 2px solid #ffffff40;
+  font-size: 22px;
+}
+.mode[data-touch] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.palette {
+  position: absolute;
+  left: 1600px;
+  top: 112px;
+  width: 290px;
+  height: 610px;
+}
+.palTitle {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #b9c6d3;
+}
+.item {
+  position: absolute;
+  left: 0;
+  width: 290px;
+  height: 168px;
+  margin-top: -112px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: #142131;
+  border: 3px solid #2f4659;
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  grid-template-rows: 1fr 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+}
+.item[data-on] {
+  border-color: var(--accent);
+  background: #163238;
+}
+.item[data-lock] {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.itemArt {
+  grid-row: 1 / 3;
+  width: 76px;
+  height: 76px;
+}
+.item b {
+  font-size: 26px;
+  white-space: nowrap;
+}
+.meta {
+  grid-column: 1 / 3;
+  font-size: 22px;
+  color: #9fb4c9;
+  white-space: nowrap;
+}
+.cost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.item[data-lock] .cost {
+  color: var(--bad);
+  font-family: inherit;
+  font-size: 24px;
+}
+.cost svg {
+  width: 22px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+.item kbd {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  min-width: 34px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 2px solid #ffffff80;
+  font: 700 22px 'Chakra Petch', sans-serif;
+  text-align: center;
+}
+
+.pop {
+  position: absolute;
+  font: 700 32px 'Chakra Petch', sans-serif;
+  color: var(--gold);
+  text-shadow: 0 2px 4px #000;
+  pointer-events: none;
+  z-index: 60;
+}
+.note {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  translate: -50% 0;
+  max-width: 1300px;
+  padding: 10px 22px;
+  border-radius: 14px;
+  background: #050a10eb;
+  border: 2px solid #ffffff40;
+  font-size: 24px;
+  text-align: center;
+  z-index: 70;
+}
+.note[data-tone='bad'] {
+  border-color: var(--bad);
+  color: #ffc2c8;
+}
+.result {
+  position: absolute;
+  left: 1600px;
+  top: 716px;
+  width: 290px;
+  padding-top: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 22px;
+  color: #8193a6;
+}
+.row .icon {
+  width: 28px;
+  height: 28px;
+}
+.row[data-on] {
+  background: #ffffff1a;
+  color: #fff;
+  font-weight: 700;
+  outline: 2px solid #ffffff66;
+}
+.row[data-bool] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  height: auto;
+  padding: 6px 12px;
+}
+.row small {
+  font-size: 22px;
+  font-weight: 400;
+  color: #b9c6d3;
+}

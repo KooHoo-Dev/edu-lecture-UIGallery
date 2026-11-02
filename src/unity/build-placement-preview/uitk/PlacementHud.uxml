@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 건설 배치 HUD (UI Toolkit). 월드 쪽 고스트 · 사거리는 UGUI 판과 같은 PlacementController 가 그린다 -->
+    <Style src="PlacementHud.uss" />
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement class="top" picking-mode="Ignore">
+            <ui:VisualElement class="credits" picking-mode="Ignore">
+                <ui:Label name="credits" class="credits__value" text="260" picking-mode="Ignore" />
+                <ui:Label class="credits__label" text="크레딧" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="hint" class="hint" text="건물을 고르세요" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <!-- 건물 목록. C# 가 BuildingData 마다 Button 을 만들어 넣는다 -->
+        <ui:VisualElement name="palette" class="palette" />
+        <!-- 고스트 위 사유 문구. C# 가 매 프레임 월드 좌표를 패널 좌표로 바꿔 left · top 을 옮긴다 -->
+        <ui:VisualElement name="reason" class="reason" picking-mode="Ignore">
+            <ui:VisualElement name="reason-icon" class="reason__icon" picking-mode="Ignore" />
+            <ui:Label name="reason-text" class="reason__text" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <!-- 터치 2단계: 손을 뗀 뒤에만 보인다 -->
+        <ui:VisualElement name="confirm" class="confirm">
+            <ui:Button name="confirm-ok" class="confirm__ok" text="확인" />
+            <ui:Button name="confirm-no" class="confirm__no" text="취소" />
+        </ui:VisualElement>
+        <ui:Label name="note" class="note" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>
