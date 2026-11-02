@@ -61,13 +61,13 @@ namespace UIGallery.DamageNumbers
         public float BadgeHeight => badgeHeight;
 
         public void Play(Transform anchor, Vector2 localPos, Vector2 offset, Vector2 dir, long amount,
-                         DamageCategoryStyle s, DamageNumberSettings set, Action<DamageNumberView> finished)
+                         DamageCategoryStyle s, DamageNumberSettings set, Action<DamageNumberView> onDone)
         {
             Anchor = anchor;
             Category = s.category;
             style = s;
             settings = set;
-            onFinished = finished;
+            onFinished = onDone;
             basePos = localPos + offset;
             riseDir = dir;
             push = pushShown = 0f;

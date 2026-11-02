@@ -9,7 +9,7 @@
             <ui:VisualElement name="quest-list" picking-mode="Ignore" />
         </ui:VisualElement>
 
-        <!-- 일시 정보: 토스트 스택. 쌓이는 방향은 클래스만 바꾼다 (--left-up / --right-down / --bottom-center-up) -->
+        <!-- 일시 정보: 토스트 스택. 쌓이는 방향은 클래스만 바꾼다 (수식 클래스 left-up / right-down / bottom-center-up) -->
         <ui:VisualElement name="toast-dock" class="toast-dock toast-dock--left-up" picking-mode="Ignore">
             <ui:VisualElement name="toast-stack" class="toast-stack" picking-mode="Ignore" />
             <ui:Label name="toast-overflow" class="toast-overflow toast-overflow--hidden" text="+0 대기" picking-mode="Ignore" />

@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- 카드 한 장 템플릿. 종류는 .card--attack / .card--skill, 못 쓰면 .card--unplayable -->
+    <!-- 카드 한 장 템플릿. 종류는 .card 의 수식 클래스 attack / skill, 못 쓰면 unplayable (이름은 USS 참고) -->
     <ui:VisualElement name="card" class="card" picking-mode="Ignore">
         <ui:Label name="cost" class="card__cost" picking-mode="Ignore" />
         <ui:VisualElement name="aim" class="card__aim" picking-mode="Ignore" />

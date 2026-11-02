@@ -128,6 +128,7 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
   - Unity 6 은 C# 9 라 `namespace X;` (파일 범위) 를 못 쓴다. `namespace X { … }` 블록으로 감싼다.
   - UGUI · UI Toolkit 두 폴더는 같은 namespace 다. UI Toolkit 판이 UGUI 폴더의 데이터 클래스를 `using` 없이 그대로 쓴다.
   - `[UxmlElement]` 요소는 UXML 에 namespace 를 포함한 이름으로 쓴다 (`<UIGallery.DialogueChoices.SkewFrame />`).
+- UXML 주석 `<!-- -->` 안에 `--` 를 쓰지 않는다. XML 규칙이라 Unity 가 그 UXML 을 임포트하지 못한다. BEM 수식 클래스(`.card--rare`)를 주석에 적을 때 특히 주의한다 ("`.card` 의 수식 클래스 rare" 처럼 쓴다). `python tools/check.py` 가 UXML 을 XML 로 읽어 확인한다.
 
 ## 9. 검사 체크리스트
 

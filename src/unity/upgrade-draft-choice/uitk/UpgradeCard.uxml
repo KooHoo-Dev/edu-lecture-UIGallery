@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- 카드 한 장 템플릿. 희귀도는 .card--common / .card--rare / .card--epic 클래스로 (색 + 모양) -->
+    <!-- 카드 한 장 템플릿. 희귀도는 .card 의 수식 클래스 common / rare / epic 으로 (색 + 모양) -->
     <ui:Button name="card" class="card">
         <ui:VisualElement class="card__head" picking-mode="Ignore">
             <ui:VisualElement name="rarity-shape" class="card__shape" picking-mode="Ignore" />

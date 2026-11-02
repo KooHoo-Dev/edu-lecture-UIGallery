@@ -12,6 +12,8 @@
      - gzip 은 GitHub Pages 가 실제로 보내는 양, 원본은 '오프라인용 HTML 받기' 파일 크기
      - 표본별로 얼마나 늘었는지는 node tools/size.mjs
   6. 네트워크를 완전히 막은 헤드리스 Chrome 으로 file:// 실행 → 모든 표본 제목이 렌더되는지
+  7. Unity 파일: UXML 이 올바른 XML 인지 (예: 주석 속 '--' 는 Unity 가 임포트하지 못한다),
+     C# 가 namespace UIGallery.<표본> 안에 있는지 (specimen-guide 8절)
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
@@ -80,6 +83,17 @@ def check_specimens() -> list[tuple[str, str]]:
                 warn(f"{d.name}: Unity {kind} 코드 없음")
         found.append((d.name, m_title.group(1) if m_title else d.name))
     return found
+
+
+def check_unity_files() -> None:
+    for f in sorted((SRC / "unity").rglob("*.uxml")):
+        try:
+            ElementTree.parse(f)
+        except ElementTree.ParseError as e:
+            err(f"UXML 이 올바른 XML 이 아님 (Unity 가 임포트하지 못함): {f.relative_to(ROOT)} — {e}")
+    for f in sorted((SRC / "unity").rglob("*.cs")):
+        if not re.search(r"^namespace UIGallery\.\w+\s*$", f.read_text(encoding="utf-8"), re.M):
+            err(f"C# 가 namespace UIGallery.<표본> 블록 밖에 있음: {f.relative_to(ROOT)}")
 
 
 IMPORT_RE = re.compile(r"""(?:import|export)[^'"]*?from\s*['"](\.[^'"]+)['"]|import\(\s*['"](\.[^'"]+)['"]""")
@@ -193,6 +207,7 @@ def main() -> int:
     check_bitmaps()
     titles = check_specimens()
     print(f"  표본 {len(titles)}개")
+    check_unity_files()
     check_import_case()
     check_dist(titles)
     if "--links" in sys.argv:

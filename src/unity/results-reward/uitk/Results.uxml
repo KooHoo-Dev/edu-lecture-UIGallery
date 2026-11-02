@@ -15,7 +15,7 @@
         <ui:VisualElement name="panel" class="panel">
             <UIGallery.ResultsReward.SlantedBox class="panel__frame" skew-deg="6" />
             <ui:Label name="page-title" class="page-title" />
-            <!-- .row 는 코드로 생성 → 한 프레임 뒤 .row--shown 을 붙여 transition 으로 등장 -->
+            <!-- .row 는 코드로 생성 → 한 프레임 뒤 .row 의 수식 클래스 shown 을 붙여 transition 으로 등장 -->
             <ui:VisualElement name="rows" class="rows" />
             <ui:VisualElement name="total" class="total">
                 <ui:Label name="total-label" class="total__label" text="합계" />

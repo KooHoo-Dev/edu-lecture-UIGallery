@@ -53,8 +53,8 @@ namespace UIGallery.SkillCooldownPrompt
         [SerializeField] float hasteSeconds = 6f;
         [SerializeField] PlayerInput playerInput;    // 선택: 연결하면 마지막 입력 장치를 따라간다
 
-        VisualElement hud, energyFill, costMarker, hasteChip;
-        Label energyLabel, toast;
+        VisualElement hud, energyFill, costMarker;
+        Label energyLabel, toast, hasteChip;
         float hasteTimer, toastTimer, lastSwitch = -10f;
         int lastEnergyShown = -1;   // 에너지 숫자는 정수값이 바뀔 때만 다시 쓴다
         Device device = Device.Keyboard;
@@ -68,7 +68,7 @@ namespace UIGallery.SkillCooldownPrompt
             hud = GetComponent<UIDocument>().rootVisualElement.Q("hud");
             energyFill = hud.Q("energy-fill");
             costMarker = hud.Q("cost-marker");
-            hasteChip = hud.Q("haste-chip");
+            hasteChip = hud.Q<Label>("haste-chip");
             energyLabel = hud.Q<Label>("energy-label");
             toast = hud.Q<Label>("toast");
 
