@@ -1,0 +1,747 @@
+/* ───────────────────────── 박자 표시 · 판정 피드백 ─────────────────────────
+ * 논리 해상도 1920×1080. 가운데 레인(레인 하나 150px) · 왼쪽 곡 시계 · 오프셋 보정 · 오른쪽 정확도 · 생명.
+ * 매 프레임 값은 index.tsx 가 transform · CSS 변수(--pulse · --op · --pop · --good …)로 직접 바꾼다.
+ * 등급 색: PERFECT 금 · GREAT 하늘 · GOOD 초록 · MISS 빨강 · 놓침 회색 — 모양(◆ ● ▲ ✕ ○)과 글자를 늘 같이 쓴다.
+ * ──────────────────────────────────────────────────────────────── */
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  outline: none;
+  user-select: none;
+  touch-action: manipulation;
+  color: #eef2f8;
+  font-family: 'Chakra Petch', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background: radial-gradient(ellipse 60% 70% at 50% 40%, rgba(40, 70, 120, 0.35), transparent 70%), linear-gradient(180deg, #070b16, #0b1222 60%, #070a12);
+  --perfect: #ffd75e;
+  --great: #5fd3ff;
+  --good: #7be38a;
+  --miss: #ff5a6a;
+  --lost: #b4bccb;
+  --early: #82b4ff;
+  --late: #ffa24f;
+  --muted: #9aa6b8;
+  --panel: rgba(10, 15, 27, 0.88);
+}
+.root:focus-visible {
+  outline: 4px solid var(--great);
+  outline-offset: -4px;
+}
+.root :where(button) {
+  font: inherit;
+  color: inherit;
+}
+
+/* ───── 레인 ───── */
+.highway {
+  position: absolute;
+  top: 100px;
+  height: 840px;
+  background: rgba(6, 10, 20, 0.86);
+  border-left: 3px solid rgba(255, 255, 255, 0.28);
+  border-right: 3px solid rgba(255, 255, 255, 0.28);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 70px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 70px);
+}
+.lane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 150px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+.lane:first-child {
+  border-left: 0;
+}
+.beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 140px;
+  height: 380px;
+  opacity: 0;
+  background: linear-gradient(0deg, rgba(140, 225, 255, 0.55), transparent);
+  pointer-events: none;
+}
+.barLine {
+  position: absolute;
+  top: 0;
+  height: 2px;
+  margin-top: -1px;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+  visibility: hidden;
+}
+.note {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 130px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #cfd9ea);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.5),
+    0 0 14px rgba(200, 225, 255, 0.45);
+  visibility: hidden;
+  pointer-events: none;
+  will-change: transform;
+}
+.note[data-inner] {
+  background: linear-gradient(180deg, #8fe3ff, #36b6ec);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.5),
+    0 0 14px rgba(95, 211, 255, 0.55);
+}
+.note[data-miss] {
+  opacity: 0.32;
+  box-shadow: none;
+}
+
+.judgeLine {
+  position: absolute;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  --pulse: 0;
+  background: rgba(255, 255, 255, calc(0.65 + var(--pulse) * 0.35));
+  box-shadow: 0 0 calc(4px + var(--pulse) * 22px) rgba(140, 225, 255, 0.9);
+  pointer-events: none;
+}
+.root:not([data-juice]) .judgeLine {
+  box-shadow: none;
+}
+
+/* 판정 창 디버그 띠 — 높이 = 창(초) ÷ 보이는 시간 × 레인 길이 × 2 */
+.band {
+  position: absolute;
+  height: 0;
+  pointer-events: none;
+}
+.band i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed;
+  border-bottom: 2px dashed;
+}
+.band i[data-w='good'] {
+  height: var(--good);
+  top: calc(var(--good) / -2);
+  background: rgba(123, 227, 138, 0.13);
+  border-color: rgba(123, 227, 138, 0.6);
+}
+.band i[data-w='great'] {
+  height: var(--great);
+  top: calc(var(--great) / -2);
+  background: rgba(95, 211, 255, 0.16);
+  border-color: rgba(95, 211, 255, 0.7);
+}
+.band i[data-w='perfect'] {
+  height: var(--perfect);
+  top: calc(var(--perfect) / -2);
+  background: rgba(255, 215, 94, 0.26);
+  border-color: rgba(255, 215, 94, 0.85);
+}
+.bandLabels {
+  position: absolute;
+  /* 띠 바로 위, 레인 오른쪽 안 — 옆 패널과 겹치지 않게 */
+  right: 18px;
+  bottom: calc(var(--good) / 2 + 6px);
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+  font-size: 22px;
+  line-height: 1.45;
+  white-space: nowrap;
+  background: rgba(6, 10, 20, 0.8);
+  border-radius: 8px;
+}
+.bandLabels li[data-w='perfect'] {
+  color: var(--perfect);
+}
+.bandLabels li[data-w='great'] {
+  color: var(--great);
+}
+.bandLabels li[data-w='good'] {
+  color: var(--good);
+}
+
+.keys {
+  position: absolute;
+  top: 862px;
+  display: flex;
+  pointer-events: none;
+}
+.key {
+  width: 150px;
+  display: flex;
+  justify-content: center;
+  transition: transform 60ms;
+}
+.key[data-down] {
+  transform: translateY(4px) scale(0.92);
+  filter: drop-shadow(0 0 10px rgba(140, 225, 255, 0.9));
+}
+
+/* 박자 불빛 — 한 박에 한 칸. 첫 박은 동그라미(모양으로도 구분) */
+.lamp {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 22px;
+}
+.lamp b {
+  color: var(--muted);
+  margin-right: 6px;
+}
+.lamp span {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.lamp span[data-down] {
+  border-radius: 50%;
+}
+.lamp span[data-on] {
+  background: var(--perfect);
+  border-color: var(--perfect);
+  color: #1a1404;
+}
+
+.ring {
+  position: absolute;
+  left: 960px;
+  top: 470px;
+  width: 280px;
+  height: 280px;
+  margin: -140px 0 0 -140px;
+  border-radius: 50%;
+  border: 6px solid rgba(255, 215, 94, calc(0.4 + var(--pulse) * 0.6));
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 6px;
+  --pulse: 0;
+  transform: scale(calc(1 + var(--pulse) * 0.1));
+  visibility: hidden;
+  pointer-events: none;
+}
+.ring[data-on] {
+  visibility: visible;
+}
+.ring span {
+  font-size: 26px;
+}
+.ring b {
+  font-size: 44px;
+}
+
+/* ───── 판정 문구 ───── */
+.feedback {
+  position: absolute;
+  left: 960px;
+  top: 280px;
+  width: 600px;
+  margin-left: -300px;
+  text-align: center;
+  --op: 1;
+  --pop: 1;
+  opacity: var(--op);
+  pointer-events: none;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.9);
+}
+.word {
+  font-size: 76px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  min-height: 84px;
+  transform: scale(var(--pop));
+}
+.word[data-g='perfect'] {
+  color: var(--perfect);
+}
+.word[data-g='great'] {
+  color: var(--great);
+}
+.word[data-g='good'] {
+  color: var(--good);
+}
+.word[data-g='miss'] {
+  color: var(--miss);
+}
+.word[data-g='lost'] {
+  color: var(--lost);
+  font-size: 60px;
+}
+.root:not([data-juice]) .word {
+  color: #fff;
+  font-weight: 600;
+}
+.glyph {
+  display: inline-block;
+  margin-right: 0.25em;
+  font-size: 0.7em;
+  vertical-align: 0.08em;
+}
+.timing {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  visibility: hidden;
+}
+.timing[data-on] {
+  visibility: visible;
+}
+.timing[data-t='early'] {
+  color: var(--early);
+}
+.timing[data-t='late'] {
+  color: var(--late);
+}
+.combo {
+  margin-top: 6px;
+  font-size: 26px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  visibility: hidden;
+}
+.combo[data-on] {
+  visibility: visible;
+}
+.combo b {
+  display: block;
+  font-size: 56px;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+
+/* 오차 막대 — 가운데 = 정확, 왼쪽 = 이르게, 오른쪽 = 늦게 */
+.meter {
+  position: absolute;
+  left: 660px;
+  top: 952px;
+  width: 600px;
+  height: 44px;
+  pointer-events: none;
+}
+.meterZones {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 15px;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(123, 227, 138, 0.45);
+}
+.meterZones::before,
+.meterZones::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-radius: 7px;
+}
+.meterZones::before {
+  width: var(--g);
+  transform: translateX(-50%);
+  background: rgba(95, 211, 255, 0.6);
+}
+.meterZones::after {
+  width: var(--p);
+  transform: translateX(-50%);
+  background: rgba(255, 215, 94, 0.85);
+}
+.tick {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 4px;
+  height: 36px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: #fff;
+  visibility: hidden;
+}
+.tick[data-g='perfect'] {
+  background: #fff6cf;
+}
+.tick[data-g='great'] {
+  background: #c9f0ff;
+}
+.tick[data-g='good'] {
+  background: #d8ffdc;
+}
+.mean {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  width: 0;
+  height: 0;
+  margin-left: -10px;
+  border: 10px solid transparent;
+  border-bottom-color: #fff;
+  transform-origin: 10px 0;
+  margin-top: -10px;
+}
+.mean::after {
+  content: '평균 ' attr(data-v);
+  position: absolute;
+  top: 12px;
+  left: -60px;
+  width: 120px;
+  text-align: center;
+  font-size: 22px;
+  white-space: nowrap;
+}
+.meterL,
+.meterR {
+  position: absolute;
+  top: 6px;
+  font-size: 22px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+/* 막대 바깥 양옆 — 아래의 '평균' 글자와 겹치지 않게 */
+.meterL {
+  right: calc(100% + 6px);
+  color: var(--early);
+}
+.meterR {
+  left: calc(100% + 6px);
+  color: var(--late);
+}
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  margin: 0;
+  text-align: center;
+  font-size: 22px;
+  color: var(--muted);
+}
+
+/* ───── 패널 ───── */
+.panel {
+  position: absolute;
+  left: 40px;
+  width: 560px;
+  box-sizing: border-box;
+  padding: 20px 24px;
+  background: var(--panel);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  font-size: 24px;
+}
+.panel[data-right] {
+  left: auto;
+  right: 40px;
+}
+.panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.panel h3 {
+  margin: 0;
+  font-size: 28px;
+}
+.rows {
+  display: grid;
+  grid-template-columns: 136px 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  align-items: baseline;
+}
+.rows dt {
+  font-size: 22px;
+  color: var(--muted);
+}
+.rows dd {
+  margin: 0;
+  font-size: 24px;
+}
+.rows dd[data-bad] {
+  color: #ff8d8d;
+}
+.rows code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 22px;
+  color: var(--great);
+}
+.rows small {
+  font-size: 22px;
+  color: var(--muted);
+}
+.drift {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.driftBar {
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.driftBar i {
+  display: block;
+  height: 100%;
+  background: var(--miss);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn[data-on] {
+  border-color: var(--great);
+  color: var(--great);
+}
+.btn[data-primary] {
+  background: var(--perfect);
+  border-color: var(--perfect);
+  color: #1a1404;
+  font-weight: 700;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.icon {
+  width: 28px;
+  height: 28px;
+}
+.btnRow {
+  display: flex;
+  gap: 12px;
+}
+.offset {
+  font-size: 34px;
+  color: var(--perfect);
+}
+.panel[data-bad] .offset {
+  color: #ff8d8d;
+  font-size: 26px;
+}
+.ruler {
+  position: relative;
+  height: 74px;
+  margin: 4px 10px 6px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+}
+.zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  border-left: 2px dashed rgba(255, 255, 255, 0.5);
+}
+.ruler i {
+  position: absolute;
+  top: 10px;
+  width: 4px;
+  height: 34px;
+  margin-left: -2px;
+  background: var(--late);
+  border-radius: 2px;
+}
+/* 튀어서 평균에서 뺀 탭 — 속이 빈 점선 눈금 (색만이 아니라 모양으로도) */
+.ruler i[data-out] {
+  background: none;
+  border: 2px dashed var(--muted);
+  box-sizing: border-box;
+}
+.ruler em {
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  margin-left: -11px;
+  border: 11px solid transparent;
+  border-top-color: var(--perfect);
+}
+.ruler small {
+  position: absolute;
+  bottom: -30px;
+  font-size: 22px;
+  color: var(--muted);
+}
+.ruler small[data-x='l'] {
+  left: 0;
+  transform: translateX(-30%);
+}
+.ruler small[data-x='c'] {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ruler small[data-x='r'] {
+  right: 0;
+  transform: translateX(30%);
+}
+.status {
+  margin: 38px 0 14px;
+  font-size: 24px;
+  line-height: 1.4;
+  color: #d6dde8;
+  min-height: 2.8em;
+}
+.panel[data-part='gauge'] .status {
+  margin-top: 14px;
+  min-height: 0;
+}
+.acc {
+  font-size: 40px;
+}
+.counts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.counts li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 26px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.counts li b {
+  margin-left: auto;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.counts li[data-g='perfect'] {
+  color: var(--perfect);
+}
+.counts li[data-g='great'] {
+  color: var(--great);
+}
+.counts li[data-g='good'] {
+  color: var(--good);
+}
+.counts li[data-g='miss'] {
+  color: var(--miss);
+}
+.counts li[data-g='lost'] {
+  color: var(--lost);
+}
+.counts li[data-zero] {
+  opacity: 0.45;
+}
+.maxCombo {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+.maxCombo b {
+  color: #fff;
+  font-size: 30px;
+}
+.life {
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+.life i {
+  display: block;
+  height: 100%;
+  background: var(--good);
+  transform-origin: left;
+  transition: transform 160ms;
+}
+.life[data-low] i {
+  background: repeating-linear-gradient(135deg, var(--miss) 0 12px, #c23a48 12px 24px);
+}
+.panel[data-lenient] .life i {
+  background: repeating-linear-gradient(90deg, rgba(180, 188, 203, 0.55) 0 18px, transparent 18px 26px);
+}
+.panel[data-lenient] header b {
+  color: var(--good);
+}
+.toast {
+  position: absolute;
+  right: 40px;
+  top: 790px;
+  width: 560px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px 20px;
+  font-size: 24px;
+  line-height: 1.4;
+  background: rgba(16, 24, 40, 0.92);
+  border-left: 6px solid var(--great);
+  border-radius: 8px;
+  visibility: hidden;
+}
+.toast[data-on] {
+  visibility: visible;
+}
+.toast[data-bad] {
+  border-left-color: var(--miss);
+}
+.fail {
+  position: absolute;
+  left: 960px;
+  top: 470px;
+  transform: translate(-50%, -50%);
+  padding: 26px 44px;
+  text-align: center;
+  background: rgba(40, 6, 12, 0.92);
+  border: 3px solid var(--miss);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+  visibility: hidden;
+}
+.fail[data-on] {
+  visibility: visible;
+}
+.fail b {
+  font-size: 48px;
+  color: var(--miss);
+}
+.fail span {
+  font-size: 24px;
+}
+.hitch {
+  position: absolute;
+  left: 50%;
+  top: 92px;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  font-size: 24px;
+  background: var(--miss);
+  color: #fff;
+  border-radius: 8px;
+  visibility: hidden;
+}
+.root[data-hitch] .hitch {
+  visibility: visible;
+}

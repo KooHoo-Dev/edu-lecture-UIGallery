@@ -1,0 +1,54 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 박자 표시 · 판정 피드백 (UI Toolkit). 레인 · 노트 · 마디는 C# 가 #highway 안에 만든다 -->
+    <Style src="RhythmHud.uss" />
+    <ui:VisualElement name="root" class="rhythm" picking-mode="Ignore">
+        <ui:VisualElement name="lamp" class="lamp" picking-mode="Ignore">
+            <ui:Label text="박자" class="lamp__title" />
+            <ui:Label name="beat-0" text="1" class="lamp__beat lamp__beat--down" />
+            <ui:Label name="beat-1" text="2" class="lamp__beat" />
+            <ui:Label name="beat-2" text="3" class="lamp__beat" />
+            <ui:Label name="beat-3" text="4" class="lamp__beat" />
+        </ui:VisualElement>
+        <ui:VisualElement name="highway" class="highway" picking-mode="Ignore">
+            <ui:VisualElement name="lanes" class="highway__lanes" picking-mode="Ignore" />
+            <ui:VisualElement name="notes" class="highway__notes" picking-mode="Ignore" />
+            <!-- 판정 창 띠: 바깥부터 good, great, perfect -->
+            <ui:VisualElement name="band" class="band" picking-mode="Ignore">
+                <ui:VisualElement name="band-good" class="band__w band__good" />
+                <ui:VisualElement name="band-great" class="band__w band__great" />
+                <ui:VisualElement name="band-perfect" class="band__w band__perfect" />
+            </ui:VisualElement>
+            <ui:VisualElement name="judge-line" class="judge-line" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="feedback" class="feedback" picking-mode="Ignore">
+            <ui:Label name="early" text="▲ EARLY" class="feedback__timing feedback__early" />
+            <ui:Label name="word" text="" class="feedback__word" />
+            <ui:Label name="late" text="▼ LATE" class="feedback__timing feedback__late" />
+            <ui:Label name="combo" text="" class="feedback__combo" />
+        </ui:VisualElement>
+        <ui:VisualElement name="meter" class="meter" picking-mode="Ignore">
+            <ui:VisualElement class="meter__good" />
+            <ui:VisualElement class="meter__great" />
+            <ui:VisualElement class="meter__perfect" />
+            <ui:VisualElement name="meter-ticks" class="meter__ticks" />
+        </ui:VisualElement>
+        <ui:VisualElement name="calib" class="panel panel--left">
+            <ui:Label text="입력 오프셋 보정" class="panel__title" />
+            <ui:Label name="offset" text="±0 ms" class="panel__big" />
+            <ui:VisualElement name="ruler" class="ruler" />
+            <ui:Label name="calib-status" text="박자에 맞춰 8번 눌러 평균 오차를 잰다" class="panel__text" />
+            <ui:VisualElement class="panel__row">
+                <ui:Button name="calib-start" text="탭 테스트" class="btn btn--primary" />
+                <ui:Button name="calib-apply" text="적용" class="btn" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="score" class="panel panel--right" picking-mode="Ignore">
+            <ui:Label name="accuracy" text="정확도 100.0%" class="panel__big" />
+            <ui:Label name="counts" text="" class="panel__text" />
+            <ui:VisualElement class="life">
+                <ui:VisualElement name="life-fill" class="life__fill" />
+            </ui:VisualElement>
+            <ui:Label name="life-text" text="생명 100%" class="panel__text" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
