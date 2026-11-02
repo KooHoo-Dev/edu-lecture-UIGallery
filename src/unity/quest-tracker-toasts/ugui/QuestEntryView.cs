@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 트래커의 임무 블록 1개 (QuestEntry 프리팹). 들어올 때 높이를 펼치고, 완료되면 1.25초 머문 뒤 0.25초에 접힌다.

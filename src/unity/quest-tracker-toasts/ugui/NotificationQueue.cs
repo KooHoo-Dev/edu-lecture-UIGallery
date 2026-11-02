@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     // 알림 큐 — 뷰(UGUI / UI Toolkit)와 분리된 순수 C# 로직. MonoBehaviour 가 아니다.
     // 갤러리의 queue.ts 와 같은 구조라 줄 단위로 비교하며 읽을 수 있다. 이름 대응 (시간은 ms → 초):

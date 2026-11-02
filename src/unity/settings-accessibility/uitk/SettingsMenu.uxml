@@ -34,18 +34,18 @@
 
             <!-- 옵션 행: data-tab 대신 tab-N 클래스로 어느 탭인지 표시. key 는 AccessibilitySettings.Key 이름 -->
             <ui:ScrollView name="option-list" class="option-list">
-                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="글자 크기" class="row-label scaled" /><StepSelectorElement key="TextScale" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="HUD 크기" class="row-label scaled" /><StepSelectorElement key="HudSize" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="화면 중앙 점" class="row-label scaled" /><StepSelectorElement key="CenterDot" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="자막 배경" class="row-label scaled" /><StepSelectorElement key="SubtitleBg" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="화자명·방향 표시" class="row-label scaled" /><StepSelectorElement key="SpeakerCues" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="자막 글자 색" class="row-label scaled" /><StepSelectorElement key="SubtitleColor" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-2"><ui:VisualElement class="change-dot" /><ui:Label text="색각 모드" class="row-label scaled" /><StepSelectorElement key="ColorMode" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-2"><ui:VisualElement class="change-dot" /><ui:Label text="고대비 디스플레이" class="row-label scaled" /><StepSelectorElement key="HighContrast" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-3"><ui:VisualElement class="change-dot" /><ui:Label text="카메라 흔들림" class="row-label scaled" /><StepSelectorElement key="CameraShake" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-3"><ui:VisualElement class="change-dot" /><ui:Label text="모션 줄이기" class="row-label scaled" /><StepSelectorElement key="ReduceMotion" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-4"><ui:VisualElement class="change-dot" /><ui:Label text="연타 대신 길게 누르기" class="row-label scaled" /><StepSelectorElement key="HoldToPress" /></ui:VisualElement>
-                <ui:VisualElement class="option-row tab-4"><ui:VisualElement class="change-dot" /><ui:Label text="조준 보조" class="row-label scaled" /><StepSelectorElement key="AimAssist" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="글자 크기" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="TextScale" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="HUD 크기" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="HudSize" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-0"><ui:VisualElement class="change-dot" /><ui:Label text="화면 중앙 점" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="CenterDot" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="자막 배경" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="SubtitleBg" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="화자명·방향 표시" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="SpeakerCues" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-1"><ui:VisualElement class="change-dot" /><ui:Label text="자막 글자 색" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="SubtitleColor" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-2"><ui:VisualElement class="change-dot" /><ui:Label text="색각 모드" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="ColorMode" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-2"><ui:VisualElement class="change-dot" /><ui:Label text="고대비 디스플레이" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="HighContrast" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-3"><ui:VisualElement class="change-dot" /><ui:Label text="카메라 흔들림" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="CameraShake" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-3"><ui:VisualElement class="change-dot" /><ui:Label text="모션 줄이기" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="ReduceMotion" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-4"><ui:VisualElement class="change-dot" /><ui:Label text="연타 대신 길게 누르기" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="HoldToPress" /></ui:VisualElement>
+                <ui:VisualElement class="option-row tab-4"><ui:VisualElement class="change-dot" /><ui:Label text="조준 보조" class="row-label scaled" /><UIGallery.SettingsAccessibility.StepSelectorElement key="AimAssist" /></ui:VisualElement>
             </ui:ScrollView>
 
             <ui:Button name="reset" text="기본값 복원" class="reset-btn" />

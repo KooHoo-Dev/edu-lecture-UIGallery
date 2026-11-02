@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 테스트 입력 — 갤러리와 같은 숫자키 (새 Input System).

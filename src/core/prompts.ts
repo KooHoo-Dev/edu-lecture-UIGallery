@@ -36,6 +36,7 @@ export function fixedRules(system: UiSystem): string {
       : '- 화면은 `UIDocument` + UXML + USS 로 만든다. USS 에 없는 CSS 기능(gradient, filter, box-shadow 등)은 쓰지 않는다. 필요하면 이미지나 `Painter2D` 로 그린다.',
     '- 애니메이션과 타이머는 코루틴이나 `Update` 로 만든다. DOTween 같은 외부 패키지는 쓰지 않는다.',
     '- 각 파일 맨 위에 그 파일이 무엇을 하는지 한국어 주석을 둔다.',
+    '- 형식은 파일에 있는 `namespace UIGallery.…` 블록 안에 둔다. 새 파일도 같은 namespace 를 쓴다. 다른 UI 와 이름이 겹쳐도 컴파일되게 하려는 것이다. Unity 6 은 C# 9 라 `namespace X;` 한 줄 형식은 쓰지 않는다.',
     '- 이 코드는 웹 갤러리의 표본을 Unity 로 옮긴 것이다. 웹 미리보기(React) 코드는 갤러리용이라 옮기지 않았고 이 프로젝트에는 없다. 웹 쪽 수정이나 주의 사항은 적지 않는다.',
   ].join('\n')
 }

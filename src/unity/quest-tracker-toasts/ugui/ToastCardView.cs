@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 토스트 카드 1장 (ToastSlot 프리팹에 붙인다) — 두 단계 구조:

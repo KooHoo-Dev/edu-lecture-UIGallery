@@ -2,23 +2,26 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// 대화 기록 한 줄 (프리팹 루트에 붙인다). MonoBehaviour 는 클래스 이름과 파일 이름이 같아야 컴포넌트로 붙는다.
-/// </summary>
-public class LogEntry : MonoBehaviour
+namespace UIGallery.DialogueChoices
 {
-    [SerializeField] Image icon;
-    [SerializeField] TMP_Text who;
-    [SerializeField] TMP_Text body;
-
-    public void Set(string speaker, string role, Sprite face, string text)
+    /// <summary>
+    /// 대화 기록 한 줄 (프리팹 루트에 붙인다). MonoBehaviour 는 클래스 이름과 파일 이름이 같아야 컴포넌트로 붙는다.
+    /// </summary>
+    public class LogEntry : MonoBehaviour
     {
-        if (icon != null)
+        [SerializeField] Image icon;
+        [SerializeField] TMP_Text who;
+        [SerializeField] TMP_Text body;
+
+        public void Set(string speaker, string role, Sprite face, string text)
         {
-            icon.sprite = face;
-            icon.enabled = face != null;
+            if (icon != null)
+            {
+                icon.sprite = face;
+                icon.enabled = face != null;
+            }
+            if (who != null) who.text = string.IsNullOrEmpty(role) ? speaker : $"{speaker}  <size=80%><color=#9AA3AE>{role}</color></size>";
+            body.text = text;
         }
-        if (who != null) who.text = string.IsNullOrEmpty(role) ? speaker : $"{speaker}  <size=80%><color=#9AA3AE>{role}</color></size>";
-        body.text = text;
     }
 }

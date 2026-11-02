@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 토스트 스택 — UGUI 뷰. NotificationQueue(순수 로직)를 만들고 OnShow / OnUpdate / OnHide 만 받아 그린다.

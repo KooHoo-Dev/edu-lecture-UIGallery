@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 우선 배너 — 임무 완료처럼 최상위 알림만 쓰는 별도 채널 (일반 토스트 큐와 분리).

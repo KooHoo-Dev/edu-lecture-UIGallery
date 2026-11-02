@@ -221,7 +221,7 @@ Assets: AccessibilitySettings.asset · Defaults.asset · Preset_Vision/Hearing/M
    └─ #reset-dialog.scrim.hidden > .dialog > #dlg-tab · #dlg-all · #dlg-cancel
 (AccessibilitySettings.cs · AccessibilityPreset.cs 는 ugui 폴더의 것을 함께 쓴다)`,
       steps: [
-        '`StepSelectorElement` 는 `[UxmlElement]` 커스텀 컨트롤(◀ 값 ▶)이다. `NavigationMoveEvent` 의 좌우에서 값을 바꾸고 `StopPropagation()` + `focusController.IgnoreEvent(evt)` 로 소비한다. 위아래는 그대로 두어 포커스 이동에 쓴다.',
+        '`StepSelectorElement` 는 `[UxmlElement]` 커스텀 컨트롤(◀ 값 ▶)이다. `NavigationMoveEvent` 의 좌우에서 값을 바꾸고 `StopPropagation()` + `focusController.IgnoreEvent(evt)` 로 소비한다. 위아래는 그대로 두어 포커스 이동에 쓴다. 코드가 `UIGallery.SettingsAccessibility` namespace 안에 있으므로 UXML 에는 `<UIGallery.SettingsAccessibility.StepSelectorElement>` 처럼 namespace 를 포함한 이름으로 쓴다.',
         '런타임 설정 복사본(`Instantiate`)은 `Awake` 에서 한 번만 만든다. `OnEnable` 은 UIDocument 가 새로 만든 트리에서 행·탭 목록을 **비우고 다시 모으고**, 입력 액션은 메서드로 `+=` 해 `OnDisable` 에서 `-=` 한다.',
         '`SettingsMenuUITK` 가 데이터의 `Changed` 에서 루트 클래스(`cb-deutan`, `high-contrast`, `reduce-motion`)를 `EnableInClassList` 로 바꾼다. 역할 색은 USS 변수(`--c-ally` 등)라 클래스 하나로 하위 전체가 바뀐다.',
         '변경 점은 행에 `.changed` 클래스, 탭 배지는 `.badge` 텍스트와 `.zero` 클래스로 갱신한다.',

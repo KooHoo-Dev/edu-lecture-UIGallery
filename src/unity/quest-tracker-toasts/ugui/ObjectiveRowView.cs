@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 목표 행 1줄 (ObjectiveRow 프리팹). 진행이 바뀌면 '이 행만' 짧게 알린다:

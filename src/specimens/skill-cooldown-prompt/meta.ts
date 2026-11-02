@@ -237,7 +237,7 @@ EventSystem (InputSystemUIInputModule)`,
 
       steps: [
         'Panel Settings 의 Scale Mode 를 `Scale With Screen Size`, Reference Resolution 을 `1920×1080` 으로 맞춘다.',
-        '`RadialCooldown.cs` 는 `[UxmlElement] public partial class RadialCooldown : VisualElement`. 생성자에서 `generateVisualContent += Draw` 를 등록하고, `progress` 속성의 setter 에서 값이 바뀔 때만 `MarkDirtyRepaint()` 한다.',
+        '`RadialCooldown.cs` 는 `[UxmlElement] public partial class RadialCooldown : VisualElement`. 생성자에서 `generateVisualContent += Draw` 를 등록하고, `progress` 속성의 setter 에서 값이 바뀔 때만 `MarkDirtyRepaint()` 한다. 코드가 `UIGallery.SkillCooldownPrompt` namespace 안에 있으므로 UXML 에는 `<UIGallery.SkillCooldownPrompt.RadialCooldown>` 처럼 namespace 를 포함한 이름으로 쓴다.',
         '`Draw` 에서 `painter2D.Arc(center, r, Angle.Degrees(-90 + 360 * (1 - progress)), Angle.Degrees(270), ArcDirection.Clockwise)` 로 "바늘 → 12시" 구간만 칠하면 UGUI(Clockwise 끔)와 같은 **시계 방향**으로 걷힌다.',
         '`SkillBarUITK.cs` 의 `Update` 에서 각 슬롯의 남은 비율을 줄이고 `radial.progress` 와 `.slot__vmask` 의 `style.height = Length.Percent(비율 × 100)` 을 넣는다.',
         '못 쓰는 이유는 슬롯 클래스로 나눈다: `.slot--cooling`(덮개+숫자) · `.slot--no-energy`(아이콘 틴트 회색 + `.slot__lock` 표시) · `.slot--empty`(빈 점 + 덮개). 거부 시 `.slot--hot-<이유>` 를 붙여 이유 표시를 키우고, `style.translate` 로 240ms 흔든 뒤 뗀다.',

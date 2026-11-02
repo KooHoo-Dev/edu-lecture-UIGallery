@@ -194,7 +194,7 @@ VitalsController (DiegeticVitalsUITK.cs, DiegeticVitalsUITKDemo.cs)`,
         'PanelSettings 를 두 개 만든다. **PanelSettings_RT** 는 Target Texture 에 RT_Vitals(256×768)를 지정하고 Clear Color 를 켜되 알파를 0 으로, **PanelSettings_Screen** 은 일반 화면용이다.',
         'BackQuad 용 Shader Graph(URP Unlit, Transparent)에서 RT 의 RGB × `_Intensity`(HDR)를 Base Color 에, A 를 Alpha 에 연결한다. URP Unlit 에는 Emission 슬롯이 없어 강도를 직접 곱한다.',
         '`DiegeticVitalsUITK.cs` 의 `OnEnable` 에서 `rootVisualElement` 를 얻고 `#spine-gauge` 에 `VitalsCell` 을 칸 수만큼 추가한다. 육각형과 사선 무늬는 `Painter2D` 로 그린다 (비트맵 없음).',
-        '`EnergyArcElement` 는 `[UxmlElement]` 커스텀 요소다. `generateVisualContent` 에서 `painter2D.Arc(중심, 반지름, Angle.Degrees(180), Angle.Degrees(180 − 180 × fill), ArcDirection.CounterClockwise)` 로 아래 반원을 그리고, 값이 바뀌면 `MarkDirtyRepaint()`.',
+        '`EnergyArcElement` 는 `[UxmlElement]` 커스텀 요소다. `generateVisualContent` 에서 `painter2D.Arc(중심, 반지름, Angle.Degrees(180), Angle.Degrees(180 − 180 × fill), ArcDirection.CounterClockwise)` 로 아래 반원을 그리고, 값이 바뀌면 `MarkDirtyRepaint()`. 코드가 `UIGallery.DiegeticVitalsSample` namespace 안에 있으므로 UXML 에는 `<UIGallery.DiegeticVitalsSample.EnergyArcElement>` 처럼 namespace 를 포함한 이름으로 쓴다.',
         '산소는 `.o2--hidden` 클래스를 넣고 빼는 것만으로 등장·퇴장한다 (USS `transition` 이 opacity·scale 을 보간). 치명 맥동은 레이아웃에 영향이 없는 `style.opacity` 에만 매 프레임 쓴다.',
       ],
       pitfalls: [

@@ -217,7 +217,7 @@ export const meta: SpecimenMeta = {
    └─ Label #hint.hint
 (ResultData.cs 는 ugui 폴더의 것을 함께 쓴다)`,
       steps: [
-        '`SlantedBox` 는 `[UxmlElement]` 커스텀 컨트롤이다. `generateVisualContent` 에서 `Painter2D` 로 평행사변형을 채워 USS 에 없는 skew 를 대신한다. 채움·윗변 색은 `[UxmlAttribute]` 라 UXML 에서 `fill-color="#FFB547"` 처럼 지정한다(배너 띠는 강조색 + 어두운 글자). 글자는 일반 Label 이라 반듯하다.',
+        '`SlantedBox` 는 `[UxmlElement]` 커스텀 컨트롤이다. `generateVisualContent` 에서 `Painter2D` 로 평행사변형을 채워 USS 에 없는 skew 를 대신한다. 채움·윗변 색은 `[UxmlAttribute]` 라 UXML 에서 `fill-color="#FFB547"` 처럼 지정한다(배너 띠는 강조색 + 어두운 글자). 글자는 일반 Label 이라 반듯하다. 코드가 `UIGallery.ResultsReward` namespace 안에 있으므로 UXML 에는 `<UIGallery.ResultsReward.SlantedBox>` 처럼 namespace 를 포함한 이름으로 쓴다.',
         '행은 코드로 만들어 `#rows` 에 넣고, `schedule.Execute(() => row.AddToClassList("row--shown")).StartingIn(stagger * i)` 로 차례로 켠다. 등장 모션은 USS `transition`(opacity · translate, `ease-out-cubic`)이 맡는다.',
         '숫자는 코루틴(unscaledDeltaTime)에서 표시값이 바뀔 때만 `Label.text` 를 갱신하고, 끝에 목표값을 그대로 넣는다.',
         '입력은 UGUI 판과 같이 `performed` 한 곳에서 받아 `ConsumePress()` 로 한 단계에 한 번만 쓴다.',

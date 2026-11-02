@@ -4,7 +4,7 @@
     <ui:VisualElement name="root" class="results">
         <ui:VisualElement name="banner" class="banner">
             <!-- 호박색 띠 + 어두운 글자 (기본 채움색은 짙은 청록이라 '승리' 글자가 묻힌다 → 강조색을 지정) -->
-            <SlantedBox class="banner__slash" skew-deg="14" fill-color="#FFB547" edge-color="#36D6C3" />
+            <UIGallery.ResultsReward.SlantedBox class="banner__slash" skew-deg="14" fill-color="#FFB547" edge-color="#36D6C3" />
             <ui:Label class="banner__word" text="승리" />
             <ui:Label name="mission" class="banner__mission" />
         </ui:VisualElement>
@@ -13,7 +13,7 @@
         <ui:VisualElement name="party" class="party" />
 
         <ui:VisualElement name="panel" class="panel">
-            <SlantedBox class="panel__frame" skew-deg="6" />
+            <UIGallery.ResultsReward.SlantedBox class="panel__frame" skew-deg="6" />
             <ui:Label name="page-title" class="page-title" />
             <!-- .row 는 코드로 생성 → 한 프레임 뒤 .row--shown 을 붙여 transition 으로 등장 -->
             <ui:VisualElement name="rows" class="rows" />

@@ -20,7 +20,7 @@
             <ui:VisualElement name="slot-primary" class="slot">
                 <ui:VisualElement class="slot__clip">
                     <ui:VisualElement class="slot__icon" picking-mode="Ignore" />
-                    <RadialCooldown class="slot__sweep" picking-mode="Ignore" />
+                    <UIGallery.SkillCooldownPrompt.RadialCooldown class="slot__sweep" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__vmask" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__glint" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -40,7 +40,7 @@
             <ui:VisualElement name="slot-dash" class="slot">
                 <ui:VisualElement class="slot__clip">
                     <ui:VisualElement class="slot__icon" picking-mode="Ignore" />
-                    <RadialCooldown class="slot__sweep" picking-mode="Ignore" />
+                    <UIGallery.SkillCooldownPrompt.RadialCooldown class="slot__sweep" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__vmask" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__glint" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -64,7 +64,7 @@
             <ui:VisualElement name="slot-utility" class="slot">
                 <ui:VisualElement class="slot__clip">
                     <ui:VisualElement class="slot__icon" picking-mode="Ignore" />
-                    <RadialCooldown class="slot__sweep" picking-mode="Ignore" />
+                    <UIGallery.SkillCooldownPrompt.RadialCooldown class="slot__sweep" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__vmask" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__glint" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -84,7 +84,7 @@
             <ui:VisualElement name="slot-ult" class="slot slot--ult">
                 <ui:VisualElement class="slot__clip">
                     <ui:VisualElement class="slot__icon" picking-mode="Ignore" />
-                    <RadialCooldown class="slot__sweep" picking-mode="Ignore" />
+                    <UIGallery.SkillCooldownPrompt.RadialCooldown class="slot__sweep" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__vmask" picking-mode="Ignore" />
                     <ui:VisualElement class="slot__glint" picking-mode="Ignore" />
                 </ui:VisualElement>

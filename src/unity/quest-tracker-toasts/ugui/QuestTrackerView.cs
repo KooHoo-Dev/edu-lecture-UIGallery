@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-namespace UIGallery.QuestToasts
+namespace UIGallery.QuestTrackerToasts
 {
     /// <summary>
     /// 퀘스트 트래커 (고정 정보) — 화면 가장자리 한자리에 고정. 위치와 크기를 바꾸지 않아 시선이 습관처럼 돌아온다.

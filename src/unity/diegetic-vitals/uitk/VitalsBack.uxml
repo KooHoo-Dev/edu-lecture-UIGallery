@@ -9,6 +9,6 @@
         <!-- VitalsCell 은 C# 에서 segmentCount 만큼 생성 (아래 칸부터 차례로) -->
         <ui:VisualElement name="spine-gauge" class="spine" />
         <!-- [UxmlElement] 커스텀 요소. 네임스페이스 안에 두면 접두어가 필요하다 -->
-        <EnergyArcElement name="energy-arc" class="arc" fill="0.8" line-width="22" />
+        <UIGallery.DiegeticVitalsSample.EnergyArcElement name="energy-arc" class="arc" fill="0.8" line-width="22" />
     </ui:VisualElement>
 </ui:UXML>

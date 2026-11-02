@@ -20,7 +20,7 @@
         <ui:VisualElement name="tooltip-layer" class="tooltip-layer" picking-mode="Ignore">
             <ui:VisualElement name="tooltip" class="tooltip" picking-mode="Ignore">
                 <ui:VisualElement class="tt-head" picking-mode="Ignore">
-                    <RarityMarkElement name="tt-mark" class="mark" picking-mode="Ignore" />
+                    <UIGallery.InventoryGridTooltip.RarityMarkElement name="tt-mark" class="mark" picking-mode="Ignore" />
                     <ui:Label name="tt-rarity" class="tt-rarity" picking-mode="Ignore" />
                     <ui:Label name="tt-kind" class="tt-kind" picking-mode="Ignore" />
                     <ui:Label name="tt-badge" text="장착 중" class="tt-badge" picking-mode="Ignore" />

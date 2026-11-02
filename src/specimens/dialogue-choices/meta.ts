@@ -188,7 +188,7 @@ Assets: DialogueData.asset (Create → UI Gallery → Dialogue Data) · Dialogue
    └─ #log.dlg-log (--hidden) > .dlg-log__head · ScrollView #log-scroll
 (DialogueData.cs 는 ugui 폴더의 것을 함께 쓴다)`,
       steps: [
-        '`SkewFrame` 은 `[UxmlElement]` 커스텀 요소다. USS 에 skew 가 없으므로 `generateVisualContent` 에서 `painter2D` 로 평행사변형을 채우고 테두리를 그린다. 색은 USS 사용자 정의 속성 `--frame-fill` · `--frame-border` 로 바꾼다.',
+        '`SkewFrame` 은 `[UxmlElement]` 커스텀 요소다. USS 에 skew 가 없으므로 `generateVisualContent` 에서 `painter2D` 로 평행사변형을 채우고 테두리를 그린다. 색은 USS 사용자 정의 속성 `--frame-fill` · `--frame-border` 로 바꾼다. 코드가 `UIGallery.DialogueChoices` namespace 안에 있으므로 UXML 에는 `<UIGallery.DialogueChoices.SkewFrame>` 처럼 namespace 를 포함한 이름으로 쓴다.',
         '타자기: Label 에는 `maxVisibleCharacters` 가 없다. `"보이는 부분" + "<alpha=#00>" + "남은 부분"` 을 `text` 에 넣어 문장 전체를 배치하고 경계만 옮긴다 → 줄바꿈 위치가 처음부터 고정된다.',
         '선택지 Button 은 코드로 만들고 `clicked` 와 `NavigationSubmitEvent` 를 **둘 다** `OnChoice` 로 연결한다(중복은 상태 검사로 무시). `PointerEnterEvent` 에서 `Focus()` 해 마우스와 패드의 포커스를 하나로 맞춘다.',
         '선택지를 연 프레임에는 아직 배치 전이라 `Focus()` 가 실패할 수 있다 → `schedule.Execute` 로 한 프레임 뒤 첫 버튼에 포커스. 순차 등장은 `.dlg-choice--enter` 를 50ms 씩 늦게 떼어 USS 전환으로.',

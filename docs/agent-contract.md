@@ -41,4 +41,5 @@ UI Gallery 작업에 참여하는 모든 서브에이전트가 따르는 규칙.
   - `Rigidbody.velocity` → `linearVelocity`
   - `Input.GetKey`, `Input.GetAxis` 등 구 Input Manager → Input System
 - 기본 코드는 코루틴이나 `Update`로 작성한다. DOTween 같은 외부 패키지는 '선택' 메모로만 언급한다.
+- 모든 C# 는 표본별 `namespace UIGallery.<PascalCase 표본 id>` 블록 안에 둔다. 자세한 규칙은 [specimen-guide.md](specimen-guide.md) 8절.
 - 스니펫은 실제 파일(`.cs`, `.uxml`, `.uss`)로 둔다. 강사가 Unity에서 컴파일을 확인한다.

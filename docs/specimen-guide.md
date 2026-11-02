@@ -123,6 +123,11 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 - 금지: `FindObjectOfType`, `Rigidbody.velocity`, 구 Input Manager (`Input.GetKey` 등).
 - UI Toolkit: `UIDocument` + UXML + USS. USS 에 없는 CSS 기능(gradient, filter, box-shadow 등)을 쓰지 않는다.
 - 각 파일 상단에 무엇을 하는지 한국어 주석. 외부 패키지(DOTween 등)는 쓰지 않는다.
+- 모든 C# 는 `namespace UIGallery.<PascalCase 표본 id>` 안에 둔다 (예: `card-hand-targeting` → `UIGallery.CardHandTargeting`). 학생이 여러 표본을 한 프로젝트에 넣어도 같은 이름(`SkewEffect`, `Rarity` …)이 부딪치지 않게 하려는 것이다.
+  - 표본 안에 namespace 와 같은 이름의 형식이 있으면 끝에 `Sample` 을 붙인다 (`HealthBarTrail` 클래스 → `UIGallery.HealthBarTrailSample`). 형식과 namespace 이름이 같으면 이름 찾기가 헷갈린다.
+  - Unity 6 은 C# 9 라 `namespace X;` (파일 범위) 를 못 쓴다. `namespace X { … }` 블록으로 감싼다.
+  - UGUI · UI Toolkit 두 폴더는 같은 namespace 다. UI Toolkit 판이 UGUI 폴더의 데이터 클래스를 `using` 없이 그대로 쓴다.
+  - `[UxmlElement]` 요소는 UXML 에 namespace 를 포함한 이름으로 쓴다 (`<UIGallery.DialogueChoices.SkewFrame />`).
 
 ## 9. 검사 체크리스트
 
