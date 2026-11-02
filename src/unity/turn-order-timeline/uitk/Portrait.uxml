@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 타임라인 칸 하나. 아군 · 적은 .portrait 의 수식 클래스(ally · enemy)로 틀 모양과 색을 함께 바꾼다 -->
+    <Style src="TurnOrder.uss" />
+    <ui:VisualElement name="portrait" class="portrait" picking-mode="Ignore">
+        <ui:VisualElement class="portrait__frame" picking-mode="Ignore">
+            <ui:VisualElement class="portrait__body" picking-mode="Ignore" />
+            <ui:VisualElement class="portrait__bolt" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement class="portrait__info" picking-mode="Ignore">
+            <ui:Label class="portrait__name" picking-mode="Ignore" />
+            <ui:Label class="portrait__value" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:Label class="portrait__badge" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,82 @@
+{
+  "specimen_id": "turn-order-timeline",
+  "name_ko": "턴 순서 타임라인",
+  "name_en": "Turn Order Timeline",
+  "group": "A",
+  "paradigm": "non-diegetic",
+  "source_candidate": "research/next-batch-candidates.json 의 turn-order-timeline (강도 5). docs/next-specimens-research.md 2순위 #10",
+  "scope_decision_ko": "후보 설명대로 행동값 정렬 · 미끄러지는 재정렬 · 끼어들기를 핵심으로 두고, 속도 변화(이후 모든 차례 간격)와 행동 앞당김(다음 한 번만)을 따로 이벤트로 나눠 차이가 보이게 했다. 버프 · 둔화는 2턴 지속으로 해 반복 등장하는 칸까지 바뀌게 했다(1턴이면 바로 다음 차례만 바뀌어 시연이 약하다). '전투 큐(모델)와 뷰 분리' 를 화면에서도 보이게 모델 값을 표로 그린 디버그 창을 두었다(게임 화면 요소가 아니라고 명시). 후보의 'UITK ListView' 제안은 재정렬 보간에 맞지 않아 absolute + translate 로 대신하고 그 이유를 함정으로 적었다. 자동 전투 · 배속 토글(보류 후보)은 넣지 않았다 — 갤러리 재생 바의 배속이 같은 역할을 한다.",
+  "why_ko": [
+    "기존 표본에 턴제 전투의 순서 UI 가 없고, 수강생 팀 프로젝트(수집형 · 턴제 RPG)에서 자주 만든다",
+    "행동값 = 기준 거리 ÷ 속도 계산과 미리보기 시뮬레이션(복사본으로 시간 흘리기)이 작은 코드로 정리된다",
+    "LayoutGroup 대신 직접 배치 + 보간, key 로 같은 뷰 유지, 풀 재사용이라는 리스트 UI 의 일반 기법을 연습한다",
+    "숨은 수치를 보일지(학습 곡선 대 정보 밀도) 토론할 거리가 있다"
+  ],
+  "teaching_points_ko": [
+    "행동값 = 남은 거리 ÷ 속도, 가장 작은 유닛이 행동하고 그 시간만큼 모두의 거리가 준다, 행동한 유닛만 기준 거리로 되돌린다",
+    "속도 변화는 남은 거리를 두고 속도만 바꿔 이후 차례 간격이 바뀌고, 앞당김 · 지연은 남은 거리를 바꿔 다음 한 번만 바뀐다",
+    "끼어들기(추가 행동)는 별도 목록 — 시간이 흐르지 않고 지금 차례 다음에 실행, 정규 차례와 모양 · 글자로 구분",
+    "미리보기는 원본이 아니라 복사본으로 시뮬레이션하고, 버프가 끝나는 것까지 같은 규칙으로",
+    "차례마다 영구 key(id:번호) → 같은 뷰를 지금 자리에서 새 자리로 보간 (UGUI anchoredPosition / UITK style.translate)",
+    "바뀐 칸 알림은 이벤트 전후 미리보기를 key 로 비교해 '몇 칸 앞 · 뒤' 를 글자 + 색으로",
+    "같은 간격(순서만) 대 행동값 비례(최소 간격 + 비례 나머지)의 가독성 트레이드오프"
+  ],
+  "evidence": [
+    {
+      "claim_ko": "Honkai: Star Rail 에서 행동값은 10000 을 캐릭터 속도로 나눈 값이고, 작을수록 먼저 행동한다",
+      "source": "https://beebom.com/honkai-star-rail-speed-breakpoints-explained/amp/",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Honkai: Star Rail 의 행동 앞당김 공식(남은 게이지 − 10000 × (앞당김% − 지연%))",
+      "source": "https://beebom.com/honkai-star-rail-speed-breakpoints-explained/amp/ (검색 요약에서 커뮤니티 계산으로 소개됨)",
+      "tier": "T3",
+      "confidence": "unverified"
+    },
+    {
+      "claim_ko": "Honkai: Star Rail 의 행동 순서 목록이 화면 어디에 어떤 모양으로 있는지",
+      "source": "후보 리서치의 icy-veins · primagames 링크는 403 으로 열지 못함",
+      "tier": "-",
+      "confidence": "unverified"
+    },
+    {
+      "claim_ko": "Baldur's Gate 3 는 전투 차례를 화면 위쪽 초상 줄로 보이고, 초상을 눌러 그 캐릭터로 바꿀 수 있다",
+      "source": "https://www.ludo.guide/guide/baldurs-gate-3/gameplay/getting-started/surprise-rounds-and-initiative-explained",
+      "tier": "T3",
+      "confidence": "plausible"
+    },
+    {
+      "claim_ko": "Baldur's Gate 3 는 이니셔티브 내림차순으로 차례가 돌고, 이웃한 아군은 동시에 차례를 가질 수 있다",
+      "source": "https://bg3.wiki/wiki/Turn_order",
+      "tier": "T3",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Baldur's Gate 3 에서 이니셔티브가 같은 캐릭터는 초상 테두리가 이어져 보인다 (2023-08-09 기사)",
+      "source": "https://www.shacknews.com/article/136590/combat-explainer-baldurs-gate-3",
+      "tier": "T2",
+      "confidence": "plausible"
+    }
+  ],
+  "references": [
+    "https://beebom.com/honkai-star-rail-speed-breakpoints-explained/amp/",
+    "https://bg3.wiki/wiki/Turn_order",
+    "https://www.shacknews.com/article/136590/combat-explainer-baldurs-gate-3",
+    "https://www.ludo.guide/guide/baldurs-gate-3/gameplay/getting-started/surprise-rounds-and-initiative-explained",
+    "https://docs.unity3d.com/6000.3/Documentation/Manual/UIE-positioning.html"
+  ],
+  "inspired_by": [
+    {
+      "title": "Honkai: Star Rail (2023)",
+      "borrowed": ["왼쪽 세로로 늘어선 행동 순서 줄 (confidence: unverified — 기억에 기댄 배치)", "초상 옆 행동값 숫자 (기준 10000 ÷ 속도)"],
+      "note_ko": "행동값 계산 규칙(10000 ÷ 속도)은 기사 근거. 기본 화면이 이 게임을 닮았을 수 있어(리뷰 지적) 빌린 축 두 개로 밝혔다. 화면 위치 · 숫자 표시 여부는 직접 확인하지 못했다"
+    },
+    {
+      "title": "Baldur's Gate 3 (2023)",
+      "borrowed": ["화면 위쪽 초상 줄로 전투 차례를 보이기"],
+      "note_ko": "'위쪽 가로' 바 위치만. 초상 모양 · 색 · 이니셔티브 숫자 표시는 따르지 않았다"
+    }
+  ],
+  "confidence_notes_ko": "후보 리서치의 icy-veins · primagames 링크는 403 이라 다시 시도하지 않았다. Honkai: Star Rail 의 순서 목록 화면 위치 · 모양과 행동값 숫자 표시 여부는 미확인이다. 자리 바뀜 350ms, 알림 2.2초, 버프 +40% · 둔화 −30% · 앞당김 50% · 2턴 지속, 유닛 속도는 시연용 권장값이다. Unity C# 는 tools/unity-compile.ps1 로 컴파일만 확인했고 UXML · USS 임포트와 실제 씬 구성은 확인하지 않았다."
+}

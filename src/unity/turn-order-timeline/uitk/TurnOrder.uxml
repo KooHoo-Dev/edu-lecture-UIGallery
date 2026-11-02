@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 턴 순서 타임라인. 칸(초상)은 C# 가 Portrait.uxml 을 복제해 #timeline 에 넣고 position absolute + translate 로 직접 배치한다 -->
+    <Style src="TurnOrder.uss" />
+    <ui:VisualElement name="battle" class="battle" picking-mode="Ignore">
+        <ui:VisualElement name="timeline" class="timeline timeline--left" picking-mode="Ignore">
+            <!-- 행동값 비례일 때만 보이는 축 -->
+            <ui:VisualElement name="axis" class="axis" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:Label name="caption" class="caption" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

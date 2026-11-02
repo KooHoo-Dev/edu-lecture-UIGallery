@@ -1,0 +1,471 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  color: #eaf2fb;
+  outline: none;
+  user-select: none;
+  --ally: #5ad1ff;
+  --enemy: #ff6a5c;
+  --gold: #ffcf5a;
+  --extra: #c59bff;
+  --up: #5ee6a0;
+  --down: #ff9d8a;
+}
+.root:focus-visible {
+  box-shadow: inset 0 0 0 4px var(--gold);
+}
+.root[data-paused] * {
+  animation-play-state: paused !important;
+}
+.field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ───── 전장 ───── */
+.ring {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 6;
+  animation: ring calc(1s / var(--ts)) ease-in-out infinite alternate; /* 1Hz 이하 */
+}
+.ring[data-hover] {
+  stroke: #ffffff;
+  stroke-dasharray: 14 10;
+  animation: none;
+}
+@keyframes ring {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+.unitTag {
+  position: absolute;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.unitTag b {
+  font-size: 24px;
+}
+.speed {
+  font-size: 22px;
+  color: #9fb4c9;
+}
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.status em {
+  font-style: normal;
+  font-size: 22px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: #0b131dcc;
+  white-space: nowrap;
+}
+.status em[data-kind='up'] {
+  color: var(--up);
+  border: 2px solid var(--up);
+}
+.status em[data-kind='down'] {
+  color: var(--down);
+  border: 2px solid var(--down);
+}
+.status em[data-kind='extra'] {
+  color: var(--extra);
+  border: 2px dashed var(--extra);
+}
+.actingLabel {
+  position: absolute;
+  min-width: 180px;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: 700;
+  color: #10141c;
+  background: var(--gold);
+  border-radius: 10px;
+  padding: 2px 14px;
+  pointer-events: none;
+}
+.actingLabel::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  margin-left: -12px;
+  border: 12px solid transparent;
+  border-bottom: 0;
+  border-top-color: var(--gold);
+}
+
+/* ───── 타임라인 바 ───── */
+.bar {
+  position: absolute;
+  border-radius: 18px;
+  background: #070d15d9;
+  border: 2px solid #ffffff1f;
+}
+.root[data-orient='v'] .bar {
+  left: 24px;
+  top: 24px;
+  width: 380px;
+  height: 1032px;
+}
+.root[data-orient='h'] .bar {
+  left: 24px;
+  top: 20px;
+  width: 1872px;
+  height: 222px;
+}
+.axis {
+  position: absolute;
+  border-color: #ffffff40;
+  border-style: dashed;
+  border-width: 0;
+}
+.axis span {
+  position: absolute;
+  font-size: 22px;
+  color: #9fb4c9;
+  white-space: nowrap;
+}
+.root[data-orient='v'] .axis {
+  left: 10px;
+  top: 172px;
+  bottom: 12px;
+  border-left-width: 3px;
+}
+.root[data-orient='v'] .axis span {
+  top: -38px;
+  left: 2px;
+}
+.root[data-orient='h'] .axis {
+  left: 214px;
+  right: 12px;
+  top: 192px;
+  border-top-width: 3px;
+}
+.root[data-orient='h'] .axis span {
+  right: 0;
+  top: -2px;
+}
+
+.entry {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  display: flex;
+  will-change: transform;
+}
+.root[data-orient='v'] .entry {
+  width: 260px;
+  height: 72px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+.root[data-orient='h'] .entry {
+  width: 120px;
+  height: 148px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.entry[data-leaving] {
+  pointer-events: none;
+}
+.portrait {
+  position: relative;
+  flex: none;
+  border-radius: 16px;
+}
+.root[data-orient='v'] .portrait {
+  width: 68px;
+  height: 68px;
+}
+.root[data-orient='h'] .portrait {
+  width: 88px;
+  height: 88px;
+}
+.portrait > svg:first-child {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.root[data-juice] .entry[data-active] .portrait {
+  box-shadow:
+    0 0 0 4px #0b131d,
+    0 0 0 8px var(--gold);
+}
+.entry[data-hover]:not([data-active]) .portrait {
+  box-shadow: 0 0 0 4px #ffffffcc;
+}
+.entry[data-changed] .portrait {
+  box-shadow:
+    0 0 0 4px #0b131d,
+    0 0 0 8px var(--c, var(--gold));
+}
+.entry[data-changed='up'] {
+  --c: var(--up);
+}
+.entry[data-changed='down'] {
+  --c: var(--down);
+}
+.entry[data-changed='new'] {
+  --c: var(--extra);
+}
+.entry[data-extra] .portrait {
+  outline: 4px dashed var(--extra);
+  outline-offset: 6px;
+  border-radius: 20px;
+}
+.bolt {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 34px;
+  height: 34px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--extra);
+  fill: #10141c;
+}
+.badge {
+  position: absolute;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 32px;
+  color: #10141c;
+  background: var(--c, var(--gold));
+  white-space: nowrap;
+  animation: pop calc(0.3s / var(--ts)) ease-out;
+}
+.root[data-orient='v'] .badge {
+  right: -6px;
+  top: 20px;
+}
+.root[data-orient='h'] .badge {
+  right: -14px;
+  top: -14px;
+}
+.badge[data-dir='up'] {
+  background: var(--up);
+}
+.badge[data-dir='down'] {
+  background: var(--down);
+}
+.badge[data-dir='new'] {
+  background: var(--extra);
+}
+@keyframes pop {
+  from {
+    transform: scale(1.6);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+.info {
+  display: flex;
+  min-width: 0;
+}
+.root[data-orient='v'] .info {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.root[data-orient='h'] .info {
+  flex-direction: column;
+  align-items: center;
+}
+.name {
+  font-size: 24px;
+  white-space: nowrap;
+}
+.entry[data-role='enemy'] .name {
+  color: #ffd0c9;
+}
+.entry[data-role='ally'] .name {
+  color: #d3f2ff;
+}
+.av {
+  font-family: 'Chakra Petch', 'Consolas', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.1;
+}
+.av::before {
+  content: '행동값 ';
+  font-family: 'Malgun Gothic', sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: #9fb4c9;
+}
+.root[data-orient='h'] .av::before {
+  content: '';
+}
+.av[data-hidden] {
+  visibility: hidden;
+}
+.chip {
+  font-size: 22px;
+  font-weight: 700;
+  padding: 0 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  line-height: 30px;
+}
+.chip[data-kind='active'] {
+  background: var(--gold);
+  color: #10141c;
+}
+.chip[data-kind='extra'] {
+  background: var(--extra);
+  color: #10141c;
+}
+.placeholder {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 효과 끄기: 강조 없이 모두 같은 크기 · 색만 다른 동그라미 */
+.root:not([data-juice]) .portrait {
+  border-radius: 50%;
+}
+.root:not([data-juice]) .name {
+  color: #eaf2fb;
+}
+
+/* ───── 설명 한 줄 ───── */
+.caption {
+  position: absolute;
+  max-width: 1300px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: #0b131de6;
+  border: 2px solid var(--gold);
+  font-size: 26px;
+  line-height: 1.35;
+  opacity: 0;
+  transition: opacity calc(0.25s / var(--ts));
+  pointer-events: none;
+}
+.caption[data-show] {
+  opacity: 1;
+}
+.root[data-orient='v'] .caption {
+  left: 450px;
+  top: 40px;
+}
+.root[data-orient='h'] .caption {
+  left: 50%;
+  transform: translateX(-50%);
+  top: 250px;
+  padding: 6px 22px;
+  white-space: nowrap;
+  max-width: 1800px;
+}
+
+/* ───── 모델 (디버그) ───── */
+.model {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 640px;
+  padding: 8px 16px 10px;
+  border-radius: 12px;
+  border: 2px dashed #ffffff4d;
+  background: #05090fe6;
+  font-family: 'Consolas', 'Malgun Gothic', monospace;
+}
+.modelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.modelHead b {
+  font-size: 24px;
+  color: var(--gold);
+}
+.modelHead span {
+  font-size: 22px;
+  color: #9fb4c9;
+}
+.formula {
+  margin: 2px 0 4px;
+  white-space: nowrap;
+  font-size: 22px;
+}
+.formula small {
+  margin-left: 10px;
+  font-size: 22px;
+  color: #9fb4c9;
+}
+.model table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 22px;
+}
+.model th {
+  text-align: right;
+  color: #9fb4c9;
+  font-weight: 400;
+  padding: 2px 6px;
+  border-bottom: 1px solid #ffffff26;
+}
+.model td {
+  text-align: right;
+  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+}
+.model th:first-child,
+.model td:first-child {
+  text-align: left;
+}
+.model td i {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  background: var(--ally);
+  border-radius: 8px;
+}
+.model td i[data-role='enemy'] {
+  background: var(--enemy);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.model tr[data-active] td {
+  color: var(--gold);
+  font-weight: 700;
+}
+.model td[data-mod='up'] {
+  color: var(--up);
+}
+.model td[data-mod='down'] {
+  color: var(--down);
+}
