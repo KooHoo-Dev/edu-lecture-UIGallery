@@ -51,6 +51,7 @@ python tools/check.py           # 오프라인 실행·용량·파일명 검사
 python tools/check.py --links   # + 출처 링크 생존 확인
 python tools/shot.py <id> default juice0 event:<id>   # 빠른 스크린샷 (가상 시간)
 node tools/live.mjs <id> wait:3000 stage:a            # 실제 시간으로 흘려 보며 캡처 (연출 확인용)
+powershell -File tools/unity-compile.ps1 [-Specimen <id>]   # Unity C# 컴파일 확인 (Unity 6.3 과 한 번 연 Unity 프로젝트 필요)
 ```
 
 ### 표본 추가하기

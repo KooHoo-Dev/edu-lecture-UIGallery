@@ -4,9 +4,9 @@
 > 잘 만든 게임 UI를 분석해 **원리를 해부하고, 새 코드로 다시 만들어** 라이브로 보여 주고, Unity(UGUI · UI Toolkit) 구현법까지 연결한다.
 
 - 작성: 2026-10-10
-- 상태: **승인 ① 완료(2026-10-10)** → 0.5~3단계 완료 → 4단계 파일럿 3개 완료 → **승인 ②(수업 시연) 대기**
+- 상태: MVP 13개 공개(2026-10-21) → 1순위 배치 8개 완료(2026-10-24) → **2순위 배치 진행 중** (2026-11-02)
 
-## 진행 현황 (2026-10-11)
+## 진행 현황 (2026-11-02)
 
 | 단계 | 상태 | 결과 |
 |---|---|---|
@@ -16,7 +16,11 @@
 | 3 패턴 카드 | 완료 | `research/patterns/*.json` 13장 + 전체 검토 `research/review.json` |
 | 4 파일럿 | 완료 | 체력 바 · 화면 밖 목표 표시(3D) · 설정·접근성 (구현 → 독립 리뷰 → 수정) |
 | 4 나머지 10개 | 완료 | 사용자 결정으로 승인 ②(수업 시연)를 건너뛰고 바로 진행. 계약 v1 고정, 표본별 격리 빌드(`UIG_ONLY`)로 10개 병렬 구현 → 독립 리뷰(10개 모두 '수정 필요') → 수정. 통합 후 실시간 캡처로 16:9 · 9:16 · 2D 대체 · 발표 모드 · 좁은 폭 확인 |
-| 5 공개 | 대기 | 승인 ③: 공개 리포 `KooHoo-Dev/UIGallery` 생성·push 는 사용자 확인 후. Unity 코드 실제 컴파일 확인 필요(강사) |
+| 5 공개 | 완료 (2026-10-21) | GitHub Pages 공개. 리포 이름이 바뀌어 지금 주소는 https://koohoo-dev.github.io/edu-lecture-UIGallery/ (리포 `KooHoo-Dev/edu-lecture-UIGallery`) |
+| 6 다음 배치 리서치 | 완료 (2026-10-23) | 5개 관점 병합 → [next-specimens-research.md](next-specimens-research.md). 용량 예산 상향(원본 5MB · gzip 1.5MB) |
+| 7 1순위 배치 8개 | 완료 (2026-10-24) | 팝업 대기열 · 튜토리얼 스포트라이트 · 레드닷 · 가상 조이스틱 · 방사형 휠 · 자막 · 레벨업 3택 · 카드 손패. 표본마다 구현 → 독립 리뷰 → 수정 → 커밋 |
+| 8 정비 | 완료 (2026-11-02) | 상세 페이지 AI 프롬프트 란(Shader 갤러리에서 이식) · 표본별 C# namespace · **Unity 6000.3 실제 컴파일 · 임포트 확인**(C# 버그 2 · UXML 4 수정, `tools/unity-compile.ps1` · check.py UXML 검사) · 주제 태그 '접근성' · 2순위용 공통 부품(가상화 리스트 · 입력 잠금 · BindingGlyph) |
+| 9 2순위 배치 8개 | 진행 중 | 1차: 로딩 화면 · 키 리바인딩 · 턴 순서 타임라인 · 재활용 스크롤 / 2차: 배틀패스 · 뽑기 · 건설 배치 · 리듬 판정 |
 
 ### 공통화 백로그 (표본 구현 중 에이전트들이 보고한 후보)
 
@@ -35,7 +39,7 @@
 | 자동 데모 '사람이 조작하면 N초 쉬기' 옵션 (`useAutoplay`) | reticle-hitmarker, quest-tracker-toasts, main-pause-menu |
 | 3D 오브젝트용 해설 대리 영역(월드 박스 → 화면 div) · 캔버스 글자 텍스처 | diegetic-vitals |
 | 정지 중 3D 다시 그리기(`bus.invalidate` 를 무대가 주입) | diegetic-vitals, offscreen-waypoint |
-| 임의 키 바인딩 글리프(`BindingGlyph`) · 방향키 묶음 글리프 | skill-cooldown-prompt, inventory-grid-tooltip |
+| ~~임의 키 바인딩 글리프(`BindingGlyph`)~~ → `core/input.tsx` 로 반영(2026-11-02). 방향키 묶음 글리프는 남음 | skill-cooldown-prompt(옮김), inventory-grid-tooltip |
 | 희귀도 팔레트 + 표식, 스와이프 스크롤 | inventory-grid-tooltip (상점·제작 표본 추가 시) |
 
 전체 검토(`research/review.json`)에서 나온 공통 제안 중 **공통 유틸**(카운트업, 부유 요소 배치, 투영·클램프, 입력 글리프, 실루엣 키트)과 **공통 세계관**은 반영했다 → [specimen-guide.md](specimen-guide.md). 패러다임 커버리지 보강(Meta 독립 표본, 월드 상호작용 프롬프트 등)과 장르 보강(무기 휠, 카드 손패, 킬 피드, 레이싱)은 2단계 백로그 후보.
