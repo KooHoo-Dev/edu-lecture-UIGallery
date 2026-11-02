@@ -1,8 +1,9 @@
 ﻿# Unity C# 컴파일 확인 (에디터 없이). Unity 가 만든 Assembly-CSharp.csproj 의 참조 · 정의 · 분석기를 빌려
 # Unity 내장 Roslyn 으로 src/unity 의 C# 를 컴파일한다. 오류가 없으면 'exit 0'.
 #
-#   powershell -File tools/unity-compile.ps1                        # 모든 표본
-#   powershell -File tools/unity-compile.ps1 -Specimen loading-screen   # 한 표본 (ugui + uitk 함께)
+#   powershell -ExecutionPolicy Bypass -File tools/unity-compile.ps1                            # 모든 표본
+#   powershell -ExecutionPolicy Bypass -File tools/unity-compile.ps1 -Specimen loading-screen   # 한 표본 (ugui + uitk 함께)
+#   (Windows 기본 실행 정책이 스크립트를 막으므로 이 한 번만 Bypass 로 실행한다)
 #
 # 필요: Unity 6.3 에디터와, 그 버전으로 한 번 열어 둔 Unity 프로젝트(-Project). 새 Input System · UGUI 패키지가 있어야 한다.
 # 한계: C# 컴파일만 본다. UXML · USS 임포트와 [UxmlElement] 생성 확인은 그 프로젝트의 Assets 에 복사해 에디터로 연다.
