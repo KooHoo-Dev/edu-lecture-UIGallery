@@ -3,38 +3,37 @@ import csharp from 'highlight.js/lib/languages/csharp'
 import css from 'highlight.js/lib/languages/css'
 import xml from 'highlight.js/lib/languages/xml'
 import { useMemo, useState } from 'react'
+import { SYSTEM_LABELS } from '../core/prompts'
 import { unityFiles } from '../core/registry'
-import type { SpecimenMeta } from '../core/types'
+import type { SpecimenMeta, UiSystem } from '../core/types'
+import { writeText } from './clipboard'
 import { Rich } from './Rich'
 
 hljs.registerLanguage('csharp', csharp)
 hljs.registerLanguage('xml', xml)
 hljs.registerLanguage('css', css)
 
-type Kind = 'ugui' | 'uitk'
-const KIND_LABEL: Record<Kind, string> = { ugui: 'UGUI (Canvas)', uitk: 'UI Toolkit' }
-
-export function UnityPanel({ id, unity }: { id: string; unity: SpecimenMeta['unity'] }) {
-  const [kind, setKind] = useState<Kind>('ugui')
-  const guide = unity[kind]
-  const files = useMemo(() => unityFiles(id, kind), [id, kind])
+/** 고른 UI 시스템은 페이지가 들고 있다. 아래 프롬프트 패널이 같은 시스템의 파일을 쓴다 */
+export function UnityPanel({ id, unity, system, onSystem }: { id: string; unity: SpecimenMeta['unity']; system: UiSystem; onSystem: (s: UiSystem) => void }) {
+  const guide = unity[system]
+  const files = useMemo(() => unityFiles(id, system), [id, system])
   const [fileIdx, setFileIdx] = useState(0)
   const file = files[Math.min(fileIdx, files.length - 1)]
 
   return (
     <div className="unity">
       <div className="tabs" role="tablist" aria-label="Unity UI 시스템">
-        {(['ugui', 'uitk'] as Kind[]).map(k => (
+        {(['ugui', 'uitk'] as UiSystem[]).map(k => (
           <button
             key={k}
             role="tab"
-            aria-selected={kind === k}
+            aria-selected={system === k}
             onClick={() => {
-              setKind(k)
+              onSystem(k)
               setFileIdx(0)
             }}
           >
-            {KIND_LABEL[k]}
+            {SYSTEM_LABELS[k]}
           </button>
         ))}
       </div>
@@ -89,14 +88,9 @@ export function CodeBlock({ code, lang, name }: { code: string; lang: string; na
         className="btn btn-ghost code-copy"
         onClick={async () => {
           try {
-            await navigator.clipboard.writeText(code)
+            await writeText(code)
           } catch {
-            const ta = document.createElement('textarea')
-            ta.value = code
-            document.body.append(ta)
-            ta.select()
-            document.execCommand('copy')
-            ta.remove()
+            return
           }
           setCopied(true)
           setTimeout(() => setCopied(false), 1400)

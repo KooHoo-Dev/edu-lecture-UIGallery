@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { prefersReducedMotion } from '../core/flash'
 import { applyOverrides, applyPreset, defaultParams } from '../core/params'
+import type { UiSystem } from '../core/types'
 import { findSpecimen, PLANNED, SPECIMENS } from '../core/registry'
 import { GROUPS, INPUTS, PARADIGMS, PLATFORMS } from '../core/taxonomy'
 import type { Aspect, ParamValues, StageTrigger } from '../core/types'
 import { isTyping } from './App'
 import { ControlPanel } from './ControlPanel'
 import { PlayBar } from './PlayBar'
+import { PromptPanel } from './PromptPanel'
 import { Rich } from './Rich'
 import { hrefSpecimen, type SpecimenUrlOptions } from './router'
 import { Stage } from './Stage'
@@ -55,6 +57,7 @@ function SpecimenView({
   const [showSpots, setShowSpots] = useState(opts.spots ?? true)
   const [activeSpot, setActiveSpot] = useState<number | null>(opts.spot ?? null)
   const [tab, setTab] = useState<'controls' | 'notes'>('controls')
+  const [uiSystem, setUiSystem] = useState<UiSystem>('ugui')
 
   const fire = useCallback((eid: string) => setTrigger(t => ({ id: eid, seq: (t?.seq ?? 0) + 1 })), [])
 
@@ -307,7 +310,8 @@ function SpecimenView({
 
         <section className="sec sec-wide">
           <h2>Unity 구현</h2>
-          <UnityPanel id={m.id} unity={m.unity} />
+          <UnityPanel id={m.id} unity={m.unity} system={uiSystem} onSystem={setUiSystem} />
+          <PromptPanel meta={m} system={uiSystem} values={params} />
         </section>
 
         <section className="sec">

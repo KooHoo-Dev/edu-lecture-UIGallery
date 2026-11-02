@@ -67,6 +67,9 @@ export interface Timing {
   note?: string
 }
 
+/** Unity UI 시스템: UGUI(Canvas) 또는 UI Toolkit. src/unity/<id>/ 아래 폴더 이름과 같다 */
+export type UiSystem = 'ugui' | 'uitk'
+
 export interface UnityGuide {
   /** 하이어라키 트리 (텍스트) */
   hierarchy: string

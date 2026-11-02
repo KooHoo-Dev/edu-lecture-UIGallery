@@ -1191,6 +1191,55 @@ th {
 .pitfalls li::marker {
   color: var(--warm);
 }
+
+/* AI 프롬프트 (Unity 패널 바로 아래) */
+.prompt-panel {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.prompt-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.prompt-head h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+.prompt-system {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+.prompt-hint {
+  font-size: 0.85rem;
+  color: var(--text-3);
+  margin: 8px 0;
+}
+.prompt-text {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 320px;
+  resize: vertical;
+  font: 0.78rem/1.55 var(--font-mono);
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.prompt-actions .prompt-hint {
+  margin: 0;
+}
 .file-tabs {
   display: flex;
   gap: 4px;
