@@ -18,6 +18,7 @@ export const meta: SpecimenMeta = {
   platforms: ['pc', 'console', 'mobile'],
   inputs: ['keyboard', 'gamepad', 'mouse', 'touch'],
   genres: ['액션 어드벤처', '스토리', 'TPS', '공통'],
+  tags: ['accessibility'],
   difficulty: 2,
   stage: { aspect: '16:9', backdrop: 'none' },
   params: [

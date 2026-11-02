@@ -3,7 +3,7 @@ import { prefersReducedMotion } from '../core/flash'
 import { applyOverrides, applyPreset, defaultParams } from '../core/params'
 import type { UiSystem } from '../core/types'
 import { findSpecimen, PLANNED, SPECIMENS } from '../core/registry'
-import { GROUPS, INPUTS, PARADIGMS, PLATFORMS } from '../core/taxonomy'
+import { GROUPS, INPUTS, PARADIGMS, PLATFORMS, TAGS } from '../core/taxonomy'
 import type { Aspect, ParamValues, StageTrigger } from '../core/types'
 import { isTyping } from './App'
 import { ControlPanel } from './ControlPanel'
@@ -133,6 +133,11 @@ function SpecimenView({
           {m.principles.map(p => (
             <span key={p} className="chip chip-outline">
               {p}
+            </span>
+          ))}
+          {m.tags?.map(t => (
+            <span key={t} className="chip chip-tag" title={TAGS[t].desc}>
+              주제 · {TAGS[t].name}
             </span>
           ))}
           <span className="chip chip-outline">Unity 난이도 {'★'.repeat(m.difficulty)}</span>

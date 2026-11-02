@@ -18,6 +18,7 @@ export const meta: SpecimenMeta = {
   platforms: ['pc', 'console', 'mobile'],
   inputs: ['gamepad', 'keyboard', 'mouse', 'touch'],
   genres: ['액션 어드벤처', '3인칭 슈터', '모바일 액션', '공통'],
+  tags: ['accessibility'],
   difficulty: 2,
   stage: { aspect: 'both', backdrop: 'none' },
   params: [

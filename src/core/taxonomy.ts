@@ -1,4 +1,4 @@
-import type { GroupId, InputKind, Paradigm, Platform, Principle } from './types'
+import type { GroupId, InputKind, Paradigm, Platform, Principle, SpecimenTag } from './types'
 
 export const GROUPS: Record<GroupId, { name: string; desc: string }> = {
   A: { name: 'HUD · 상태', desc: '체력·자원·쿨다운처럼 지금 내 상태를 알려 주는 요소' },
@@ -21,4 +21,9 @@ export const PARADIGMS: Record<Paradigm, { name: string; short: string; desc: st
 export const PRINCIPLES: Principle[] = ['가독성', '시각 위계', '즉각 피드백', '일관성', '어포던스', '인지 부하', '몰입', '접근성']
 
 export const PLATFORMS: Record<Platform, string> = { pc: 'PC', console: '콘솔', mobile: '모바일' }
+
+/* 그룹을 늘리는 대신 태그로 묶는다: 접근성 표본은 메뉴 · 대화 · 입력 그룹에 흩어져 있다 (2026-11-02 결정) */
+export const TAGS: Record<SpecimenTag, { name: string; desc: string }> = {
+  accessibility: { name: '접근성', desc: '접근성 기능 자체가 학습 목표인 표본 — 글자 크기, 자막 · 캡션, 색각, 시간 제한 끄기, 조작 재설정 …' },
+}
 export const INPUTS: Record<InputKind, string> = { mouse: '마우스', keyboard: '키보드', gamepad: '게임패드', touch: '터치' }

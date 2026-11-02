@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { PLANNED, SPECIMENS } from '../core/registry'
-import { GROUPS, PARADIGMS, PLATFORMS, PRINCIPLES } from '../core/taxonomy'
-import type { GroupId, Paradigm, Platform, Principle, SpecimenModule } from '../core/types'
+import { GROUPS, PARADIGMS, PLATFORMS, PRINCIPLES, TAGS } from '../core/taxonomy'
+import type { GroupId, Paradigm, Platform, Principle, SpecimenModule, SpecimenTag } from '../core/types'
 import { load, save } from '../core/storage'
 import { SpecimenCard, PlannedCard } from './SpecimenCard'
 
@@ -10,17 +10,18 @@ interface Filters {
   paradigm: Paradigm | ''
   platform: Platform | ''
   principle: Principle | ''
+  tag: SpecimenTag | ''
 }
-const EMPTY: Filters = { q: '', paradigm: '', platform: '', principle: '' }
+const EMPTY: Filters = { q: '', paradigm: '', platform: '', principle: '', tag: '' }
 
 export function Home() {
-  const [f, setF] = useState<Filters>(() => load('filters', EMPTY))
+  const [f, setF] = useState<Filters>(() => ({ ...EMPTY, ...load('filters', EMPTY) }))
   const update = (patch: Partial<Filters>) => {
     const next = { ...f, ...patch }
     setF(next)
     save('filters', next)
   }
-  const active = f.q || f.paradigm || f.platform || f.principle
+  const active = f.q || f.paradigm || f.platform || f.principle || f.tag
 
   const match = useMemo(() => {
     const q = f.q.trim().toLowerCase()
@@ -28,7 +29,8 @@ export function Home() {
       (!q || [m.title, m.titleEn, m.oneLiner, ...m.genres, ...m.inspiredBy.map(i => i.title)].join(' ').toLowerCase().includes(q)) &&
       (!f.paradigm || m.paradigms.includes(f.paradigm)) &&
       (!f.platform || m.platforms.includes(f.platform)) &&
-      (!f.principle || m.principles.includes(f.principle))
+      (!f.principle || m.principles.includes(f.principle)) &&
+      (!f.tag || (m.tags ?? []).includes(f.tag))
   }, [f])
 
   const shown = SPECIMENS.filter(s => match(s.meta))
@@ -73,6 +75,7 @@ export function Home() {
         <Select label="패러다임" value={f.paradigm} onChange={v => update({ paradigm: v as Paradigm | '' })} options={Object.entries(PARADIGMS).map(([k, v]) => [k, v.name])} />
         <Select label="플랫폼" value={f.platform} onChange={v => update({ platform: v as Platform | '' })} options={Object.entries(PLATFORMS)} />
         <Select label="원리" value={f.principle} onChange={v => update({ principle: v as Principle | '' })} options={PRINCIPLES.map(p => [p, p])} />
+        <Select label="주제" value={f.tag} onChange={v => update({ tag: v as SpecimenTag | '' })} options={Object.entries(TAGS).map(([k, v]) => [k, v.name])} />
         {active && (
           <button className="btn btn-ghost" onClick={() => update(EMPTY)}>
             필터 초기화

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { prefersReducedMotion } from '../core/flash'
 import { defaultParams } from '../core/params'
-import { GROUPS, PARADIGMS } from '../core/taxonomy'
+import { GROUPS, PARADIGMS, TAGS } from '../core/taxonomy'
 import type { PlannedSpecimen, SpecimenModule } from '../core/types'
 import { hrefSpecimen } from './router'
 import { Stage } from './Stage'
@@ -48,6 +48,11 @@ export function SpecimenCard({ mod }: { mod: SpecimenModule }) {
           {m.paradigms.map(p => (
             <span key={p} className="chip chip-sm" data-p={p}>
               {PARADIGMS[p].short}
+            </span>
+          ))}
+          {m.tags?.map(t => (
+            <span key={t} className="chip chip-sm chip-outline" title={TAGS[t].desc}>
+              {TAGS[t].name}
             </span>
           ))}
           <span className="stars" aria-label={`Unity 난이도 ${m.difficulty}`}>

@@ -14,6 +14,8 @@ export type Paradigm = 'diegetic' | 'non-diegetic' | 'spatial' | 'meta' | 'menu'
 export type Principle = '가독성' | '시각 위계' | '즉각 피드백' | '일관성' | '어포던스' | '인지 부하' | '몰입' | '접근성'
 export type Platform = 'pc' | 'console' | 'mobile'
 export type InputKind = 'mouse' | 'keyboard' | 'gamepad' | 'touch'
+/** 그룹을 가로지르는 주제 태그 (홈 '주제' 필터 · 카드 표시). 원리(principles)보다 좁다: 그 주제가 학습 목표에 들어 있는 표본만 */
+export type SpecimenTag = 'accessibility'
 export type Aspect = '16:9' | '9:16'
 export type ParamValue = number | string | boolean
 export type ParamValues = Record<string, ParamValue>
@@ -106,6 +108,8 @@ export interface SpecimenMeta {
   platforms: Platform[]
   inputs: InputKind[]
   genres: string[]
+  /** 주제 태그. 예: 접근성 기능 자체가 학습 목표인 표본은 ['accessibility'] */
+  tags?: SpecimenTag[]
   difficulty: 1 | 2 | 3
   stage: {
     aspect: Aspect | 'both'

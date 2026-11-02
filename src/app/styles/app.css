@@ -193,6 +193,11 @@ kbd {
   background: color-mix(in srgb, var(--warm) 18%, transparent);
   color: var(--warm);
 }
+/* 주제 태그 (TAGS) — 상세 페이지 머리 */
+.chip-tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 .chip[data-p='diegetic'] {
   background: color-mix(in srgb, #f59e0b 20%, transparent);
   color: #f6b44a;
