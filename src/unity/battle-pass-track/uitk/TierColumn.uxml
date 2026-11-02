@@ -1,0 +1,24 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 칸 하나 = 레벨 번호 + 무료 칸 + 프리미엄 칸. 상태는 C# 가 slot 의 수식 클래스(상태 이름)로 켜고 끈다 -->
+    <ui:VisualElement class="col">
+        <ui:Label name="lvl" class="col__lvl" />
+        <ui:Button name="free" class="slot">
+            <ui:VisualElement class="slot__icon" />
+            <ui:Label class="slot__name" />
+            <ui:Label class="slot__count" />
+            <ui:VisualElement class="slot__state">
+                <ui:VisualElement class="slot__badge" />
+                <ui:Label class="slot__text" />
+            </ui:VisualElement>
+        </ui:Button>
+        <ui:Button name="prem" class="slot slot-prem">
+            <ui:VisualElement class="slot__icon" />
+            <ui:Label class="slot__name" />
+            <ui:Label class="slot__count" />
+            <ui:VisualElement class="slot__state">
+                <ui:VisualElement class="slot__badge" />
+                <ui:Label class="slot__text" />
+            </ui:VisualElement>
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

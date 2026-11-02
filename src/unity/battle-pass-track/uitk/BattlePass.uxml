@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 배틀패스 보상 트랙 (UI Toolkit). 칸은 C# 가 TierColumn.uxml 을 열두어 개 복제해 #track 안에 넣고 돌려쓴다 -->
+    <Style src="BattlePass.uss" />
+    <ui:VisualElement name="pass-root" class="pass">
+        <ui:VisualElement class="pass__header">
+            <ui:Label name="level" class="pass__level" text="Lv 23" />
+            <ui:Label class="pass__title" text="외곽 탐사 패스" />
+            <ui:Label name="cd-label" class="pass__cd-label" />
+            <ui:Label name="countdown" class="pass__cd" />
+        </ui:VisualElement>
+        <!-- ListView 는 Unity 6.3 에서 세로 전용이라 가로 트랙은 ScrollView 에 직접 재활용한다 -->
+        <ui:ScrollView name="track" class="pass__track" mode="Horizontal" horizontal-scroller-visibility="AlwaysVisible" vertical-scroller-visibility="Hidden" />
+        <ui:VisualElement class="pass__actions">
+            <ui:Button name="claim-all" class="pass__claim-all" text="모두 받기" />
+            <ui:Button name="to-now" class="pass__to-now" text="현재 레벨로" />
+            <ui:Button name="gain-xp" class="pass__to-now" text="시험: 경험치 +700" />
+            <ui:Label name="debug" class="pass__debug" />
+        </ui:VisualElement>
+        <!-- 서버 확인 뒤 받은 보상 한 줄 요약. 모달 창으로 바꾸면 UGUI 판 ClaimResultPopup 같은 입력 잠금이 필요하다 -->
+        <ui:Label name="toast" class="pass__toast" />
+    </ui:VisualElement>
+</ui:UXML>

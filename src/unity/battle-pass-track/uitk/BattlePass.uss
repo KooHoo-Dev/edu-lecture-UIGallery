@@ -1,0 +1,184 @@
+/* 배틀패스 보상 트랙 (UI Toolkit) — 1920×1080 기준. .col 너비는 C# 의 itemWidth 로 넣는다 */
+
+.pass {
+    position: absolute;
+    left: 60px;
+    right: 60px;
+    top: 40px;
+    bottom: 40px;
+    color: rgb(234, 242, 251);
+    font-size: 24px;
+}
+.pass__header {
+    flex-direction: row;
+    align-items: center;
+    height: 110px;
+}
+.pass__level {
+    padding: 8px 20px;
+    margin-right: 24px;
+    border-radius: 16px;
+    background-color: rgb(94, 230, 201);
+    color: rgb(6, 32, 25);
+    font-size: 40px;
+    -unity-font-style: bold;
+}
+.pass__title {
+    font-size: 40px;
+    -unity-font-style: bold;
+}
+.pass__cd-label {
+    margin-left: auto;
+    margin-right: 16px;
+    color: rgb(143, 165, 189);
+}
+.pass__cd {
+    font-size: 46px;
+    -unity-font-style: bold;
+}
+/* 가로 ScrollView — 높이를 화면에 묶는다. contentContainer 너비는 C# 가 count × itemWidth 로 잡는다 */
+.pass__track {
+    height: 500px;
+    border-radius: 22px;
+    background-color: rgb(19, 29, 45);
+}
+.pass__actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 20px;
+}
+.pass__claim-all {
+    width: 400px;
+    height: 96px;
+    border-radius: 18px;
+    background-color: rgb(255, 207, 90);
+    color: rgb(42, 29, 0);
+    font-size: 34px;
+    -unity-font-style: bold;
+}
+.pass__to-now {
+    height: 58px;
+    margin-left: 16px;
+}
+.pass__debug {
+    margin-left: 24px;
+    font-size: 22px;
+    color: rgb(127, 148, 171);
+}
+.pass__toast {
+    margin-top: 12px;
+    color: rgb(255, 207, 90);
+    white-space: normal;
+}
+
+/* 칸 (C# 가 position absolute + translate 로 x 만 옮긴다) */
+.col__lvl {
+    align-self: center;
+    min-width: 64px;
+    height: 48px;
+    margin: 4px 0 8px 0;
+    border-radius: 24px;
+    border-width: 3px;
+    border-color: rgb(51, 71, 95);
+    background-color: rgb(26, 40, 59);
+    -unity-text-align: middle-center;
+    font-size: 26px;
+}
+.col--reached .col__lvl {
+    border-color: rgb(94, 230, 201);
+}
+.col--cur .col__lvl {
+    background-color: rgb(94, 230, 201);
+    color: rgb(6, 32, 25);
+}
+.slot {
+    transition-property: border-color;
+    transition-duration: 0.6s;
+    height: 182px;
+    margin: 0 7px 18px 7px;
+    padding: 12px 6px 10px 6px;
+    border-radius: 14px;
+    border-width: 3px;
+    border-color: rgb(52, 74, 100);
+    background-color: rgb(28, 42, 62);
+    align-items: center;
+}
+.slot-prem {
+    background-color: rgb(36, 31, 61);
+}
+.slot__icon {
+    width: 52px;
+    height: 52px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.slot__name {
+    font-size: 22px;
+    white-space: normal;
+    -unity-text-align: upper-center;
+}
+.slot__state {
+    margin-top: auto;
+    flex-direction: row;
+    align-items: center;
+    height: 32px;
+    padding: 0 10px 0 4px;
+    border-radius: 16px;
+}
+.slot__badge {
+    width: 26px;
+    height: 26px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.slot__text {
+    font-size: 22px;
+}
+
+/* 상태 — 색 + 아이콘(배지) + 글자 + 테두리 두께. USS 에는 점선 테두리가 없어 잠김은 얇은 테두리 + 흐린 아이콘으로 구분한다 */
+.slot--none {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 1px;
+}
+.slot--none .slot__state {
+    display: none;
+}
+.slot--locked,
+.slot--need-prem {
+    border-width: 1px;
+}
+.slot--locked .slot__icon,
+.slot--need-prem .slot__icon,
+.slot--claimed .slot__icon {
+    opacity: 0.45;
+}
+.slot--need-prem {
+    border-color: rgb(106, 88, 168);
+}
+.slot--need-prem .slot__text {
+    color: rgb(184, 150, 255);
+}
+.slot--claimable {
+    border-width: 4px;
+    border-color: rgb(255, 207, 90);
+    background-color: rgb(60, 52, 34);
+}
+.slot--claimable .slot__state {
+    background-color: rgb(255, 207, 90);
+}
+.slot--claimable .slot__text {
+    color: rgb(42, 29, 0);
+    -unity-font-style: bold;
+}
+/* 맥동: C# 가 0.8Hz 로 켜고 끈다 */
+.slot--pulse {
+    border-color: rgb(255, 236, 170);
+}
+.slot--claiming {
+    border-color: rgb(128, 104, 45);
+}
+.slot--claimed {
+    border-color: rgb(46, 90, 85);
+    background-color: rgb(22, 37, 44);
+}
+.slot--claimed .slot__text {
+    color: rgb(94, 230, 201);
+}

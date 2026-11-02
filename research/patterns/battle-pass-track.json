@@ -1,0 +1,58 @@
+{
+  "specimen_id": "battle-pass-track",
+  "name_ko": "배틀패스 보상 트랙",
+  "name_en": "Battle Pass Reward Track",
+  "group": "E",
+  "paradigm": "menu",
+  "source_candidate": "research/next-batch-candidates.json 의 battle-pass-track (모바일 관점, 강도 5). docs/next-specimens-research.md 2순위 #13",
+  "scope_decision_ko": "후보의 '주간 미션 목록' 은 빼고 트랙 · 상태 머신 · 서버 시각에 집중했다(미션은 quest-tracker-toasts 와 겹친다). 상태에 '받는 중(Claiming)' 을 더해 서버 확인 전 중복 요청을 막는 단계를 보였다. 프리미엄 구매는 결제 흐름을 흉내 내지 않고 '프리미엄 활성화(시연)' 토글로 대신했다. 후보가 든 '놓친 프리미엄 보상을 보여 주는 배치의 윤리' 는 정직한 남은 양 안내와 나쁜 예의 조급함 문구(다크 패턴) 비교로 다뤘다. UI Toolkit 은 Unity 6.3 ListView 가 세로 전용이라 ScrollView + 직접 재활용으로 만들었다.",
+  "why_ko": [
+    "라이브 서비스 게임의 표준 수익 · 진행 구조라 모바일 팀 프로젝트에 자주 들어간다",
+    "칸 상태를 저장하지 않고 계산하는 상태 머신, 서버 확인 전 중복 요청 막기, 결과 창 입력 잠금이 한 화면에 모인다",
+    "재활용 스크롤(core/virtualList)을 가로로 쓰는 두 번째 사례 — 세로 랭킹과 같은 두 단계임을 확인한다",
+    "기기 시계를 믿지 않는 서버 시각 계산은 출석 · 이벤트 · 에너지 타이머에도 그대로 쓰인다"
+  ],
+  "teaching_points_ko": [
+    "상태 머신: 레벨 · 받음 기록 · 요청 중 · 프리미엄 보유에서 None / Locked / NeedsPremium / Claimable / Claiming / Claimed 를 계산",
+    "상태 구분: 색 + 아이콘(자물쇠 · 왕관 · 느낌표 · 도는 표시 · 체크) + 글자 + 테두리(점선/실선), 맥동 0.8Hz",
+    "가로 가상화: 위치 = (레벨 − 1) × 칸 너비, 보이는 범위 + 여유분만 셀, 반납 → 재배정 (UGUI ScrollRect · UITK ScrollView)",
+    "트랙을 열 때 지금 레벨을 화면 60% 지점으로 스냅",
+    "모두 받기: 받을 수 있는 칸만 한 요청으로, 서버 확인 뒤 종류별 요약 + 누른 시각 기준 입력 잠금(core/inputLock)",
+    "서버 시각 = 접속 때 받은 서버 UTC + 단조 시계로 흐른 시간. DateTime.Now · Time.time 을 쓰지 않는다",
+    "정직한 안내: 끝까지 남은 경험치, 하루 획득량 기준 걸리는 날, 시즌 끝 예상 레벨, 받지 않은 보상 수 (추정이라고 표시)"
+  ],
+  "references": [
+    "https://www.gamedeveloper.com/game-platforms/let-s-talk-battle-passes-part-1",
+    "https://docs.unity.com/ugs/en-us/solutions/manual/BattlePasses",
+    "https://www.gamedeveloper.com/design/7-tips-to-create-and-improve-battle-pass",
+    "https://docs.unity3d.com/6000.3/Documentation/ScriptReference/UIElements.ListView.html",
+    "https://en.wikipedia.org/wiki/Brawl_Stars"
+  ],
+  "claims": [
+    {
+      "claim_ko": "Unity 공식 배틀패스 예제는 잠긴 단계에 자물쇠, 받을 수 있는 단계에 느낌표, 받은 단계에 체크 아이콘을 쓰고, 받기 · 시즌 확인은 Cloud Code(서버)에서 검증한다",
+      "url": "https://docs.unity.com/ugs/en-us/solutions/manual/BattlePasses",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Fortnite 는 무료 트랙 옆에 놓친(유료) 보상을 함께 보여 준다고 기사가 서술한다",
+      "url": "https://www.gamedeveloper.com/game-platforms/let-s-talk-battle-passes-part-1",
+      "confidence": "plausible"
+    },
+    {
+      "claim_ko": "Brawl Stars 의 패스는 무료 트랙과 유료 트랙으로 나뉜다",
+      "url": "https://en.wikipedia.org/wiki/Brawl_Stars",
+      "confidence": "plausible"
+    },
+    {
+      "claim_ko": "Unity 6.3 의 ListView 는 BaseVerticalCollectionView 를 잇고 가로 배치 속성이 없다 (horizontalScrollingEnabled 는 넓은 항목을 옆으로 굴리는 것)",
+      "url": "https://docs.unity3d.com/6000.3/Documentation/ScriptReference/UIElements.ListView.html",
+      "confidence": "confirmed"
+    }
+  ],
+  "inspired_by": [
+    { "title": "Fortnite (2017)", "borrowed": ["무료 줄 옆에 프리미엄 보상을 나란히 보이는 두 줄 배치 (기사 서술, 화면 미확인)"] },
+    { "title": "Brawl Stars (2018)", "borrowed": [] }
+  ],
+  "confidence_notes_ko": "두 게임의 실제 화면은 직접 보지 않았다 — Fortnite 는 기사 서술, Brawl Stars 는 위키백과 서술만 확인했다. 서버 확인 350ms 는 이 재현의 가정값, 입력 잠금 300ms · 맥동 0.8Hz · 스냅 위치 60% · 막대 채움 0.5초/레벨은 권장값이다. Unity C# 는 tools/unity-compile.ps1 로 컴파일만 확인했고 UXML · USS 임포트와 실제 씬 동작은 확인하지 않았다."
+}
