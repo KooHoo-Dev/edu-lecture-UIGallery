@@ -1,0 +1,40 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 로딩 화면 (UI Toolkit). LoadingViewUITK.cs 가 이름으로 요소를 찾아 매 프레임 값을 바꾼다 -->
+    <Style src="LoadingScreen.uss" />
+    <ui:VisualElement name="loading" class="loading">
+        <ui:VisualElement name="destination" class="dest" picking-mode="Ignore">
+            <ui:Label class="dest__label" text="다음 지역" />
+            <ui:Label class="dest__name" text="북쪽 통신탑" />
+            <ui:Label class="dest__sub" text="지표 탐사 구역 · 외곽 탐사대 3번 경로" />
+        </ui:VisualElement>
+        <ui:VisualElement name="tip" class="tip" picking-mode="Ignore">
+            <ui:VisualElement class="tip__head">
+                <ui:Label class="tip__badge" text="팁" />
+                <ui:Label name="tip-index" class="tip__index" text="1 / 6" />
+            </ui:VisualElement>
+            <ui:Label name="tip-text" class="tip__text" />
+            <!-- 다음 팁까지 남은 시간 -->
+            <ui:VisualElement class="tip__timer">
+                <ui:VisualElement name="tip-timer-fill" class="tip__timer-fill" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="status" picking-mode="Ignore">
+            <ui:Label name="stage-text" class="status__stage" />
+            <ui:VisualElement class="status__right">
+                <ui:Label name="spinner-text" class="spinner-text" text="불러오는 중" />
+                <ui:VisualElement name="spinner" class="spinner" />
+                <ui:Label name="percent" class="percent" text="0%" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="bar" class="bar" picking-mode="Ignore">
+            <ui:VisualElement name="bar-fill" class="bar__fill">
+                <!-- 줄무늬는 C# 가 rib 요소를 채워 넣고 왼쪽으로 흘린다 -->
+                <ui:VisualElement name="ribs" class="ribs" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="prompt" class="prompt" picking-mode="Ignore">
+            <ui:Label class="prompt__check" text="✓" />
+            <ui:Label class="prompt__text" text="준비 완료 · 아무 키나 눌러 계속" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,227 @@
+/* 로딩 화면 — Panel Settings: Scale With Screen Size, Reference Resolution 1920×1080.
+   한글이 네모로 보이면 Panel Settings 의 Text Settings 에 한글 글꼴(Font Asset)을 넣는다.
+   바 폭 · 스피너 회전 · 줄무늬 위치는 C# 가 매 프레임 바꾼다 — 그 요소들에는 transition 을 걸지 않는다. */
+
+.loading {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(9, 17, 30);
+    color: rgb(234, 242, 251);
+}
+
+/* 숨김은 opacity 로 — display: none 은 줄 높이를 바꿔 글자가 들썩인다 */
+.is-hidden {
+    opacity: 0;
+}
+
+.dest {
+    position: absolute;
+    left: 80px;
+    top: 60px;
+}
+
+.dest__label {
+    font-size: 24px;
+    color: rgb(94, 230, 201);
+    -unity-font-style: bold;
+}
+
+.dest__name {
+    font-size: 64px;
+    -unity-font-style: bold;
+}
+
+.dest__sub {
+    font-size: 26px;
+    color: rgb(159, 180, 201);
+}
+
+.tip {
+    position: absolute;
+    left: 80px;
+    top: 600px;
+    width: 900px;
+    padding: 20px 28px 22px 28px;
+    border-radius: 18px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(5, 10, 16, 0.85);
+}
+
+.tip__head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.tip__badge {
+    padding: 2px 14px;
+    border-radius: 10px;
+    background-color: rgb(94, 230, 201);
+    color: rgb(6, 32, 26);
+    font-size: 24px;
+    -unity-font-style: bold;
+}
+
+.tip__index {
+    margin-left: 14px;
+    font-size: 24px;
+    color: rgb(159, 180, 201);
+}
+
+.tip__text {
+    margin-top: 14px;
+    min-height: 84px;
+    font-size: 32px;
+    -unity-font-style: bold;
+    white-space: normal;
+    transition-property: translate, opacity;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out;
+}
+
+/* 새 팁: 이 클래스를 붙였다가 다음 프레임에 떼면 오른쪽에서 밀려 들어온다 */
+.tip__text.is-entering {
+    translate: 24px 0;
+    opacity: 0;
+}
+
+.tip__timer {
+    margin-top: 12px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.tip__timer-fill {
+    height: 100%;
+    width: 0;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+
+.status {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    top: 930px;
+    height: 60px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.status__stage {
+    font-size: 26px;
+}
+
+.status__stage.is-stalled {
+    color: rgb(255, 209, 102);
+}
+
+.status__right {
+    flex-direction: row;
+    align-items: center;
+}
+
+.spinner-text {
+    font-size: 30px;
+    -unity-font-style: bold;
+    margin-right: 14px;
+}
+
+/* 고리 — 위 · 오른쪽 테두리만 밝게 해서 도는 것이 보이게 */
+.spinner {
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+    border-width: 5px;
+    border-color: rgba(255, 255, 255, 0.16);
+    border-top-color: rgb(94, 230, 201);
+    border-right-color: rgb(94, 230, 201);
+}
+
+.spinner.spinner--big {
+    width: 64px;
+    height: 64px;
+    border-radius: 32px;
+    border-width: 8px;
+}
+
+.percent {
+    margin-left: 16px;
+    min-width: 120px;
+    font-size: 48px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.bar {
+    position: absolute;
+    left: 80px;
+    right: 80px;
+    top: 1004px;
+    height: 26px;
+    border-radius: 13px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.27);
+    background-color: rgb(11, 22, 34);
+    overflow: hidden;
+    transition-property: opacity;
+    transition-duration: 0.3s;
+}
+
+.bar__fill {
+    height: 100%;
+    width: 0;
+    background-color: rgb(94, 230, 201);
+    overflow: hidden;
+}
+
+.ribs {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+}
+
+/* 줄무늬 한 개 — 기울여 세운 반투명 막대 */
+.rib {
+    position: absolute;
+    top: -16px;
+    width: 12px;
+    height: 60px;
+    rotate: 25deg;
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+.prompt {
+    position: absolute;
+    right: 80px;
+    top: 846px;
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 24px;
+    border-radius: 16px;
+    border-width: 3px;
+    border-color: rgb(94, 230, 201);
+    background-color: rgba(5, 10, 16, 0.9);
+}
+
+.prompt__check {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    margin-right: 12px;
+    background-color: rgb(94, 230, 201);
+    color: rgb(6, 32, 26);
+    font-size: 24px;
+    -unity-text-align: middle-center;
+}
+
+.prompt__text {
+    font-size: 30px;
+    -unity-font-style: bold;
+}
