@@ -9,7 +9,7 @@
 
 | 하고 싶은 일 | 방법 |
 |---|---|
-| 웹에서 보기 | **https://koohoo-dev.github.io/UIGallery/** |
+| 웹에서 보기 | **https://koohoo-dev.github.io/edu-lecture-UIGallery/** |
 | 인터넷 없는 강의실에서 보기 | 사이트 상단 **오프라인용 HTML 받기** 또는 Releases 의 `UIGallery-vX.html` 을 받아 더블클릭 |
 | 수업 중 시연 | 표본 화면에서 `P` 발표 모드, `Space` 재생, `1~9` 이벤트, `J` 효과 끄기(나쁜 예), `S` 슬로모션, `←/→` 해설 |
 | 특정 장면을 링크로 | 주소 뒤에 옵션을 붙입니다 (아래 표) |
