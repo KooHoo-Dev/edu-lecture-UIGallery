@@ -1,0 +1,41 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 뽑기 화면 (UI Toolkit 판). 카드와 확률표 줄은 GachaUITK.cs 가 같은 GachaTable 에서 만들어 넣는다 -->
+    <Style src="Gacha.uss" />
+    <ui:VisualElement name="gacha" class="gacha">
+        <ui:VisualElement name="main" class="main">
+            <ui:Label name="title" class="title" text="외곽 탐사대 보급 신호" />
+            <ui:VisualElement name="stage" class="stage">
+                <!-- 1단계 등급 예고: 가장 높은 등급의 모양 + 글자 -->
+                <ui:VisualElement name="beam" class="beam" picking-mode="Ignore">
+                    <ui:VisualElement name="beam-mark" class="beam__mark" picking-mode="Ignore" />
+                    <ui:Label name="beam-label" class="beam__label" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <!-- 2단계 카드: C# 가 결과 수만큼 만든다 -->
+                <ui:VisualElement name="cards" class="cards" picking-mode="Ignore" />
+                <ui:VisualElement name="flash" class="flash" picking-mode="Ignore" />
+                <!-- 연출 중에만 보이는 투명 판: 탭 한 번 = 다음 장 -->
+                <ui:VisualElement name="tap" class="tap" />
+                <ui:Button name="skip" class="skip" text="건너뛰기 ≫" />
+            </ui:VisualElement>
+            <ui:VisualElement name="pulls" class="pulls">
+                <ui:Button name="pull-1" class="pull" text="1회 뽑기" />
+                <ui:Button name="pull-10" class="pull pull--big" text="10회 뽑기" />
+                <ui:VisualElement name="lock" class="lock" picking-mode="Ignore">
+                    <ui:VisualElement name="lock-fill" class="lock__fill" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="pity" class="pity">
+                <ui:Label name="pity-label" class="pity__label" />
+                <ui:VisualElement name="pity-bar" class="pity__bar">
+                    <ui:VisualElement name="pity-fill" class="pity__fill" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="server-log" class="server-log" />
+        </ui:VisualElement>
+        <ui:VisualElement name="side" class="side">
+            <ui:Label class="side__title" text="확률 정보 (1회 기준 · 항목별)" />
+            <ui:ListView name="odds" class="odds" />
+            <ui:Label name="pity-rule" class="pity-rule" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

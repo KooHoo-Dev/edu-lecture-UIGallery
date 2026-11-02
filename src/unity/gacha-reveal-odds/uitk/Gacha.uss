@@ -1,0 +1,300 @@
+/* 뽑기 화면 스타일 (UI Toolkit). 등급은 색 + 모양(영웅 = 겹친 사각 별, 희귀 = 마름모, 일반 = 원) + 글자로 구분한다 */
+.gacha {
+    flex-grow: 1;
+    flex-direction: row;
+    padding: 28px 40px;
+    background-color: rgb(12, 16, 32);
+    color: rgb(234, 240, 250);
+    font-size: 24px;
+}
+.main {
+    width: 1200px;
+    margin-right: 36px;
+}
+.title {
+    font-size: 34px;
+    -unity-font-style: bold;
+    height: 56px;
+}
+.stage {
+    flex-grow: 1;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    background-color: rgb(18, 26, 51);
+    overflow: hidden;
+}
+.beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.2s;
+}
+.beam--on {
+    opacity: 1;
+}
+.beam__mark {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 20px;
+}
+.beam__label {
+    font-size: 52px;
+    -unity-font-style: bold;
+}
+.cards {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    padding: 0 40px;
+}
+.card {
+    width: 196px;
+    height: 270px;
+    margin: 11px;
+    border-width: 4px;
+    border-radius: 16px;
+    background-color: rgb(27, 36, 64);
+    align-items: center;
+    justify-content: center;
+    transition-property: scale;
+    transition-duration: 0.17s;
+    transition-timing-function: ease-in-out;
+}
+.card--squash {
+    scale: 0 1;
+}
+.card--hero {
+    border-color: rgb(255, 204, 77);
+    color: rgb(255, 204, 77);
+}
+.card--rare {
+    border-color: rgb(195, 155, 255);
+    color: rgb(195, 155, 255);
+}
+.card--common {
+    border-color: rgb(143, 182, 220);
+    color: rgb(143, 182, 220);
+}
+.card__back,
+.card__face {
+    align-items: center;
+}
+.card__face {
+    display: none;
+}
+.card--flipped .card__back {
+    display: none;
+}
+.card--flipped .card__face {
+    display: flex;
+}
+.card--flipped {
+    background-color: rgb(24, 32, 56);
+}
+.card--flipped.card--hero {
+    border-width: 6px;
+    background-color: rgb(58, 48, 24);
+}
+.card__name {
+    color: rgb(255, 255, 255);
+    font-size: 24px;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-top: 10px;
+}
+.card__forced {
+    margin-top: 8px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background-color: rgb(255, 204, 77);
+    color: rgb(26, 20, 4);
+    font-size: 22px;
+}
+
+/* 등급 모양: 바깥 사각 하나 + 안쪽 45도 사각 (영웅만 둘 다 보여 여덟 꼭짓점 별) */
+.mark {
+    width: 72px;
+    height: 72px;
+    margin: 8px;
+    align-items: center;
+    justify-content: center;
+}
+.mark__inner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    rotate: 45deg;
+    display: none;
+}
+.mark--hero,
+.mark--hero .mark__inner {
+    background-color: rgb(255, 204, 77);
+}
+.mark--hero .mark__inner {
+    display: flex;
+}
+.mark--rare {
+    background-color: rgb(195, 155, 255);
+    rotate: 45deg;
+    scale: 0.8 0.8;
+}
+.mark--common {
+    background-color: rgb(143, 182, 220);
+    border-radius: 50%;
+}
+.flash {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(255, 204, 77, 0.5);
+    opacity: 0;
+}
+.tap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: none;
+}
+.tap--on {
+    display: flex;
+}
+.skip {
+    position: absolute;
+    right: 18px;
+    top: 16px;
+    font-size: 26px;
+    padding: 10px 26px;
+    border-radius: 28px;
+    display: none;
+}
+.skip--on {
+    display: flex;
+}
+
+.pulls {
+    flex-direction: row;
+    justify-content: center;
+    height: 92px;
+    margin-top: 14px;
+}
+.pull {
+    width: 300px;
+    margin: 0 12px;
+    font-size: 30px;
+    -unity-font-style: bold;
+    border-radius: 46px;
+    border-width: 3px;
+    border-color: rgb(94, 230, 201);
+    background-color: rgb(16, 48, 44);
+    color: rgb(255, 255, 255);
+}
+.pull--big {
+    background-color: rgb(94, 230, 201);
+    color: rgb(8, 32, 28);
+}
+.lock {
+    position: absolute;
+    left: 288px;
+    width: 624px;
+    bottom: -10px;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.lock__fill {
+    height: 100%;
+    width: 100%;
+    background-color: rgb(255, 204, 77);
+}
+.pity {
+    flex-direction: row;
+    align-items: center;
+    height: 76px;
+    margin-top: 18px;
+    padding: 0 22px;
+    border-radius: 16px;
+    background-color: rgba(10, 15, 28, 0.8);
+}
+.pity__label {
+    width: 420px;
+    color: rgb(255, 204, 77);
+    font-size: 28px;
+    -unity-font-style: bold;
+}
+.pity__bar {
+    flex-grow: 1;
+    height: 16px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+.pity__fill {
+    height: 100%;
+    background-color: rgb(255, 204, 77);
+}
+.server-log {
+    margin-top: 10px;
+    font-size: 22px;
+    color: rgb(168, 240, 220);
+}
+
+.side {
+    flex-grow: 1;
+    padding: 14px 20px;
+    border-radius: 16px;
+    background-color: rgba(10, 15, 28, 0.8);
+}
+.side__title {
+    font-size: 28px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+.odds {
+    flex-grow: 1;
+}
+.odds-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-left: 40px;
+    font-size: 22px;
+}
+.odds-row--header {
+    padding-left: 0;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    -unity-font-style: bold;
+    font-size: 24px;
+}
+.odds-row--hero {
+    color: rgb(255, 204, 77);
+}
+.odds-row--rare {
+    color: rgb(195, 155, 255);
+}
+.odds-row--common {
+    color: rgb(143, 182, 220);
+}
+.pity-rule {
+    margin-top: 8px;
+    font-size: 22px;
+    white-space: normal;
+    color: rgb(255, 204, 77);
+}

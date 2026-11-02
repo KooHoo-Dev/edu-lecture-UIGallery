@@ -1,0 +1,110 @@
+{
+  "specimen_id": "gacha-reveal-odds",
+  "name_ko": "뽑기 연출 + 확률표 · 천장",
+  "name_en": "Gacha Reveal, Odds Table & Pity",
+  "group": "E",
+  "paradigm": "menu",
+  "source_candidate": "research/next-batch-candidates.json 의 gacha-reveal-odds (모바일 관점, 강도 5). docs/next-specimens-research.md 2절 #9",
+  "scope_decision_ko": "수업 맥락에 맞춰 뽑기를 권하는 화면이 아니라 '정직하게 만드는 법' 을 다룬다. 재화는 게임 안 '보급 쿠폰' 뿐이고 결제 · 가격 · 구매 버튼은 넣지 않았다. 후보의 '연출 속도 · 건너뛰기 허용 여부' 조절 값은 예고 시간 · 공개 간격으로 나누고, 건너뛰기 없음은 효과 끄기(나쁜 예)로 옮겼다. 천장은 보장형과 교환형 두 방식을 고를 수 있게 했다(리서치 중 블루 아카이브 일본 서버가 교환형에서 보장형으로 바꾼 사례를 확인). 결과는 서버가 정한다는 원칙을 '공개 중 재접속' 시연으로, 표시와 실제의 일치를 '1,000회 시뮬레이션' 과 표준오차 비교로 보이게 했다. 후보의 near-miss 윤리 항목은 나쁜 예(결과와 무관한 영웅 신호 + 마지막 장 금빛 뒷면)로 재현했다. 결과 직후 연타 관통은 core/inputLock 으로 막는다.",
+  "why_ko": [
+    "국내에서는 2024-03-22 부터 확률형 아이템 정보 표시가 법적 의무이고, 유형별 표시와 천장제도도 표시 대상이다",
+    "표시와 실제가 어긋난 사례(넥슨 메이플스토리 큐브)로 공정위 과징금 약 116억 원 — '표 하나' 구조의 이유가 분명하다",
+    "Apple App Store 3.1.1 · Google Play 도 구매 전 항목별 확률 공개를 요구한다",
+    "학생 팀 프로젝트의 모바일 RPG 에서 자주 만드는 화면이라 다크패턴을 미리 짚을 가치가 있다"
+  ],
+  "teaching_points_ko": [
+    "표 하나: 항목 가중치(합 100,000)를 추첨기 · 확률표 · 천장 문장 · 종합 확률이 함께 읽는다",
+    "천장 포함 종합 확률: 보장형은 E = Σ(1−p)^k (k < N), 종합 = 1/E. 교환형은 추첨을 바꾸지 않는다",
+    "결과는 서버가 요청 시점에 확정, 클라이언트는 응답을 받은 뒤 연출만 — 재접속해도 같은 결과",
+    "2단계 공개: 가장 높은 등급 예고(색 + 모양 + 글자) → 엎은 카드 뒷면에 등급 → 한 장씩 공개, 영웅은 짧게 강조(번쩍임 제한)",
+    "건너뛰기 필수, 탭 한 번 = 한 장(입력 소비), 결과 직후 입력 잠금(누른 시각 판정)",
+    "천장 카운터는 결과를 다 보여 준 뒤에 갱신해 결과를 미리 알려 주지 않는다",
+    "시뮬레이션으로 천장 포함 기대 vs 실제를 비교하고, 다중 비교를 고려해 우연일 확률 0.001% 미만일 때만 경고(기대 횟수 10회 미만 항목은 판정에서 뺀다)"
+  ],
+  "evidence": [
+    {
+      "claim_ko": "확률형 아이템 정보 표시 의무화 시행령이 2024-01-02 국무회의에서 의결되어 2024-03-22 시행",
+      "url": "https://www.ajunews.com/view/20240102104711033",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "시행령 개정안은 캡슐형 · 강화형 · 합성형으로 나눠 유형별 표시 사항을 정하고, 변동 확률 · 천장제도도 표시 대상에 넣었다",
+      "url": "https://www.dailian.co.kr/news/view/1294309/",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "공정위(2024-01-03): 넥슨이 메이플스토리 큐브의 인기 옵션 출현 확률을 낮추고 일부는 0% 로 설정한 뒤 알리지 않거나 거짓 공지, 과징금 약 116억 원(잠정). 넥슨은 행정소송 제기. 취소 소송은 서울고법 선고가 여러 차례 연기되어 2026년 하반기 보도 기준 계류(10-28 추가 변론 뒤 새 선고일 지정 예정, 결과 미확인)",
+      "url": "https://newstomato.com/ReadNews.aspx?no=1214731",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Apple App Store 심사 지침 3.1.1 은 무작위 아이템 구매 전에 항목 종류별 확률 공개를 요구 (2017-12)",
+      "url": "https://www.fenwick.com/insights/publications/apple-now-requires-disclosure-of-loot-box-odds",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Google Play 도 확률 공개를 요구 (2019)",
+      "url": "https://fenwick.com/insights/publications/google-play-now-requires-disclosure-of-loot-box-odds",
+      "tier": "T2",
+      "confidence": "plausible"
+    },
+    {
+      "claim_ko": "넥슨 과징금 취소 소송 선고 연기 보도",
+      "url": "https://news.mtn.co.kr/news-detail/2026072215222126966",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "Genshin Impact: 이벤트 기원 최고 등급 기본 확률 0.6%, 89회 연속 미획득 뒤 보장 규칙(기사 기준, 판본에 따라 세부가 다르게 서술됨). 2차 자료는 소프트 천장을 포함한 종합 확률을 1.6% 로 적는다 — 이 표본의 공식(소프트 천장 없음)으로는 1.44%",
+      "url": "https://www.rpgsite.net/feature/10312-genshin-impact-wish-system-gacha-rates-banners-and-the-pity-mechanic-explained",
+      "tier": "T3",
+      "confidence": "plausible"
+    },
+    {
+      "claim_ko": "Blue Archive: 모집 포인트 200점이면 픽업 학생과 교환(교환형). 일본 서버는 2026-07-29 업데이트로 100회 3성 확정 · 200회 픽업 확정(보장형)으로 바꿈",
+      "url": "https://labs.invenglobal.com/articles/24203/blue-archive-details-upcoming-monetization-changes-for-jp-server",
+      "tier": "T2",
+      "confidence": "confirmed"
+    },
+    {
+      "claim_ko": "등급을 빛 색으로 먼저 예고하는 연출(원신 등) — 화면을 직접 확인하지 못함. 표본은 장르 관례로만 다루고 시각 축을 빌리지 않았다",
+      "url": "",
+      "tier": "-",
+      "confidence": "unverified"
+    },
+    {
+      "claim_ko": "아깝게 놓친 결과(near-miss)는 이긴 것이 아닌데도 계속하려는 마음을 키우고 보상 회로를 활성화했다 (Clark, Lawrence, Astley-Jones, Gray 2009, Neuron 61(3))",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2658737/",
+      "tier": "T1",
+      "confidence": "confirmed"
+    }
+  ],
+  "references": [
+    "https://www.ajunews.com/view/20240102104711033",
+    "https://www.dailian.co.kr/news/view/1294309/",
+    "https://newstomato.com/ReadNews.aspx?no=1214731",
+    "https://www.fenwick.com/insights/publications/apple-now-requires-disclosure-of-loot-box-odds",
+    "https://fenwick.com/insights/publications/google-play-now-requires-disclosure-of-loot-box-odds",
+    "https://www.rpgsite.net/feature/10312-genshin-impact-wish-system-gacha-rates-banners-and-the-pity-mechanic-explained",
+    "https://labs.invenglobal.com/articles/24203/blue-archive-details-upcoming-monetization-changes-for-jp-server",
+    "https://news.mtn.co.kr/news-detail/2026072215222126966",
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC2658737/"
+  ],
+  "inspired_by": [
+    {
+      "title": "Genshin Impact (2020)",
+      "borrowed": [],
+      "note_ko": "보장형 천장 규칙만 참고. 연출 화면 미확인"
+    },
+    {
+      "title": "Blue Archive (2021)",
+      "borrowed": [],
+      "note_ko": "교환형 천장(200점) 규칙과 보장형 전환 사례만 참고. 연출 화면 미확인"
+    }
+  ],
+  "confidence_notes_ko": "법 · 제재 사실은 T2 기사로 확인했다. 원신 · 블루 아카이브 화면은 직접 보지 못해 시각 축을 빌리지 않았다(borrowed 비움). 서버 지연 350ms 는 모형 값, 예고 900ms · 공개 간격 420ms · 영웅 추가 700ms · 입력 잠금 400ms 는 권장값이다. 원신 수치는 2차 자료끼리 서술이 달라 plausible 로 둔다. Unity 코드는 tools/unity-compile.ps1 로 C# 컴파일만 확인했다(UXML · USS 임포트와 실제 화면은 미확인)."
+}
