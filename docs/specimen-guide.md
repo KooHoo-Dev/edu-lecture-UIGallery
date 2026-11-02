@@ -59,6 +59,9 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 | `core/input.tsx` | 중립 입력 글리프(`ActionGlyph` `KeyCap` `PadButton` `Shoulder` `MouseGlyph` `TouchGlyph`) + `useLastInputDevice()` | 메뉴, 쿨다운, 인벤토리, 대화창, 설정 |
 | `core/silhouettes.tsx` | 실루엣 키트 `<Silhouette role="ally|enemy|neutral">` (아군=캡슐, 적=삼각, 중립=마름모) | 데미지 숫자, 조준점, 설정 미리보기 |
 | `core/flash.ts` | `requestFlash()` 번쩍임 제한기 · `prefersReducedMotion()` | 번쩍이는 효과가 있는 표본 |
+| `core/virtualList.ts` | `visibleRange(scroll, viewport, itemSize, count, overscan)` · `itemOffset()` · `createRecycler(recycle)` → `.layout(range)` 항목→셀 배정 · `.stats()` 만든/재사용 셀 수 | 재활용 스크롤 리스트, 배틀패스 트랙 (같은 크기 항목 한 줄) |
+| `core/inputLock.ts` | `createInputLock(ms)` → `.open(now)` · `.blocks(누른 시각)` · `.progress(now)` — **누른 시각**으로 판정하는 입력 잠금 | 뽑기 결과, 보상 받기 (처음 쓴 곳: 레벨업 3택) |
+| `core/input.tsx` (추가) | `BindingGlyph` 임의 입력 하나의 글리프 · `keyLabel(code)` · `bindingLabel()` 읽는 이름 · `bindingFromKeyboard(e)` · `sameBinding()` 충돌 확인 | 키 리바인딩, 스킬 칸 |
 
 - 게임패드 버튼은 **위치(아래/오른쪽/왼쪽/위)** 로만 표기한다. 특정 콘솔의 기호(A/B/X/Y, ○/×/△/□)·로고 금지.
 - 파라미터 이름은 camelCase, 같은 개념은 같은 이름: `edgeMargin`(px), `fovDeg`, `accentColor`, `skewDeg`, `inputDevice`(auto|keyboard|gamepad|touch), `pulseHz`(≤ 3).

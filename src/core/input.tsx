@@ -11,6 +11,18 @@ export type PadFace = 'bottom' | 'right' | 'left' | 'top'
 /** 갤러리 공통 행동 → 장치별 입력 */
 export type Action = 'confirm' | 'back' | 'tabPrev' | 'tabNext' | 'option' | 'menu' | 'skip' | 'interact'
 
+/**
+ * 입력 하나 (키 재설정 · 임의 키 표시용). 키는 KeyboardEvent.code(배열 기준: 'KeyQ', 'Space', 'ShiftLeft')나 그대로 보일 라벨('Q').
+ * 패드는 위치로만 — 특정 콘솔의 기호를 쓰지 않는다.
+ */
+export type Binding =
+  | { kind: 'key'; key: string }
+  | { kind: 'mouse'; button: 'left' | 'right' | 'wheel' }
+  | { kind: 'face'; face: PadFace }
+  | { kind: 'shoulder'; side: 'L' | 'R' }
+  | { kind: 'start' }
+  | { kind: 'dpad'; dir: 'up' | 'down' | 'left' | 'right' }
+
 const KEYS: Record<Action, string> = {
   confirm: 'Enter',
   back: 'Esc',
@@ -21,7 +33,7 @@ const KEYS: Record<Action, string> = {
   skip: 'Space',
   interact: 'F',
 }
-const PAD: Record<Action, { kind: 'face'; face: PadFace } | { kind: 'shoulder'; side: 'L' | 'R' } | { kind: 'start' }> = {
+const PAD: Record<Action, Extract<Binding, { kind: 'face' | 'shoulder' | 'start' }>> = {
   confirm: { kind: 'face', face: 'bottom' },
   back: { kind: 'face', face: 'right' },
   tabPrev: { kind: 'shoulder', side: 'L' },
@@ -53,16 +65,91 @@ const paper = (tone: GlyphProps['tone']) => (tone === 'dark' ? '#f4f7fb' : 'rgba
 
 /** 행동 하나를 현재 장치에 맞는 글리프로 */
 export function ActionGlyph({ action, device, size = 40, tone }: GlyphProps & { action: Action; device: Device }) {
-  if (device === 'gamepad') {
-    const m = PAD[action]
-    if (m.kind === 'face') return <PadButton face={m.face} size={size} tone={tone} />
-    if (m.kind === 'shoulder') return <Shoulder side={m.side} size={size} tone={tone} />
-    return <StartButton size={size} tone={tone} />
-  }
+  if (device === 'gamepad') return <BindingGlyph binding={PAD[action]} size={size} tone={tone} />
   if (device === 'touch') return <TouchGlyph kind={TOUCH[action]} size={size} tone={tone} />
   if (device === 'mouse' && action === 'confirm') return <MouseGlyph button="left" size={size} tone={tone} />
   if (device === 'mouse' && action === 'back') return <MouseGlyph button="right" size={size} tone={tone} />
   return <KeyCap label={KEYS[action]} size={size} tone={tone} />
+}
+
+/** 입력 하나를 글리프로 — 행동 이름 없이 '어떤 키인지' 만 보여 줄 때 (키 재설정 목록, 스킬 칸 등) */
+export function BindingGlyph({ binding, size = 40, tone }: GlyphProps & { binding: Binding }) {
+  switch (binding.kind) {
+    case 'key':
+      return <KeyCap label={keyLabel(binding.key)} size={size} tone={tone} />
+    case 'mouse':
+      return <MouseGlyph button={binding.button} size={size} tone={tone} />
+    case 'face':
+      return <PadButton face={binding.face} size={size} tone={tone} />
+    case 'shoulder':
+      return <Shoulder side={binding.side} size={size} tone={tone} />
+    case 'start':
+      return <StartButton size={size} tone={tone} />
+    case 'dpad':
+      return <DPad dirs={[binding.dir]} size={size} tone={tone} />
+  }
+}
+
+const KEY_NAMES: Record<string, string> = {
+  Space: 'Space',
+  Enter: 'Enter',
+  Escape: 'Esc',
+  Backspace: '⌫',
+  Tab: 'Tab',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  Backquote: '`',
+  Minus: '-',
+  Equal: '=',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Backslash: '\\',
+  Semicolon: ';',
+  Quote: "'",
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+}
+
+/** KeyboardEvent.code → 키캡 라벨 ('KeyQ' → 'Q', 'Digit1' → '1', 'ShiftLeft' → 'Shift'). 코드가 아니면 그대로 */
+export function keyLabel(code: string): string {
+  if (KEY_NAMES[code]) return KEY_NAMES[code]
+  const m = /^(?:Key|Digit|Numpad)(.+)$/.exec(code)
+  if (m) return m[1]
+  const side = /^(Shift|Control|Alt|Meta)(?:Left|Right)$/.exec(code)
+  if (side) return side[1] === 'Control' ? 'Ctrl' : side[1]
+  return code
+}
+
+const PAD_WORDS: Record<PadFace, string> = { bottom: '아래', right: '오른쪽', left: '왼쪽', top: '위' }
+const DIR_WORDS = { up: '위', down: '아래', left: '왼쪽', right: '오른쪽' } as const
+
+/** 글로 읽는 이름 (스크린 리더 · 충돌 경고 문구용) */
+export function bindingLabel(b: Binding): string {
+  switch (b.kind) {
+    case 'key':
+      return `${keyLabel(b.key)} 키`
+    case 'mouse':
+      return b.button === 'wheel' ? '마우스 휠' : `마우스 ${b.button === 'left' ? '왼쪽' : '오른쪽'} 버튼`
+    case 'face':
+      return `패드 ${PAD_WORDS[b.face]} 버튼`
+    case 'shoulder':
+      return `패드 ${b.side} 숄더`
+    case 'start':
+      return '패드 메뉴 버튼'
+    case 'dpad':
+      return `방향 패드 ${DIR_WORDS[b.dir]}`
+  }
+}
+
+/** 키 입력 하나를 Binding 으로 (키 재설정의 '키 입력 대기'). 배열 기준인 code 를 쓴다 — 한/영 · 자판 배열이 바뀌어도 같은 키 */
+export const bindingFromKeyboard = (e: KeyboardEvent): Binding => ({ kind: 'key', key: e.code })
+
+/** 같은 입력인가 (충돌 확인). 'KeyQ' 와 'Q' 는 같은 키, 왼쪽 · 오른쪽 Shift 도 같은 키로 본다 */
+export function sameBinding(a: Binding, b: Binding): boolean {
+  return a.kind === b.kind && bindingLabel(a) === bindingLabel(b)
 }
 
 export function KeyCap({ label, size = 40, tone }: GlyphProps & { label: string }) {

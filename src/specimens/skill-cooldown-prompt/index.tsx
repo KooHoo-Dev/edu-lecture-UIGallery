@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { prefersReducedMotion, requestFlash } from '../../core/flash'
 import { damp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
-import { KeyCap, PadButton, Shoulder, useLastInput } from '../../core/input'
+import { BindingGlyph, useLastInput } from '../../core/input'
 import { num, str } from '../../core/params'
 import { Silhouette } from '../../core/silhouettes'
 import type { SpecimenProps } from '../../core/types'
@@ -469,16 +469,7 @@ export default function SkillCooldownPrompt(p: SpecimenProps) {
 
   /* ───── 그리기 ───── */
   const glyphSize = portrait ? 58 : 52
-  const glyph = (d: SlotDef) =>
-    glyphDev === 'gamepad' ? (
-      d.pad.kind === 'face' ? (
-        <PadButton face={d.pad.face} size={glyphSize} />
-      ) : (
-        <Shoulder side={d.pad.side} size={glyphSize} />
-      )
-    ) : (
-      <KeyCap label={d.key} size={glyphSize} />
-    )
+  const glyph = (d: SlotDef) => <BindingGlyph binding={glyphDev === 'gamepad' ? d.pad : { kind: 'key', key: d.key }} size={glyphSize} />
 
   const ultStatus = ui.status.ult
   const fx = ui.fx
