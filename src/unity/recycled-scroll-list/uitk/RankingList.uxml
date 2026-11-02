@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="RankingList.uss" />
+    <ui:VisualElement name="ranking-root" class="ranking">
+        <ui:VisualElement class="ranking__header">
+            <ui:Label class="ranking__title" text="시즌 랭킹" />
+            <ui:Label class="ranking__subtitle" text="잔해 드론 격추 점수 · 시즌 3" />
+            <ui:Label name="total" class="ranking__total" text="참가 1,000명" />
+        </ui:VisualElement>
+        <!-- 가상화가 기본: 행 높이가 같으니(FixedHeight) 보이는 줄만큼만 요소를 만들어 돌려쓴다.
+             ListView 높이는 flex-grow 로 화면에 묶어야 한다. 내용 높이에 맞춰 늘어나면 모든 줄이 보이는 것으로 계산된다 -->
+        <ui:ListView name="list" class="ranking__list" fixed-item-height="104" virtualization-method="FixedHeight" selection-type="None" />
+        <!-- 내 순위 고정 행: C# 가 RankingRow.uxml 을 하나 복제해 넣는다 -->
+        <ui:VisualElement name="pinned" class="ranking__pinned" />
+        <ui:VisualElement class="ranking__buttons">
+            <ui:Button name="jump-me" class="ranking__button" text="내 순위로" />
+            <ui:Button name="reshuffle" class="ranking__button" text="데이터 갱신" />
+            <ui:Button name="to-bottom" class="ranking__button" text="맨 아래로" />
+        </ui:VisualElement>
+        <ui:Label name="debug" class="ranking__debug" />
+    </ui:VisualElement>
+</ui:UXML>

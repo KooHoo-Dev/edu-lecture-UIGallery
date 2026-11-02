@@ -1,0 +1,31 @@
+{
+  "specimen_id": "recycled-scroll-list",
+  "name_ko": "재활용 스크롤 리스트 (1,000명 랭킹)",
+  "name_en": "Recycled Scroll List (Virtualized Ranking)",
+  "group": "E",
+  "paradigm": "menu",
+  "source_candidate": "docs/next-specimens-research.md 2절 #12 recycled-scroll-list (교육 관점, 강도 5). 2순위 배치 — battle-pass-track 과 core/virtualList.ts 를 공유",
+  "scope_decision_ko": "후보는 '랭킹 · 우편함' 이었지만 우편함(받음 · 모두 받기)은 red-dot-badge-tree 가 이미 다루므로 랭킹 하나로 좁히고, 우편함의 핵심 교훈인 '상태는 데이터에' 를 랭킹의 응원 버튼(조절 값 cellState)으로 옮겼다. 재활용 끄기는 둘로 나눴다: 조절 값 recycle=false 는 '보이는 것만 만들지만 버리지 않음'(굴린 만큼 셀이 쌓임), 효과 끄기는 '가상화 없음'(처음부터 항목마다 셀 1,000개 + LayoutGroup). 슬로모션은 갤러리 배속(0.25)과 디버그 지도(셀 풀 지도 · 재배치 화살표)로 대신했다. 버벅임은 꾸민 수치 대신 실측(셀 생성 · 데이터 갱신 시간, DOM 요소 수)과 '프레임마다 다시 그리는 셀 수' 그래프로 보였다.",
+  "why_ko": [
+    "랭킹 · 우편함 · 친구 목록 · 상점은 모바일 게임에 거의 반드시 있고, 학생 프로젝트는 대개 항목마다 Instantiate + VerticalLayoutGroup 으로 만든다",
+    "보이는 범위 계산 → 반납 → 재배정이라는 두 단계 알고리즘을 눈으로 볼 수 있으면 직접 구현할 수 있다",
+    "셀에 상태를 두는 버그(돌려쓸 때 하트 · 받음 표시가 엉뚱한 줄에 남음)는 재활용을 처음 만들 때 거의 반드시 겪는다",
+    "UGUI 는 직접 만들어야 하고 UI Toolkit ListView 는 가상화가 내장이라 두 시스템의 차이를 비교하기 좋다"
+  ],
+  "teaching_points_ko": [
+    "같은 높이 행: 위치 = index × h, first = ⌊scroll ÷ h⌋ − overscan, last = ⌈(scroll + view) ÷ h⌉ − 1 + overscan, 필요한 셀 ≈ ⌈view ÷ h⌉ + 1 + 2·overscan",
+    "범위 밖 셀을 풀에 반납 → 새 항목에 반납된 셀부터 배정 → 모자랄 때만 Instantiate. 셀은 anchoredPosition 만 옮기고 내용만 다시 채운다",
+    "LayoutGroup · ContentSizeFitter 없음, Content 는 서브 Canvas, Profiler 의 Canvas.BuildBatch 와 셀 개수로 확인",
+    "상태는 데이터에, Bind 는 켜기 · 끄기를 모두 쓴다. 버튼 리스너는 셀 생성 때 한 번 (UITK 는 makeItem 에서, index 는 userData)",
+    "UITK ListView: fixedItemHeight + FixedHeight + makeItem / bindItem + RefreshItems / Rebuild / ScrollToItem, ListView 높이는 화면에 묶는다",
+    "먼 점프는 바로 앞까지 건너뛰고 마지막 한 화면만 굴린 뒤 강조, 내 순위는 고정 행으로"
+  ],
+  "references": [
+    "https://learn.unity.com/tutorial/optimizing-unity-ui",
+    "https://docs.unity3d.com/Manual/UIE-runtime-binding-list-view.html",
+    "https://docs.unity3d.com/6000.3/Documentation/ScriptReference/UIElements.ListView.html",
+    "https://docs.unity3d.com/Packages/com.unity.ugui@2.0/manual/script-ScrollRect.html"
+  ],
+  "inspired_by": [],
+  "confidence_notes_ko": "후보가 예로 든 모바일 RPG 우편함 · 클랜 목록 화면은 직접 확인하지 않아 inspiredBy 에 싣지 않고 장르 관례로만 다뤘다. ScrollRect 문서 페이지는 Deceleration Rate · Elasticity 항목이 있음을 확인했고(2026-11), 기본값 0.135 · 0.1 은 UGUI 소스 기억에 기댄 값이라 confidence: plausible. ListView 스크립트 레퍼런스 URL 은 새 문서 주소로 리디렉트되는 것까지만 확인. 점프 0.55초 · 강조 1.6초 · 휠 0.2초는 권장값. Unity C# 는 tools/unity-compile.ps1 로 컴파일 확인(exit 0), UXML 은 XML 파싱만 확인하고 에디터 임포트는 미확인."
+}

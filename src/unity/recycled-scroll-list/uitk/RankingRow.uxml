@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 랭킹 한 줄. ListView 의 makeItem 이 이것을 복제하고, bindItem 이 줄을 다시 쓸 때마다 글자와 하트를 채운다 -->
+    <ui:VisualElement class="row" picking-mode="Ignore">
+        <ui:Label name="cell-no" class="row__cell-no" text="셀 0" />
+        <ui:VisualElement class="row__rank" picking-mode="Ignore">
+            <ui:Label name="rank" class="row__rank-num" text="1" />
+            <ui:Label name="delta" class="row__delta" />
+        </ui:VisualElement>
+        <ui:VisualElement name="crest" class="row__crest" picking-mode="Ignore" />
+        <ui:VisualElement class="row__who" picking-mode="Ignore">
+            <ui:Label name="name" class="row__name" text="이름" />
+            <ui:Label name="sub" class="row__sub" text="2분대 · Lv 40" />
+        </ui:VisualElement>
+        <ui:Label name="score" class="row__score" text="0" />
+        <ui:Button name="cheer" class="row__cheer">
+            <ui:VisualElement class="row__heart" picking-mode="Ignore" />
+            <ui:Label name="cheers" class="row__cheers" text="0" picking-mode="Ignore" />
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

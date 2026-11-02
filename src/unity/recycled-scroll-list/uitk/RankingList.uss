@@ -1,0 +1,183 @@
+/* 재활용 스크롤 리스트 (UI Toolkit) — 1920×1080 기준. 행 높이는 ListView 의 fixed-item-height 와 같아야 한다 */
+
+.ranking {
+    position: absolute;
+    left: 110px;
+    top: 50px;
+    width: 880px;
+    height: 980px;
+    padding: 22px 16px 16px 16px;
+    border-radius: 22px;
+    background-color: rgb(17, 29, 43);
+    border-width: 2px;
+    border-color: rgb(43, 69, 96);
+    color: rgb(234, 242, 251);
+}
+
+.ranking__header {
+    flex-direction: row;
+    align-items: center;
+    height: 84px;
+    padding: 0 12px;
+}
+.ranking__title {
+    font-size: 38px;
+    -unity-font-style: bold;
+}
+.ranking__subtitle {
+    font-size: 22px;
+    margin-left: 16px;
+    color: rgb(169, 189, 210);
+}
+.ranking__total {
+    margin-left: auto;
+    font-size: 24px;
+    color: rgb(169, 189, 210);
+}
+
+/* 화면에 묶인 높이 — 가상화가 동작하려면 ListView 가 내용만큼 늘어나면 안 된다 */
+.ranking__list {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-top: 12px;
+}
+
+.ranking__pinned {
+    height: 116px;
+    margin-top: 16px;
+    border-radius: 14px;
+    border-width: 3px;
+    border-color: rgb(94, 230, 201);
+    background-color: rgba(94, 230, 201, 0.2);
+    transition-property: opacity, translate;
+    transition-duration: 0.22s;
+}
+/* 내 줄이 화면에 보일 때 (C# 가 붙였다 뗀다) */
+.ranking__pinned--hidden {
+    opacity: 0;
+    translate: 0 24px;
+}
+
+.ranking__buttons {
+    flex-direction: row;
+    margin-top: 12px;
+}
+.ranking__button {
+    font-size: 22px;
+    height: 52px;
+    padding: 0 18px;
+}
+.ranking__debug {
+    margin-top: 8px;
+    font-size: 22px;
+    color: rgb(159, 180, 202);
+    white-space: normal;
+}
+
+/* ───── 한 줄 ───── */
+.row {
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+    padding-left: 18px;
+    border-bottom-width: 2px;
+    border-color: rgba(43, 69, 96, 0.7);
+}
+.row--me {
+    background-color: rgba(94, 230, 201, 0.22);
+    border-left-width: 6px;
+    border-left-color: rgb(94, 230, 201);
+}
+.row__cell-no {
+    width: 84px;
+    height: 100%;
+    margin-left: -18px;
+    margin-right: 12px;
+    -unity-text-align: middle-center;
+    font-size: 22px;
+    -unity-font-style: bold;
+    background-color: rgb(40, 90, 110);
+}
+.row__rank {
+    width: 100px;
+    align-items: center;
+}
+.row__rank-num {
+    font-size: 32px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    width: 56px;
+    height: 56px;
+}
+/* 1~3위: 메달 그림 위에 숫자 (색만으로 구분하지 않게 모양도 다른 스프라이트) */
+.row--medal .row__rank-num {
+    color: rgb(26, 26, 26);
+    background-color: rgb(227, 169, 42);
+    border-radius: 28px;
+}
+.row__delta {
+    font-size: 22px;
+}
+.row__delta--up {
+    color: rgb(111, 224, 138);
+}
+.row__delta--down {
+    color: rgb(255, 138, 138);
+}
+.row__crest {
+    width: 44px;
+    height: 44px;
+    margin: 0 8px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.row__who {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    padding-left: 8px;
+}
+.row__name {
+    font-size: 27px;
+    -unity-text-overflow-position: end;
+    text-overflow: ellipsis;
+}
+.row__sub {
+    font-size: 22px;
+    color: rgb(147, 169, 192);
+}
+.row__score {
+    width: 170px;
+    font-size: 29px;
+    -unity-text-align: middle-right;
+    padding-right: 18px;
+}
+.row__cheer {
+    flex-direction: row;
+    align-items: center;
+    width: 96px;
+    height: 52px;
+    margin-right: 14px;
+    border-radius: 26px;
+    border-width: 2px;
+    border-color: rgb(59, 88, 120);
+    background-color: rgba(0, 0, 0, 0);
+}
+.row__heart {
+    width: 26px;
+    height: 24px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgb(200, 214, 229);
+}
+.row__cheer--on {
+    border-color: rgb(255, 127, 168);
+    background-color: rgba(255, 127, 168, 0.18);
+}
+.row__cheer--on .row__heart {
+    background-color: rgb(255, 127, 168);
+    border-color: rgb(255, 127, 168);
+}
+.row__cheers {
+    font-size: 22px;
+    margin-left: 6px;
+}
