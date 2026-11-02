@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 입력표 한 행. 칸 Button 두 개(키보드 · 패드)와 복원 버튼. 글리프 · 바뀜 표시 · 남은 시간 막대는 C# 가 칸 안에 더한다 -->
+    <ui:VisualElement name="row" class="row">
+        <ui:Label name="label" class="row__label" />
+        <ui:Button name="kb" class="slot" />
+        <ui:Button name="pad" class="slot" />
+        <ui:Button name="reset" class="row__reset" text="↺" />
+    </ui:VisualElement>
+</ui:UXML>

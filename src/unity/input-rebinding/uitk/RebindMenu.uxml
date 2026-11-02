@@ -1,0 +1,59 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="RebindMenu.uss" />
+    <ui:VisualElement name="menu" class="menu">
+        <ui:VisualElement class="head">
+            <ui:VisualElement>
+                <ui:Label class="head__eyebrow" text="설정 · 조작" />
+                <ui:Label class="head__title" text="조작 재설정" />
+            </ui:VisualElement>
+            <ui:Label name="device" class="head__device" text="마지막 입력 · 키보드 · 마우스" />
+            <!-- 전체 복원: 길게 누르기. Button 의 clicked 로는 만들 수 없어 VisualElement 에 포인터 이벤트를 단다 -->
+            <ui:VisualElement name="reset-all" class="hold" focusable="true">
+                <ui:VisualElement name="reset-fill" class="hold__fill" picking-mode="Ignore" />
+                <ui:Label class="hold__label" text="↺ 전체 기본값 (길게 누르기)" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="body">
+            <ui:VisualElement class="table">
+                <ui:VisualElement class="table__head">
+                    <ui:Label class="th th--action" text="행동" />
+                    <ui:Label name="th-kb" class="th" text="키보드 · 마우스" />
+                    <ui:Label name="th-pad" class="th" text="게임패드" />
+                    <ui:Label class="th th--reset" text="복원" />
+                </ui:VisualElement>
+                <!-- C# 가 RebindRow.uxml 을 행마다 복제해 넣는다 -->
+                <ui:VisualElement name="rows" class="rows" />
+                <ui:VisualElement class="row row--fixed">
+                    <ui:Label class="row__label" text="메뉴 열기 · 대기 취소 (고정)" />
+                    <ui:Label class="slot slot--locked" text="Esc" />
+                    <ui:Label class="slot slot--locked" text="메뉴 버튼" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="side">
+                <ui:VisualElement name="listen" class="panel">
+                    <ui:Label name="listen-title" class="panel__title" text="바꿀 칸을 고르세요" />
+                    <ui:VisualElement class="time">
+                        <ui:Label name="listen-time" class="time__text" />
+                        <ui:VisualElement class="time__track">
+                            <ui:VisualElement name="time-bar" class="time__bar" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Label name="note" class="note" />
+                </ui:VisualElement>
+                <ui:VisualElement name="conflict" class="panel conflict">
+                    <ui:Label class="conflict__head" text="⚠ 이미 쓰는 입력" />
+                    <ui:Label name="conflict-text" class="conflict__text" />
+                    <ui:VisualElement class="conflict__choices">
+                        <ui:Button name="accept" class="choice" />
+                        <ui:Button name="cancel" class="choice" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Foldout name="json" class="panel json" text="저장 데이터 (PlayerPrefs)" value="true">
+                    <ui:TextField name="json-text" class="json__text" />
+                </ui:Foldout>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <!-- 아래 안내 줄 — C# 가 행동마다 글리프와 이름을 넣는다 -->
+        <ui:VisualElement name="prompts" class="prompts" />
+    </ui:VisualElement>
+</ui:UXML>

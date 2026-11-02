@@ -1,0 +1,331 @@
+/* 입력 재설정 메뉴 — Panel Settings: Scale With Screen Size, Reference Resolution 1920×1080.
+   한글이 네모로 보이면 Panel Settings 의 Text Settings 에 한글 글꼴(Font Asset)을 넣는다.
+   상태 클래스(C# 가 붙인다): .slot--listening 대기 중 · .slot--changed 바뀜 · .slot--empty 비어 있음 · .slot--locked 고정
+   · .conflict--show 충돌 창 · .th--now 지금 장치 열. 상태는 색만이 아니라 글자(바뀜 · 고정 · 키 없음)와 테두리 모양으로도 보인다. */
+
+.menu {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding: 30px 72px 38px 72px;
+    background-color: rgb(12, 16, 23);
+    color: rgb(238, 241, 246);
+    font-size: 24px;
+}
+
+/* ───── 머리 ───── */
+.head {
+    flex-direction: row;
+    align-items: flex-end;
+    height: 108px;
+    padding-bottom: 14px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(255, 255, 255, 0.13);
+}
+.head__eyebrow {
+    font-size: 22px;
+    color: rgb(111, 214, 255);
+    -unity-font-style: bold;
+}
+.head__title {
+    font-size: 48px;
+    -unity-font-style: bold;
+}
+.head__device {
+    margin-left: auto;
+    margin-right: 20px;
+    font-size: 22px;
+    color: rgb(155, 165, 182);
+    padding: 8px 18px;
+    border-width: 2px;
+    border-radius: 24px;
+    border-color: rgba(255, 255, 255, 0.13);
+}
+.hold {
+    overflow: hidden;
+    padding: 12px 22px;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: rgba(255, 255, 255, 0.13);
+}
+.hold__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(255, 207, 74, 0.35);
+    transform-origin: left;
+    scale: 0 1;
+}
+
+/* ───── 표 ───── */
+.body {
+    flex-grow: 1;
+    flex-direction: row;
+    margin-top: 28px;
+}
+.table {
+    width: 1064px;
+}
+.table__head {
+    flex-direction: row;
+    height: 52px;
+    align-items: center;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(255, 255, 255, 0.13);
+}
+.th {
+    width: 290px;
+    font-size: 22px;
+    color: rgb(155, 165, 182);
+    -unity-text-align: middle-center;
+}
+.th--action {
+    width: 380px;
+    padding-left: 20px;
+    -unity-text-align: middle-left;
+}
+.th--reset {
+    width: 94px;
+}
+.th--now {
+    color: rgb(238, 241, 246);
+    -unity-font-style: bold;
+    border-bottom-width: 4px;
+    border-bottom-color: rgb(111, 214, 255);
+}
+.row {
+    flex-direction: row;
+    align-items: center;
+    height: 64px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+.row__label {
+    width: 380px;
+    padding-left: 20px;
+    font-size: 26px;
+}
+.slot {
+    width: 280px;
+    height: 54px;
+    margin: 0 5px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: rgb(155, 165, 182);
+    background-color: rgba(255, 255, 255, 0.035);
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: rgba(255, 255, 255, 0.13);
+    -unity-text-align: middle-center;
+}
+.slot:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+.slot:focus {
+    border-color: rgb(238, 241, 246);
+    border-width: 3px;
+}
+.slot__glyph {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.slot__mark {
+    position: absolute;
+    top: -12px;
+    right: 8px;
+    font-size: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background-color: rgb(111, 214, 255);
+    color: rgb(4, 32, 44);
+    -unity-font-style: bold;
+    display: none;
+}
+.slot__time {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 5px;
+    height: 5px;
+    border-radius: 3px;
+    background-color: rgb(111, 214, 255);
+    transform-origin: left;
+    display: none;
+}
+.slot--changed .slot__mark {
+    display: flex;
+}
+.slot--listening {
+    color: rgb(111, 214, 255);
+    -unity-font-style: bold;
+    border-color: rgb(111, 214, 255);
+    background-color: rgba(111, 214, 255, 0.16);
+}
+.slot--listening .slot__time {
+    display: flex;
+}
+.slot--listening .slot__glyph {
+    display: none;
+}
+.slot--empty {
+    border-color: rgb(255, 207, 74);
+    color: rgb(255, 207, 74);
+}
+.slot--locked {
+    background-color: rgba(0, 0, 0, 0);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgb(155, 165, 182);
+}
+.row__reset {
+    width: 56px;
+    height: 48px;
+    margin-left: 19px;
+    font-size: 28px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: rgba(255, 255, 255, 0.13);
+    color: rgb(238, 241, 246);
+}
+.row__reset:disabled {
+    opacity: 0.22;
+}
+.row--fixed {
+    background-color: rgba(255, 255, 255, 0.025);
+}
+
+/* ───── 오른쪽 패널 ───── */
+.side {
+    margin-left: 40px;
+    flex-grow: 1;
+}
+.panel {
+    margin-bottom: 18px;
+    padding: 16px 24px;
+    border-width: 2px;
+    border-radius: 14px;
+    border-color: rgba(255, 255, 255, 0.13);
+    background-color: rgba(18, 23, 33, 0.92);
+}
+.panel__title {
+    font-size: 28px;
+    -unity-font-style: bold;
+}
+.time {
+    flex-direction: row;
+    align-items: center;
+    height: 40px;
+    margin: 6px 0;
+}
+.time__text {
+    width: 140px;
+    font-size: 28px;
+}
+.time__track {
+    flex-grow: 1;
+    height: 12px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+.time__bar {
+    width: 100%;
+    height: 100%;
+    background-color: rgb(111, 214, 255);
+    transform-origin: left;
+}
+.note {
+    font-size: 22px;
+    white-space: normal;
+    padding-left: 12px;
+    border-left-width: 4px;
+    border-left-color: rgb(155, 165, 182);
+}
+.conflict {
+    display: none;
+    border-width: 3px;
+    border-color: rgb(255, 207, 74);
+    background-color: rgb(28, 24, 16);
+}
+.conflict--show {
+    display: flex;
+}
+.conflict__head {
+    font-size: 26px;
+    color: rgb(255, 207, 74);
+    -unity-font-style: bold;
+}
+.conflict__text {
+    margin: 6px 0 14px 0;
+    white-space: normal;
+}
+.conflict__choices {
+    flex-direction: row;
+}
+.choice {
+    margin-right: 12px;
+    padding: 10px 16px;
+    font-size: 22px;
+    border-width: 2px;
+    border-radius: 10px;
+    border-color: rgba(255, 255, 255, 0.13);
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(238, 241, 246);
+}
+.choice:focus {
+    background-color: rgb(255, 207, 74);
+    color: rgb(27, 19, 0);
+    -unity-font-style: bold;
+}
+.choice:disabled {
+    opacity: 0.4;
+}
+.json__text {
+    font-size: 22px;
+    min-height: 180px;
+    white-space: normal;
+}
+
+/* ───── 안내 줄 ───── */
+.prompts {
+    flex-direction: row;
+    align-items: center;
+    width: 1064px;
+    height: 88px;
+    padding: 0 24px;
+    border-width: 2px;
+    border-radius: 14px;
+    border-color: rgba(255, 255, 255, 0.13);
+    background-color: rgba(0, 0, 0, 0.45);
+}
+.prompt {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 26px;
+}
+.prompt__glyph {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.prompt__key {
+    margin-right: 8px;
+    padding: 2px 10px;
+    border-width: 2px;
+    border-radius: 6px;
+    border-color: rgb(238, 241, 246);
+    -unity-font-style: bold;
+}
+.prompt__key--empty {
+    border-color: rgb(255, 207, 74);
+    color: rgb(255, 207, 74);
+}
