@@ -2,7 +2,6 @@
 // 틀리면 띠를 흔들고(코루틴 하나), 완성하면 배너를 띄운다. 연출은 실제 시간(unscaled), 판정 · 재사용 대기는 게임 시간.
 using System;
 using System.Collections;
-using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,8 +10,6 @@ namespace UIGallery.DirectionalComboInput
 {
     public class ComboHud : MonoBehaviour
     {
-        public enum MismatchStyle { Dim, Hide }
-
         [SerializeField] ComboCommandSet commandSet;
         [SerializeField] ComboInput input;
 
@@ -28,6 +25,8 @@ namespace UIGallery.DirectionalComboInput
         [SerializeField] RectTransform strip;
         [SerializeField] Image[] slots;
         [SerializeField] Image[] slotGlyphs;
+        [Tooltip("다음 칸에 옮겨 붙이는 두꺼운 금색 테두리 (9-slice Image, 앵커 전체 채움 · 바깥으로 4px)")]
+        [SerializeField] RectTransform nextSlotFrame;
         [SerializeField] Image timerFill;
         [SerializeField] TextMeshProUGUI timerText;
 
@@ -43,7 +42,7 @@ namespace UIGallery.DirectionalComboInput
         [SerializeField] float stepTimeout = 1.5f;
         [Tooltip("관대한 모드: 틀린 칸만 다시")]
         [SerializeField] bool lenient;
-        [SerializeField] MismatchStyle mismatch = MismatchStyle.Dim;
+        [SerializeField] MismatchStyle mismatch = MismatchStyle.Dim;   // ComboMatcher.cs
         [SerializeField] float fadeSeconds = 0.14f;
 
         [Header("색")]
@@ -79,12 +78,7 @@ namespace UIGallery.DirectionalComboInput
                 rows[i] = Instantiate(rowPrefab, list);
                 rows[i].Bind(commandSet.commands[i]);
                 isPrefix[i] = commandSet.IsPrefixOfAnother(i);
-                for (int j = 0; j < n; j++)
-                {
-                    ComboDir[] other = commandSet.commands[j].sequence;
-                    if (j != i && other.Length < commandSet.commands[i].sequence.Length && ComboCommandSet.StartsWith(commandSet.commands[i].sequence, other))
-                        hasPrefix[i] = true;
-                }
+                hasPrefix[i] = commandSet.HasPrefix(i);
             }
             stripHome = strip.anchoredPosition;
             Configure(prefixWait, stepTimeout, lenient);
@@ -140,15 +134,15 @@ namespace UIGallery.DirectionalComboInput
             Paint();
         }
 
-        void OnClosed()
+        /// <param name="fire">떼기 · 토글 닫기면 완성해서 기다리던 커맨드를 발동, 취소 · 포커스 잃음 · 꺼짐이면 버린다</param>
+        void OnClosed(bool fire)
         {
-            matcher.Close(Time.time);   // 완성해서 기다리던 커맨드는 발동
+            matcher.Close(Time.time, fire);
             wrongSlot = -1;
         }
 
         void OnDirection(ComboDir d)
         {
-            int slot = matcher.Buffer.Count;
             StepResult r = matcher.Push(d, Time.time);
             switch (r)
             {
@@ -158,6 +152,8 @@ namespace UIGallery.DirectionalComboInput
                 case StepResult.WrongReset:
                 case StepResult.WrongKept:
                 case StepResult.Cooling:
+                    // Push 뒤에 읽는다 — 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸이다
+                    int slot = matcher.WrongSlot;
                     wrongSlot = slot;
                     wrongDir = d;
                     wrongUntil = Time.unscaledTime + 0.7f;
@@ -247,6 +243,15 @@ namespace UIGallery.DirectionalComboInput
                     slotGlyphs[k].color = lit ? glyphDark : Color.white;
                 }
             }
+            // 다음 칸: 색만이 아니라 두꺼운 금색 테두리 모양으로 (해설 1). 틀린 칸을 보여 주는 동안 · 다 찼을 때는 숨긴다
+            int next = buf.Count;
+            bool showNext = next < slots.Length && !(showWrong && next == wrongSlot);
+            nextSlotFrame.gameObject.SetActive(showNext);
+            if (showNext && nextSlotFrame.parent != slots[next].transform)
+            {
+                nextSlotFrame.SetParent(slots[next].transform, false);   // 앵커 전체 채움이라 칸 크기를 그대로 따른다
+                nextSlotFrame.SetAsLastSibling();
+            }
             float left = matcher.TimeLeft01(now);
             timerFill.fillAmount = left;
             timerText.text = ComboLabels.Timer(stepTimeout, left, buf.Count > 0 && matcher.Pending < 0);
@@ -271,32 +276,5 @@ namespace UIGallery.DirectionalComboInput
             strip.anchoredPosition = stripHome;
             shakeRoutine = null;
         }
-    }
-
-    /// <summary>화면 문구 — UGUI · UI Toolkit 이 같은 글을 쓴다. 숫자는 문화권과 무관하게 (소수점이 쉼표가 되지 않게)</summary>
-    public static class ComboLabels
-    {
-        static string F1(float v) => v.ToString("0.0", CultureInfo.InvariantCulture);
-        static string Sec(float v) => v.ToString("0.##", CultureInfo.InvariantCulture);   // 설정값 0.75 는 0.8 로 반올림하지 않는다
-
-        public static string Status(ComboCommand c, float cooldownLeft, bool pending, bool isPrefix, bool shadowed, float prefixWait, out bool warn)
-        {
-            warn = false;
-            if (cooldownLeft > 0f) return $"재사용 대기 {Mathf.CeilToInt(cooldownLeft)}초";
-            if (pending) return "완성 · 기다리는 중";
-            if (isPrefix) return prefixWait > 0f ? $"접두사 · {Sec(prefixWait)}초 대기" : "접두사 · 즉시 발동";
-            if (shadowed)
-            {
-                warn = true;
-                return "가려짐 — 짧은 쪽이 먼저";
-            }
-            return $"재사용 {Mathf.RoundToInt(c.cooldown)}초";
-        }
-
-        public static string Timer(float stepTimeout, float left01, bool running) =>
-            stepTimeout <= 0f ? "제한 시간 끔" : running ? $"{F1(left01 * stepTimeout)}초 남음" : $"입력 사이 {Sec(stepTimeout)}초";
-
-        public static string Access(ComboInput.OpenMode mode, float stepTimeout, bool lenient) =>
-            $"{(mode == ComboInput.OpenMode.Hold ? "누르고 있기" : "눌러 켜기 · 끄기")}  ·  {(stepTimeout > 0f ? $"입력 사이 {Sec(stepTimeout)}초" : "제한 시간 없음")}  ·  {(lenient ? "틀린 칸만 다시" : "틀리면 처음부터")}";
     }
 }

@@ -1,11 +1,16 @@
 // 방향 커맨드 판정 (순수 C#, 화면을 모른다) — 입력 버퍼 · 접두사 매칭 · 접두사 커맨드 기다림 · 입력 사이 제한 시간 · 재사용 대기.
 // DirectionQuantizer: Vector2(키보드 합성 8방향 · 스틱) → 4방향 하나. 한 번 누르면 한 칸.
+// ComboLabels(화면 문구) · MismatchStyle 도 여기 둔다 — UI Toolkit 판이 TMPro 를 쓰는 UGUI 화면 파일(ComboHud · ComboRow)에 묶이지 않게.
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace UIGallery.DirectionalComboInput
 {
+    /// <summary>맞지 않는 후보: 흐리게(자리 유지) · 숨기기(남은 후보가 위로)</summary>
+    public enum MismatchStyle { Dim, Hide }
+
     public enum StepResult
     {
         /// <summary>후보가 남았다 (아직 완성 아님)</summary>
@@ -46,6 +51,8 @@ namespace UIGallery.DirectionalComboInput
         public IReadOnlyList<ComboDir> Buffer => buffer;
         public int Pending { get; private set; } = -1;
         public int CoolingIndex { get; private set; } = -1;
+        /// <summary>마지막으로 틀린 칸 (0부터). 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸 — Push 뒤에 읽는다</summary>
+        public int WrongSlot { get; private set; } = -1;
         public int Count => commands.Count;
 
         public ComboMatcher(IReadOnlyList<ComboCommand> commands)
@@ -100,6 +107,7 @@ namespace UIGallery.DirectionalComboInput
                     Fire(Pending, now);
                     return Push(d, now);
                 }
+                WrongSlot = buffer.Count;
                 CoolingIndex = -1;
                 for (int i = 0; i < commands.Count; i++)
                     if (!IsReady(i, now) && Matches(i, scratch)) CoolingIndex = i;
@@ -151,17 +159,17 @@ namespace UIGallery.DirectionalComboInput
             return StepResult.None;
         }
 
-        /// <summary>목록을 닫을 때: 이미 완성해서 기다리던 커맨드는 발동한다 (손을 뗀 것은 '더 넣지 않겠다' 는 뜻)</summary>
-        public void Close(float now)
+        /// <summary>목록을 닫을 때. fire = 떼기 · 토글 닫기('더 넣지 않겠다')면 완성해서 기다리던 커맨드를 발동, 취소 · 포커스 잃음 · 꺼짐이면 버린다</summary>
+        public void Close(float now, bool fire)
         {
-            if (Pending >= 0) Fire(Pending, now);
+            if (fire && Pending >= 0) Fire(Pending, now);
             Clear();
         }
     }
 
     /// <summary>
     /// Vector2 → 4방향. 2D Vector 합성(Digital Normalized)은 8방향을 주므로 대각선을 4방향으로 줄인다.
-    /// - 세기가 press 아래: 중립 (다음 입력을 받을 준비)
+    /// - 세기가 release 아래: 중립 (다음 입력을 받을 준비). 중립에서는 press 를 넘어야 눌림 — 그 사이(히스테리시스)에서 스틱이 떨려도 두 번 들어가지 않는다
     /// - 한 축이 뚜렷함: 중립에서 왔거나, 스틱을 돌려 다른 축으로 왔으면 그 방향
     /// - 대각선: 한 축에서 왔으면 '새로 더해진 축' (↓ 를 누른 채 → 를 누르는 키보드 겹침)
     /// - 대각선에서 한 축으로 돌아오는 것은 새 입력이 아니다 → 한 번 누르면 한 칸
@@ -170,9 +178,10 @@ namespace UIGallery.DirectionalComboInput
     {
         ComboDir? last;
         bool wasDiagonal;
+        bool engaged;
         bool waitNeutral;
 
-        [Tooltip("두 축 차이 ÷ 세기가 이보다 작으면 대각선")]
+        /// <summary>두 축 차이 ÷ 세기가 이보다 작으면 대각선</summary>
         public float diagonalBand = 0.2f;
 
         /// <param name="untilNeutral">true 면 한 번 중립으로 돌아올 때까지 받지 않는다 (열기 전부터 눌려 있던 이동 키가 첫 칸으로 들어가지 않게)</param>
@@ -180,18 +189,23 @@ namespace UIGallery.DirectionalComboInput
         {
             last = null;
             wasDiagonal = false;
+            engaged = false;
             waitNeutral = untilNeutral;
         }
 
-        public bool Feed(Vector2 v, float press, out ComboDir dir)
+        /// <param name="press">중립에서 이 세기를 넘으면 눌림</param>
+        /// <param name="release">눌린 뒤 이 세기 아래로 내려와야 중립 (press 보다 작게)</param>
+        public bool Feed(Vector2 v, float press, float release, out ComboDir dir)
         {
             dir = default;
             float mag = v.magnitude;
-            if (mag < press)
+            if (mag < release)
             {
                 Reset();
                 return false;
             }
+            if (!engaged && mag < press) return false;
+            engaged = true;
             if (waitNeutral) return false;
             float ax = Mathf.Abs(v.x), ay = Mathf.Abs(v.y);
             bool diagonal = Mathf.Abs(ax - ay) / mag < diagonalBand;
@@ -217,5 +231,32 @@ namespace UIGallery.DirectionalComboInput
         static bool IsVertical(ComboDir d) => d == ComboDir.Up || d == ComboDir.Down;
         static ComboDir Horizontal(float x) => x > 0f ? ComboDir.Right : ComboDir.Left;
         static ComboDir Vertical(float y) => y > 0f ? ComboDir.Up : ComboDir.Down;   // Input System 은 y 가 위로 +
+    }
+
+    /// <summary>화면 문구 — UGUI · UI Toolkit 이 같은 글을 쓴다. 숫자는 문화권과 무관하게 (소수점이 쉼표가 되지 않게)</summary>
+    public static class ComboLabels
+    {
+        static string F1(float v) => v.ToString("0.0", CultureInfo.InvariantCulture);
+        static string Sec(float v) => v.ToString("0.##", CultureInfo.InvariantCulture);   // 설정값 0.75 는 0.8 로 반올림하지 않는다
+
+        public static string Status(ComboCommand c, float cooldownLeft, bool pending, bool isPrefix, bool shadowed, float prefixWait, out bool warn)
+        {
+            warn = false;
+            if (cooldownLeft > 0f) return $"재사용 대기 {Mathf.CeilToInt(cooldownLeft)}초";
+            if (pending) return "완성 · 기다리는 중";
+            if (isPrefix) return prefixWait > 0f ? $"접두사 · {Sec(prefixWait)}초 대기" : "접두사 · 즉시 발동";
+            if (shadowed)
+            {
+                warn = true;
+                return "가려짐 — 짧은 쪽이 먼저";
+            }
+            return $"재사용 {Mathf.RoundToInt(c.cooldown)}초";
+        }
+
+        public static string Timer(float stepTimeout, float left01, bool running) =>
+            stepTimeout <= 0f ? "제한 시간 끔" : running ? $"{F1(left01 * stepTimeout)}초 남음" : $"입력 사이 {Sec(stepTimeout)}초";
+
+        public static string Access(ComboInput.OpenMode mode, float stepTimeout, bool lenient) =>
+            $"{(mode == ComboInput.OpenMode.Hold ? "누르고 있기" : "눌러 켜기 · 끄기")}  ·  {(stepTimeout > 0f ? $"입력 사이 {Sec(stepTimeout)}초" : "제한 시간 없음")}  ·  {(lenient ? "틀린 칸만 다시" : "틀리면 처음부터")}";
     }
 }

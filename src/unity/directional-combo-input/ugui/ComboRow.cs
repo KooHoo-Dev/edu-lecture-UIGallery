@@ -31,6 +31,8 @@ namespace UIGallery.DirectionalComboInput
         [SerializeField] Image[] cells;
         [Tooltip("칸마다 자식 화살표 Image (위쪽을 가리키는 스프라이트 하나를 돌려 쓴다)")]
         [SerializeField] Image[] glyphs;
+        [Tooltip("다음에 넣을 칸에 옮겨 붙이는 두꺼운 금색 테두리 (9-slice Image, 앵커 전체 채움 · 바깥으로 4px)")]
+        [SerializeField] RectTransform nextFrame;
         [Tooltip("Image Type Filled · Horizontal")]
         [SerializeField] Image cooldownFill;
         [SerializeField] Image waitFill;
@@ -41,7 +43,6 @@ namespace UIGallery.DirectionalComboInput
         [SerializeField] Color rowCandidate = new(0.37f, 0.9f, 0.79f, 0.08f);
         [SerializeField] Color cellNormal = new(0.05f, 0.09f, 0.13f, 1f);
         [SerializeField] Color cellLit = new(0.37f, 0.9f, 0.79f, 1f);
-        [SerializeField] Color cellNext = new(1f, 0.82f, 0.4f, 1f);
         [SerializeField] Color glyphLight = new(0.81f, 0.88f, 0.94f, 1f);
         [SerializeField] Color glyphDark = new(0.02f, 0.16f, 0.14f, 1f);
         [SerializeField] Color statusNormal = new(0.79f, 0.85f, 0.9f, 1f);
@@ -77,12 +78,18 @@ namespace UIGallery.DirectionalComboInput
             for (int k = 0; k < cells.Length; k++)
             {
                 if (!cells[k].gameObject.activeSelf) continue;
-                bool lit = k < s.lit;
-                bool next = s.candidate && !s.pending && k == s.lit;
-                // 색만이 아니라 크기로도: 다음 칸은 조금 크게
-                cells[k].color = lit ? cellLit : next ? cellNext : cellNormal;
-                cells[k].rectTransform.localScale = Vector3.one * (next ? 1.1f : 1f);
-                glyphs[k].color = lit || next ? glyphDark : glyphLight;
+                bool lit = k < s.lit;   // 맞은 칸: 채움 + 진한 화살표
+                cells[k].color = lit ? cellLit : cellNormal;
+                glyphs[k].color = lit ? glyphDark : glyphLight;
+            }
+            // 다음 칸: 채움색이 아니라 두꺼운 금색 테두리 모양으로 (웹 해설 1 과 같게, 색만으로 구분하지 않는다)
+            int next = s.lit;
+            bool showNext = s.candidate && !s.pending && next < cells.Length && cells[next].gameObject.activeSelf;
+            nextFrame.gameObject.SetActive(showNext);
+            if (showNext && nextFrame.parent != cells[next].transform)
+            {
+                nextFrame.SetParent(cells[next].transform, false);   // 앵커 전체 채움이라 칸 크기를 그대로 따른다
+                nextFrame.SetAsLastSibling();
             }
             statusText.text = s.status;
             statusText.color = s.warn ? statusWarn : statusNormal;

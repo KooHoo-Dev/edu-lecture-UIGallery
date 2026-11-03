@@ -53,7 +53,7 @@ export const meta: SpecimenMeta = {
         { value: 'reset', label: '흔들고 처음부터' },
         { value: 'retry', label: '그 칸만 다시 (관대한 모드)' },
       ],
-      hint: '관대한 모드는 틀린 입력을 버리고 맞게 넣은 칸은 그대로 둔다. 손 떨림 · 한 손 조작 플레이어에게 처음부터는 큰 벌이다',
+      hint: '관대한 모드는 틀린 입력을 버리고 맞게 넣은 칸은 그대로 둔다. 손 떨림 · 한 손 조작 플레이어에게 처음부터는 큰 벌이다. 바꾸면 미리보기가 ← ↑ 다음에 ↓ 를 틀려 띠가 비는지(처음부터) 남는지(그 칸만 다시) 보여 준다',
     },
     {
       key: 'prefixWaitMs',
@@ -173,7 +173,7 @@ export const meta: SpecimenMeta = {
     { event: '틀림 흔들림', ms: 360, easing: 'ease-out', note: '권장값. 좌우 18px → 0 감쇠' },
     { event: '접두사 커맨드 기다림', ms: 450, easing: 'linear', note: '권장값. 입력 간격(보통 150~300ms)보다 길고, 기다림이 느껴지지 않을 만큼 짧게' },
     { event: '입력 사이 제한 시간', ms: 1500, easing: 'linear', note: '권장값. 끌 수 있게' },
-    { event: '발동 펄스 (배너 튐 · 고리 퍼짐)', ms: 650, easing: 'ease-out' },
+    { event: '발동 펄스 (배너 튐 · 고리 퍼짐)', ms: 650, easing: 'ease-out', note: '권장값. 배너 튐 380ms · 고리 650ms' },
   ],
   unity: {
     ugui: {
@@ -185,31 +185,34 @@ export const meta: SpecimenMeta = {
    │  │  ├─ List (VerticalLayoutGroup — ComboHud 가 ComboRow 프리팹으로 채운다)
    │  │  └─ AccessText (TextMeshProUGUI — 지금 접근성 설정 요약)
    │  └─ Strip (RectTransform — 틀리면 흔든다)
-   │     ├─ Slots > Slot ×5 (Image 칸 + 자식 Glyph Image)
+   │     ├─ Slots > Slot ×5 (Image 칸 + 자식 Glyph Image) · NextSlotFrame (9-slice 금색 테두리 — 다음 칸으로 옮겨 붙는다)
    │     └─ Timer — Track (Image) > Fill (Image Filled Horizontal) · TimerText (TextMeshProUGUI)
    ├─ Banner (CanvasGroup) > BannerText (TextMeshProUGUI "발동 · 보급 투하")
    └─ NoteText (TextMeshProUGUI)
 ComboRow 프리팹 (ComboRow.cs · Image 바탕 · CanvasGroup)
    ├─ Icon (Image) · NameText (TextMeshProUGUI) · StatusText (TextMeshProUGUI)
    ├─ Arrows (HorizontalLayoutGroup) > Arrow ×5 (Image 칸 + 자식 Glyph Image — 위쪽 화살표 스프라이트 하나를 Z 회전)
+   ├─ NextFrame (9-slice 두꺼운 금색 테두리 — ComboRow 가 다음 칸의 자식으로 옮긴다)
    └─ CooldownFill · WaitFill (Image Type Filled · Horizontal)
 ComboCommandSet 에셋 (Create ▸ UI Gallery ▸ Combo Command Set — 커맨드 이름 · 시퀀스 · 재사용 대기)
-ComboMatcher.cs (순수 C# — 버퍼 · 접두사 매칭 · 기다림 · 제한 시간 + DirectionQuantizer)
+ComboMatcher.cs (순수 C#, TMPro 없음 — 버퍼 · 접두사 매칭 · 기다림 · 제한 시간 + DirectionQuantizer · 화면 문구 ComboLabels)
 Input Actions 에셋:
    Combo/Open      = <Keyboard>/q · <Gamepad>/leftShoulder (Button, Interactions 없음)
    Combo/Direction = 2D Vector 합성(WASD · 방향키, Mode Digital Normalized) · <Gamepad>/dpad · <Gamepad>/leftStick (Vector2)
    Combo/Cancel    = <Keyboard>/escape · <Gamepad>/buttonEast (Button)
    Gameplay/Move   = 같은 WASD · 왼쪽 스틱 (열린 동안 ComboInput 이 끈다)`,
       steps: [
-        '`ComboCommandSet`(ScriptableObject)에 커맨드를 데이터로 적는다: 이름 · 설명 · 시퀀스(`ComboDir[]`) · 재사용 대기. 에셋을 만들면 `Reset()` 이 예제 일곱 개를 채우고, `OnValidate` 가 **다른 커맨드의 앞부분인 커맨드**를 콘솔에 경고한다.',
-        '`ComboInput` 은 열기 액션을 매 프레임 `WasPressedThisFrame` · `WasReleasedThisFrame` 으로 읽는다. 누르고 있기면 눌림에 열고 뗌에 닫고, 토글이면 눌림마다 번갈아. 열면 `Direction` 액션을 켜고 이동 액션을 끄며(`blockMovement`), `EventSystem.sendNavigationEvents` 를 꺼 방향키가 UI 선택을 움직이지 않게 한다. 닫을 때 모두 되돌린다.',
-        '방향은 Vector2 하나로 받아 `DirectionQuantizer.Feed` 로 4방향 하나로 바꾼다: 세기가 기준(0.5) 아래면 중립(다시 받을 준비), 한 축이 뚜렷하면 그 방향, 대각선이면 **새로 더해진 축**을 고른다(↓ 를 누른 채 → 를 누르는 키보드 겹침). 대각선에서 한 축으로 돌아오는 것은 새 입력이 아니다 — 한 번 누르면 한 칸.',
-        '`ComboHud` 는 방향마다 `matcher.Push(dir, Time.time)` 결과(진행 · 기다림 · 발동 · 틀림 · 재사용 대기)로 칸 · 후보 수 · 알림을 고치고, `Update` 에서 `matcher.Tick` 으로 기다림 끝 발동 · 제한 시간 초과를 처리한다. 틀림 흔들림은 코루틴 하나로, 새로 시작하기 전에 이전 것을 멈춘다.',
+        '`ComboCommandSet`(ScriptableObject)에 커맨드를 데이터로 적는다: 이름 · 설명 · 시퀀스(`ComboDir[]`) · 재사용 대기. 에셋을 만들면 `Reset()` 이 예제 일곱 개를 채운다. `OnValidate` 는 인스펙터 값이 바뀔 때마다 불려 **다른 커맨드의 앞부분인 커맨드**를 콘솔에 알리고(`Debug.Log`), 빈 시퀀스 · 같은 시퀀스는 경고한다.',
+        '`ComboInput` 은 누르고 있기면 매 프레임 열기 액션의 `IsPressed()` 를 지금 열림과 비교해 열고 닫는다(누름과 뗌이 같은 프레임이어도 열린 채 남지 않는다. Esc 로 닫았는데 아직 누르고 있으면 뗄 때까지 다시 열지 않는다). 토글이면 `WasPressedThisFrame` 마다 번갈아. `Direction` 액션은 **늘 켜 두고 열린 동안에만** 읽는다. 열면 이동 액션을 끄고(`blockMovement`) `EventSystem.sendNavigationEvents` 를 꺼 방향키가 UI 선택을 움직이지 않게 하며, 닫을 때 되돌린다.',
+        '방향은 Vector2 하나로 받아 `DirectionQuantizer.Feed` 로 4방향 하나로 바꾼다: 중립에서 세기 0.5 를 넘으면 눌림, 0.35 아래로 내려와야 다시 중립(스틱이 경계에서 떨려도 두 번 들어가지 않는다). 한 축이 뚜렷하면 그 방향, 대각선이면 **새로 더해진 축**(↓ 를 누른 채 → 를 누르는 키보드 겹침), 대각선에서 한 축으로 돌아오는 것은 새 입력이 아니다 — 한 번 누르면 한 칸. 열 때 `Reset(untilNeutral: true)` 로, 걷느라 누르고 있던 W 는 한 번 떼기 전까지 ↑ 로 받지 않는다.',
+        '`ComboHud` 는 방향마다 `matcher.Push(dir, Time.time)` 결과(진행 · 기다림 · 발동 · 틀림 · 재사용 대기)로 칸 · 후보 수 · 알림을 고치고(틀린 칸 번호는 Push **뒤에** `WrongSlot` 으로 읽는다 — 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸), `Update` 에서 `matcher.Tick` 으로 기다림 끝 발동 · 제한 시간 초과를 처리한다. 닫힘은 `Closed(fire)` 로 받아 떼기 · 토글 닫기에서만 기다리던 커맨드를 발동하고, 취소 · 창 포커스 잃음 · 꺼짐에서는 버린다.',
+        '터치로도 받으려면 누른 지점에서의 이동량을 화면 px 72 로 나눈 Vector2(누름 기준 0.5 = 손가락 36px 정도, 해상도가 다르면 `Screen.dpi` 로 환산)를 같은 `Feed` 에 넣고(Input System 포인터는 y 가 위로 +), 손을 떼면 `Vector2.zero` 를 넣어 중립으로 돌린다 — 한 번 밀기가 한 칸이 된다.',
       ],
       pitfalls: [
-        '열기 액션에 **Hold 상호작용**을 넣으면 `performed` 가 누른 지 0.4초 뒤에야 와서 "누르는 즉시 열림" 이 안 된다. 상호작용 없는 Button 의 눌림 · 뗌을 읽고, 토글은 코드로 처리한다(또는 Press 상호작용 Press And Release).',
+        '열기 액션에 **Hold 상호작용**을 넣으면 `performed` 가 누른 지 0.4초 뒤에야 와서 "누르는 즉시 열림" 이 안 된다. 상호작용 없는 Button 을 `IsPressed()` 로 읽고, 토글은 코드로 처리한다(또는 Press 상호작용 Press And Release).',
         '이동 액션이 든 **액션맵 전체**를 끄면 그 맵에 열기 버튼도 있을 때 뗌을 못 받아 목록이 닫히지 않는다. 이동 액션만 끄거나, 열기 액션을 두 맵 모두에 둔다. 끈 액션은 원래 켜져 있었을 때만 다시 켠다.',
-        '`OnDisable` 에서 흔들림 코루틴을 멈추고 띠 위치 · 열린 목록 · 꺼 둔 이동 액션 · UI 탐색을 되돌린다. 꺼진 동안에는 코루틴을 새로 시작하지 않는다(`isActiveAndEnabled`). 창 포커스를 잃으면(`OnApplicationFocus(false)`) 뗌이 안 와서 누르고 있기 목록이 열린 채 남으니 닫는다.',
+        '`OnDisable` 에서 흔들림 코루틴을 멈추고 띠 위치 · 열린 목록 · 꺼 둔 이동 액션 · UI 탐색을 되돌린다. 꺼진 동안에는 코루틴을 새로 시작하지 않는다(`isActiveAndEnabled`). 창 포커스를 잃으면(`OnApplicationFocus(false)`) 뗌이 안 와서 누르고 있기 목록이 열린 채 남으니 닫는다 — 이때는 기다리던 커맨드를 버린다(`Close(false)`).',
+        '`Direction` 액션을 목록을 열 때 `Enable()` 하면 그 프레임의 `ReadValue` 는 0 이다. 중립으로 착각해 기다림이 풀리고, 다음 프레임에 걷던 W 가 ↑ 첫 칸으로 들어간다. 늘 켜 두고 열린 동안에만 `Feed` 한다.',
         '남은 시간 표기는 `ToString("0.0", CultureInfo.InvariantCulture)` — 문화권에 따라 소수점이 쉼표가 된다.',
       ],
     },
@@ -218,14 +221,14 @@ Input Actions 에셋:
 └─ ComboHud.uxml (모든 요소 picking-mode Ignore — 화면을 막지 않는 HUD)
    ├─ #panel (.panel — 열리면 수식 클래스 open, 닫힘이 끝나면 visibility Hidden)
    │  ├─ .panel__head > Label .panel__title · Label #count
-   │  ├─ #list (C# 가 줄을 만든다: .row > .row__name · .row__arrows(ArrowElement ×n) · .row__status · .row__wait)
+   │  ├─ #list (C# 가 줄을 만든다: .row > .row__name · .row__arrows(ArrowElement ×n) · .row__status · .row__wait · .row__cool)
    │  └─ Label #access
    ├─ #strip (.strip) > #slots (ArrowElement ×5) · .timer > .timer__track > #timer-fill · Label #timer-text
    ├─ #banner (.banner — 발동하면 수식 클래스 on) > Label #banner-text
    └─ Label #note
-ComboHudUITK.cs (ComboInput · ComboMatcher · ComboCommandSet 은 UGUI 폴더 것을 그대로 쓴다. ArrowElement 는 Painter2D 로 화살표를 그린다)`,
+ComboHudUITK.cs (UGUI 폴더의 ComboInput.cs · ComboMatcher.cs · ComboCommandSet.cs 만 그대로 쓴다 — 셋 다 TMPro 를 쓰지 않는다. ArrowElement 는 Painter2D 로 화살표를 그린다)`,
       steps: [
-        'UGUI 판의 `ComboInput` 을 같은 오브젝트에 두고, 이벤트(`Opened` · `Closed` · `Direction`)만 구독한다. 판정은 같은 `ComboMatcher` — 화면 기술이 달라도 규칙이 한곳에 있다.',
+        'UGUI 판의 `ComboInput` 을 같은 오브젝트에 두고, 이벤트(`Opened` · `Closed(fire)` · `Direction`)만 구독한다. 판정은 같은 `ComboMatcher` — 화면 기술이 달라도 규칙이 한곳에 있다.',
         '화살표는 비트맵 없이 `ArrowElement`(`generateVisualContent` + `Painter2D`)로 그린다. 방향 · 상태(켜짐 · 다음 · 틀림)가 바뀌면 `MarkDirtyRepaint()`.',
         '목록 열기는 `.panel` 에 수식 클래스 open 을 붙여 USS transition(opacity · translate)으로. 닫을 때는 클래스를 떼고 150ms 뒤 `visibility = Hidden`.',
         '흔들림은 `Update` 에서 `strip.style.translate` 를 감쇠 사인으로 — 코루틴이 없어 끌 때 멈출 것이 없다. 남은 시간 막대는 `#timer-fill` 의 `style.width = Length.Percent(…)`(트랙에 padding · border 를 두지 않는다).',
@@ -240,9 +243,12 @@ ComboHudUITK.cs (ComboInput · ComboMatcher · ComboCommandSet 은 UGUI 폴더 �
     {
       title: 'Helldivers 2 (2024)',
       credit: '© Sony Interactive Entertainment · Arrowhead Game Studios',
-      borrowed: ['버튼을 누르고 있는 동안 방향 시퀀스를 넣어 지원을 부르는 조작 방식'],
+      borrowed: [
+        '버튼을 누르고 있는 동안 방향 시퀀스를 넣어 지원을 부르는 조작 방식',
+        '맞는 후보만 남고 입력한 화살표가 켜지는 목록 (카드 설명 기준, 원작 화면 미확인)',
+      ],
       learned:
-        '후보 카드의 출처(커맨드 코드 목록 글, Steam 토론의 누르고 있기 · 토글 요구, 팬 제작 메뉴 개발 글)로 확인한 것은 "누르고 있는 동안 방향 시퀀스를 넣는다" 는 조작 방식과 그에 대한 운동 접근성 논쟁까지다. 목록 배치 · 화살표 모양 · 색 · 발동 연출 같은 화면 세부는 확인하지 못했다(미확인) — 이 표본의 화면은 모두 새로 그렸다. 커맨드 이름과 방향 코드도 원작 것을 쓰지 않았다.',
+        '후보 카드가 출처로 든 범위(커맨드 코드 목록 글, Steam 토론의 누르고 있기 · 토글 요구, 팬 제작 메뉴 개발 글)는 "누르고 있는 동안 방향 시퀀스를 넣는다" 는 조작 방식과 그에 대한 운동 접근성 논쟁, 그리고 카드 설명에 적힌 "맞는 후보만 남고 입력한 화살표가 켜진다" 까지다. 원작 화면에서 직접 확인하지는 못했고(미확인), 목록 배치 · 화살표 모양 · 색 · 발동 연출은 모두 새로 그렸다. 커맨드 이름과 방향 코드도 원작 것을 쓰지 않았다.',
       link: 'https://www.shacknews.com/article/138705/all-stratagems-codes-helldivers-2',
     },
   ],
