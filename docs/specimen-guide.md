@@ -148,6 +148,8 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
   - Unity 6 은 C# 9 라 `namespace X;` (파일 범위) 를 못 쓴다. `namespace X { … }` 블록으로 감싼다.
   - UGUI · UI Toolkit 두 폴더는 같은 namespace 다. UI Toolkit 판이 UGUI 폴더의 데이터 클래스를 `using` 없이 그대로 쓴다.
   - `[UxmlElement]` 요소는 UXML 에 namespace 를 포함한 이름으로 쓴다 (`<UIGallery.DialogueChoices.SkewFrame />`).
+- UI Toolkit 에서 기본 탐색(`NavigationMoveEvent`)을 직접 처리하면 `evt.StopPropagation()` 과 함께 `focusController?.IgnoreEvent(evt)` 를 부른다. Unity 6.3 은 전파가 멈춰도 기본 포커스 이동을 한 번 더 해서 한 칸씩 건너뛴다 (`inventory-grid-tooltip` 참고, 2026-11-03 리뷰에서 확인).
+- UGUI 에서 `Selectable.transition = None` 으로 두면 선택 표시를 `ISelectHandler` · `IDeselectHandler` 로 직접 그린다. 안 그리면 키보드 · 패드로 고른 것이 화면에 보이지 않는다.
 - UXML 주석 `<!-- -->` 안에 `--` 를 쓰지 않는다. XML 규칙이라 Unity 가 그 UXML 을 임포트하지 못한다. BEM 수식 클래스(`.card--rare`)를 주석에 적을 때 특히 주의한다 ("`.card` 의 수식 클래스 rare" 처럼 쓴다). `python tools/check.py` 가 UXML 을 XML 로 읽어 확인한다.
 
 ## 9. 검사 체크리스트
@@ -168,3 +170,4 @@ python tools/check.py                              # (dist 빌드 후) 전체 �
 - [ ] 모바일 폭(390px)에서 깨지지 않는다
 - [ ] 무대에 포커스를 두고 Space · J · 숫자 키를 눌러도, 표본이 그 키를 쓰지 않는 상태라면 갤러리 단축키가 동작한다 (`core/stageKeys`)
 - [ ] 게임명·원작 고유 표현이 코드·화면에 없다
+- [ ] Unity 판에서도 키보드 · 패드로 고른 항목이 보이고, 한 번 누르면 한 칸만 움직인다 (8절)

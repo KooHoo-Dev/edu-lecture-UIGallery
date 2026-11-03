@@ -365,9 +365,14 @@ namespace UIGallery.DialogueChoices
 
         void OnMove(NavigationMoveEvent evt, int index)
         {
-            // 위·아래 끝에서 반대쪽으로 순환
-            if (evt.direction == NavigationMoveEvent.Direction.Down && index == buttons.Count - 1) { buttons[0].Focus(); evt.StopPropagation(); }
-            else if (evt.direction == NavigationMoveEvent.Direction.Up && index == 0) { buttons[buttons.Count - 1].Focus(); evt.StopPropagation(); }
+            // 위·아래 끝에서 반대쪽으로 순환. StopPropagation 만으로는 기본 포커스 이동이 한 번 더 일어나므로 IgnoreEvent 도 부른다
+            int to = -1;
+            if (evt.direction == NavigationMoveEvent.Direction.Down && index == buttons.Count - 1) to = 0;
+            else if (evt.direction == NavigationMoveEvent.Direction.Up && index == 0) to = buttons.Count - 1;
+            if (to < 0) return;
+            buttons[to].Focus();
+            evt.StopPropagation();
+            buttons[index].focusController?.IgnoreEvent(evt);
         }
 
         void OnFfDown(PointerDownEvent e) => uiFastForward = true;
