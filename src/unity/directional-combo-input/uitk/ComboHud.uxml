@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="ComboHud.uss" />
+    <!-- 보기만 하는 HUD: 모든 요소 picking-mode Ignore. 줄 · 화살표 칸은 ComboHudUITK 가 만들고 역시 Ignore 로 둔다 -->
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement name="panel" class="panel" picking-mode="Ignore">
+            <ui:VisualElement class="panel__head" picking-mode="Ignore">
+                <ui:Label text="지원 요청" class="panel__title" picking-mode="Ignore" />
+                <ui:Label name="count" class="panel__count" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="list" class="list" picking-mode="Ignore" />
+            <ui:Label name="access" class="panel__access" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="strip" class="strip" picking-mode="Ignore">
+            <ui:VisualElement name="slots" class="slots" picking-mode="Ignore" />
+            <ui:VisualElement class="timer" picking-mode="Ignore">
+                <ui:VisualElement class="timer__track" picking-mode="Ignore">
+                    <ui:VisualElement name="timer-fill" class="timer__fill" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="timer-text" class="timer__text" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="banner" class="banner" picking-mode="Ignore">
+            <ui:Label name="banner-text" class="banner__text" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:Label name="note" class="note" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

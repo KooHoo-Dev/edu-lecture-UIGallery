@@ -1,0 +1,229 @@
+/* 방향 커맨드 HUD (UI Toolkit) — 웹 표본과 같은 배치 · 색. USS 에 없는 gradient · box-shadow 는 쓰지 않는다 */
+.hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ───── 목록: 수식 클래스 open 으로 밀려 들어온다. 닫힘이 끝나면 C# 가 visibility 를 Hidden 으로 ───── */
+.panel {
+    position: absolute;
+    left: 56px;
+    top: 80px;
+    width: 944px;
+    padding: 18px 20px;
+    border-radius: 20px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(7, 16, 25, 0.93);
+    opacity: 0;
+    translate: -24px 0;
+    visibility: hidden;
+    transition-property: opacity, translate;
+    transition-duration: 0.14s, 0.14s;
+    transition-timing-function: ease-out, ease-out;
+}
+.panel--open {
+    opacity: 1;
+    translate: 0 0;
+}
+.panel__head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 6px 6px 6px;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.panel__title {
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: rgb(234, 242, 251);
+}
+.panel__count {
+    font-size: 24px;
+    color: rgb(159, 180, 201);
+}
+.list {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.panel__access {
+    font-size: 22px;
+    color: rgb(201, 216, 230);
+    padding-top: 8px;
+    border-top-width: 2px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ───── 줄 ───── */
+.row {
+    flex-direction: row;
+    align-items: center;
+    height: 74px;
+    margin-bottom: 6px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+.row--candidate {
+    border-color: rgba(94, 230, 201, 0.33);
+    background-color: rgba(94, 230, 201, 0.07);
+}
+/* 접두사가 맞지 않는 줄: 흐리게(자리 유지) · 숨기기(남은 후보가 위로) */
+.row--mismatch {
+    opacity: 0.28;
+}
+.row--hidden {
+    display: none;
+}
+.row--cooling {
+    opacity: 0.45;
+}
+.row__name {
+    width: 300px;
+    font-size: 26px;
+    color: rgb(234, 242, 251);
+}
+.row__arrows {
+    flex-direction: row;
+    width: 280px;
+}
+.row__status {
+    flex-grow: 1;
+    font-size: 22px;
+    color: rgb(201, 216, 230);
+}
+.row__status--warn {
+    color: rgb(255, 177, 153);
+}
+.row__wait {
+    position: absolute;
+    left: 610px;
+    bottom: 6px;
+    width: 0;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgb(255, 209, 102);
+}
+
+/* ───── 화살표 칸 (글리프는 ArrowElement 가 Painter2D 로) ───── */
+.arrow {
+    width: 46px;
+    height: 46px;
+    margin-right: 6px;
+    border-radius: 9px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+    background-color: rgb(12, 22, 34);
+}
+.arrow--big {
+    width: 76px;
+    height: 76px;
+    margin: 0 6px;
+    border-radius: 14px;
+    border-width: 3px;
+    background-color: rgba(0, 0, 0, 0);
+}
+.arrow--lit {
+    border-color: rgb(255, 255, 255);
+    background-color: rgb(94, 230, 201);
+}
+.arrow--next {
+    border-width: 4px;
+    border-color: rgb(255, 209, 102);
+}
+.arrow--wrong {
+    border-color: rgb(255, 138, 149);
+    background-color: rgb(58, 13, 18);
+}
+
+/* ───── 넣은 방향 띠 ───── */
+.strip {
+    position: absolute;
+    left: 1160px;
+    top: 760px;
+    width: 500px;
+    align-items: center;
+    padding: 18px 28px;
+    border-radius: 22px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(5, 10, 16, 0.9);
+    opacity: 0;
+    visibility: hidden;
+    transition-property: opacity;
+    transition-duration: 0.14s;
+}
+.strip--open {
+    opacity: 1;
+}
+.slots {
+    flex-direction: row;
+    height: 76px;
+}
+.timer {
+    flex-direction: row;
+    align-items: center;
+    width: 440px;
+    margin-top: 14px;
+}
+/* 트랙에 padding · border 를 두지 않는다 — 채움의 width % 가 그대로 남은 비율이 되게 */
+.timer__track {
+    flex-grow: 1;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.timer__fill {
+    width: 100%;
+    height: 100%;
+    background-color: rgb(94, 230, 201);
+}
+.timer__text {
+    width: 170px;
+    margin-left: 14px;
+    font-size: 22px;
+    color: rgb(201, 216, 230);
+}
+
+/* ───── 발동 · 알림 ───── */
+.banner {
+    position: absolute;
+    left: 1160px;
+    top: 70px;
+    width: 500px;
+    align-items: center;
+    padding: 12px 30px;
+    border-radius: 40px;
+    border-width: 2px;
+    border-color: rgb(94, 230, 201);
+    background-color: rgba(5, 10, 16, 0.93);
+    opacity: 0;
+    scale: 0.9 0.9;
+    transition-property: opacity, scale;
+    transition-duration: 0.2s, 0.2s;
+    transition-timing-function: ease-out, ease-out-back;
+}
+.banner--on {
+    opacity: 1;
+    scale: 1 1;
+}
+.banner__text {
+    font-size: 34px;
+    color: rgb(234, 242, 251);
+}
+.note {
+    position: absolute;
+    left: 1060px;
+    top: 956px;
+    width: 700px;
+    font-size: 24px;
+    -unity-text-align: middle-center;
+    color: rgb(234, 242, 251);
+}
