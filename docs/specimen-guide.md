@@ -79,7 +79,14 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 - 자동 데모가 키를 쓰는 상태(대기 · 고스트 · 결과 창)를 열면 `useStageKeys` 의 `autoOpen` · `takeOver` 로 넘겨받는다. 무대 밖에서 온 키는 넘겨받은 뒤 흘려보낸다.
 - 숫자 키 1~9 는 갤러리 이벤트다. 표본 메뉴의 단축키로 쓰지 않는다(메뉴 · 탭 순환은 Q · E 나 ←/→).
 - Tab 은 가로채지 않는다 (키보드 갇힘). 장르가 Tab 을 쓰는 화면(스코어보드 등)은 다른 키와 화면 버튼으로 보여 주고 Tab 은 해설에서 다룬다. Ctrl+휠(브라우저 확대)도 가로채지 않는다.
-- 창(모달)을 열면 포커스를 창 안의 기본 버튼으로 옮기고, 닫으면 창을 연 요소로 돌려준다. 안 그러면 다음 Enter 가 창을 다시 연다. Unity 도 같다(UGUI `SetSelectedGameObject`, UI Toolkit `Focus()`).
+- 창(모달)을 열면 포커스를 창 안의 기본 버튼으로 옮기고, 닫으면 창을 연 요소로 돌려준다. 안 그러면 다음 Enter 가 창을 다시 연다. Unity 도 같다(UGUI `SetSelectedGameObject`, UI Toolkit `Focus()`). 창 · 툴팁 겹이 이벤트 · 자동 데모 · param 변경으로 닫힐 때도 그 안에 있던 포커스를 연 요소로 돌려준다.
+- 자동으로 열리는 결과 · 보상 창의 확정 버튼은 `core/inputLock` 으로 누른 시각을 판정하고 키 자동 반복(`e.repeat`)을 거른다. 마지막 연출 중에 연타하던 입력이 창을 바로 넘기지 않게.
+- 드래그 · 스와이프 임계값은 논리 px 가 아니라 화면(CSS) px 로 둔다. 무대가 축소되면 논리 70px 가 폰에서 13px 가 되어 한 번 밀기에 여러 칸이 들어간다(관통). 한 번 밀기 = 한 칸, 대각선 무시 구간, 첫 포인터만 열기 · 닫기를 맡게 한다.
+
+### 자동 데모
+
+- 사람이 읽거나 만지는 중(포인터가 표본 요소 위, 무대에 포커스)이면 쉰다. 클릭 · 키 입력 시각만 보면 툴팁을 읽는 중에 대본이 끼어든다.
+- 이벤트 버튼이나 키 인계로 사람 소유가 된 상태도 입력이 없으면 몇 초 뒤 닫아 자동 데모를 되살린다. 안 그러면 데모가 Esc 전까지 멈추고 조작 키(←/→ 등)를 계속 먹는다.
 
 ### 상태와 다시 그리기
 
@@ -144,7 +151,8 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 
 - 한국어, 수업에서 그대로 읽을 수 있게 짧게. `**굵게**`, `` `코드` `` 사용 가능.
 - `goals` 3~4개 ("~할 수 있다"), `mistakes` 3~5개, `timings` 는 근거 없으면 note 에 "권장값".
-- `unity.ugui / unity.uitk` 의 `hierarchy` 는 실제 파일과 일치해야 한다.
+- `unity.ugui / unity.uitk` 의 `hierarchy` 는 실제 파일과 일치해야 한다. 코드가 `[SerializeField]` 로 받는 참조는 모두 hierarchy 에 있어야 한다 (빠지면 그대로 만든 학생이 NRE 를 본다).
+- 용어 · 이름을 끼워 넣는 글(`[[tower]]가` 같은 틀)은 조사를 받침에 맞춘다 ("통신탑가" ✕ → "통신탑이").
 
 ## 8. Unity 코드
 
@@ -168,6 +176,12 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 - 입력 칸 포커스 판정은 `f == field || field.Contains(f)` 로 한다 (`Contains` 는 자기 자신을 포함하지 않는다).
 - 날짜 · 숫자 표기는 문화권과 무관하게 쓴다 (`ToString("M/d")` 는 ko-KR 에서 "11-3" 이 된다 → `$"{d.Month}/{d.Day}"` 나 `CultureInfo.InvariantCulture`).
 - 웹과 같은 데이터를 읽는 표(TSV)는 엑셀에서 붙여 넣은 공백까지 같게 처리한다 (`Trim`). 하드코딩한 id 로 시작 상태를 만들지 않는다.
+- UI Toolkit 에서 막 보이게 하거나 붙인 요소의 `Focus()` 는 한 프레임 미룬다 (`schedule.Execute(() => x.Focus())`). 같은 프레임의 `Focus()` 는 무시될 수 있다.
+- `OnEnable` 에서 `RegisterCallback` 하면 `OnDisable` 에서 해제한다. UIDocument 는 켜 둔 채 컴포넌트만 껐다 켜면 콜백이 두 번 걸려 한 번 누름에 두 칸 움직인다. `OnDisable` 에서 닫은 창은 `OnEnable` 에서 상태에 맞게 다시 연다.
+- Input System 의 Value 액션은 `Enable()` 한 그 프레임에 `ReadValue` 가 0 이다 (초기 상태 확인은 다음 업데이트). 연 순간 이미 눌린 키를 막으려면 액션을 늘 켜 두거나 연 프레임을 건너뛴다.
+- 콜백을 가진 풀링 연출(날아가는 아이콘 등)은 화면을 다시 구성할 때 콜백 없이 취소한다 (지워진 칸에 도착하면 MissingReferenceException). 목표 위치는 날리는 순간 한 번이 아니라 매 프레임 다시 읽는다 (레이아웃 직후 새 요소의 위치는 아직 0 일 수 있다).
+- UI Toolkit `Button` 을 클래스로 칠하면 테마의 `:hover` · `:active` 배경도 직접 지정한다 (테마 선택자가 더 구체적이라 누르는 순간 회색이 된다).
+- 기본 폰트(맑은 고딕 · LiberationSans)에 없는 기호(↩ ◆ 등)는 □ 로 나온다. 상태 단서로 쓰는 기호는 한글 폰트에 있는 글자로 고르거나 pitfall 에 적는다.
 - UXML 주석 `<!-- -->` 안에 `--` 를 쓰지 않는다. XML 규칙이라 Unity 가 그 UXML 을 임포트하지 못한다. BEM 수식 클래스(`.card--rare`)를 주석에 적을 때 특히 주의한다 ("`.card` 의 수식 클래스 rare" 처럼 쓴다). `python tools/check.py` 가 UXML 을 XML 로 읽어 확인한다.
 
 ## 9. 검사 체크리스트
