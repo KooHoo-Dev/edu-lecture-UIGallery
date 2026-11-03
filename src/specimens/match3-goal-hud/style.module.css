@@ -1,0 +1,738 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  color: #eaf0fa;
+  background: radial-gradient(ellipse at 50% 0%, #1d2f55 0%, #0a1020 70%);
+  outline: none;
+  user-select: none;
+  --panel: #0f1830e6;
+  --line: #ffffff24;
+  --warn: #ff8a3d;
+  --gold: #ffcc4d;
+  --ok: #7cf2c5;
+  --bad: #ff6b6b;
+  --c0: #5cc8ff;
+  --c1: #6fdc8c;
+  --c2: #ffad5a;
+  --c3: #ff7aa8;
+}
+.root:focus-visible {
+  box-shadow: inset 0 0 0 4px #5ee6c9;
+}
+.root[data-paused] * {
+  animation-play-state: paused !important;
+}
+.root button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ───── 위: 남은 이동 · 목표 (세로 1080×1920 기준) ───── */
+.top {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  top: 40px;
+  height: 300px;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+}
+.moves,
+.goals {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 28px;
+  background: var(--panel);
+  border: 3px solid var(--line);
+}
+.moves {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 20px;
+  transition:
+    background-color calc(0.2s / var(--ts)),
+    border-color calc(0.2s / var(--ts));
+}
+.movesLabel {
+  font-size: 28px;
+  font-weight: 700;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.movesNum {
+  font-size: 124px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.pips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 250px;
+  margin-top: 6px;
+}
+.pips i {
+  flex: none;
+  width: 12px;
+  height: 18px;
+  border-radius: 3px;
+  background: #ffffff1f;
+}
+.pips i[data-on] {
+  background: #dfe8f6;
+}
+/* 경고 구간: 칸 테두리를 주황으로 — 들어가기 전에 미리 보인다 */
+.pips i[data-zone] {
+  box-shadow: inset 0 0 0 2px var(--warn);
+}
+.pips i[data-zone][data-on] {
+  background: var(--warn);
+}
+.moves[data-warn] {
+  background: #5a2410;
+  border-color: var(--warn);
+  animation: movesPulse calc(0.415s / var(--ts)) ease-in-out infinite alternate;
+}
+/* 2수 이하: 0.25초 왕복 = 2Hz (2Hz 를 넘기지 않는다) */
+.moves[data-critical] {
+  animation-duration: calc(0.25s / var(--ts));
+}
+.moves[data-warn] .movesLabel {
+  color: #ffd2b0;
+  opacity: 1;
+}
+/* 0.415초 왕복 = 약 1.2Hz */
+@keyframes movesPulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 #ff8a3d00;
+  }
+  to {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px #ff8a3d55;
+  }
+}
+
+.goals {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 12px;
+}
+.goalsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+}
+.goalsHead small {
+  font-size: 22px;
+  font-weight: 400;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.goalRow {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+.goal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 20px;
+  padding-top: 6px;
+  transition: background-color calc(0.25s / var(--ts));
+}
+.goalIcon {
+  display: flex;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff0d;
+}
+.goalIcon svg {
+  width: 80px;
+  height: 80px;
+}
+.root[data-juice] .goalIcon {
+  transform: scale(calc(1 + var(--pulse, 0) * 0.22));
+}
+.goalCount {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+}
+.goalCount b {
+  font-size: 50px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.check {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity calc(0.2s / var(--ts)),
+    transform calc(0.25s / var(--ts)) cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.check circle {
+  fill: var(--ok);
+}
+.check path {
+  fill: none;
+  stroke: #08201c;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.goal[data-done] {
+  background: #7cf2c51f;
+}
+.goal[data-done] .goalCount b {
+  opacity: 0;
+}
+.goal[data-done] .check {
+  opacity: 1;
+  transform: scale(1);
+}
+.goal[data-done] .goalIcon {
+  box-shadow: 0 0 0 4px var(--ok);
+}
+.goalName {
+  font-size: 22px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.ledger {
+  display: none;
+  font-size: 22px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.ledger[data-on] {
+  display: block;
+}
+
+/* ───── 점수 · 별 ───── */
+.score {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  top: 362px;
+  height: 160px;
+}
+.scoreHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 26px;
+}
+.scoreHead b {
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+}
+.scoreHead small {
+  font-size: 22px;
+  opacity: 0.6;
+}
+.bar {
+  position: relative;
+  height: 112px;
+  margin: 0 30px;
+}
+.track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50px;
+  height: 28px;
+  border-radius: 14px;
+  background: #ffffff17;
+  border: 2px solid var(--line);
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  width: 0;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #4fb0ff, #8a7bff);
+}
+.star {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+}
+.star svg {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  fill: #26324c;
+  stroke: #ffffff66;
+  stroke-width: 4;
+  transition: fill calc(0.15s / var(--ts));
+}
+/* 바를 가로지르는 눈금 = 정확한 임계 위치 */
+.star i {
+  position: absolute;
+  left: -2px;
+  top: 46px;
+  width: 4px;
+  height: 36px;
+  background: #ffffff8c;
+}
+.star span {
+  position: absolute;
+  left: 0;
+  top: 84px;
+  transform: translateX(-50%);
+  font-size: 22px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.star[data-on] svg {
+  fill: var(--gold);
+  stroke: #fff3c4;
+}
+.star[data-on] i {
+  background: var(--gold);
+}
+.star[data-on] span {
+  opacity: 1;
+  color: var(--gold);
+}
+.root[data-juice] .star[data-on] svg {
+  animation: starPop calc(0.4s / var(--ts)) ease-out;
+}
+@keyframes starPop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ───── 보드 ───── */
+.board {
+  position: absolute;
+  left: 78px;
+  top: 548px;
+  width: 924px;
+  height: 924px;
+  border-radius: 28px;
+  background:
+    repeating-conic-gradient(#ffffff08 0 25%, #00000000 0 50%) 0 0 / calc(200% / 7) calc(200% / 7),
+    #0c1428;
+  border: 3px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cell {
+  position: absolute;
+  width: calc(100% / 7);
+  height: calc(100% / 7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cell svg {
+  width: 84%;
+  height: 84%;
+}
+.shape {
+  display: none;
+}
+.cell[data-type='0'] .shape[data-k='0'],
+.cell[data-type='1'] .shape[data-k='1'],
+.cell[data-type='2'] .shape[data-k='2'],
+.cell[data-type='3'] .shape[data-k='3'],
+.flyer[data-g='0'] .shape[data-k='0'],
+.flyer[data-g='1'] .shape[data-k='1'],
+.flyer[data-g='2'] .shape[data-k='2'],
+.goalIcon .shape {
+  display: inline;
+}
+.shape[data-k='0'] {
+  fill: var(--c0);
+}
+.shape[data-k='1'] {
+  fill: var(--c1);
+}
+.shape[data-k='2'] {
+  fill: var(--c2);
+}
+.shape[data-k='3'] {
+  fill: var(--c3);
+}
+.line {
+  fill: none;
+  stroke: #0b1a30;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.shape[data-k='1'] .line {
+  stroke: var(--c1);
+  stroke-width: 6;
+}
+.shape .inner {
+  fill: #0b1a30aa;
+}
+.shape .valve {
+  fill: #d9e2ec;
+}
+.cursor {
+  position: absolute;
+  width: calc(100% / 7);
+  height: calc(100% / 7);
+  box-sizing: border-box;
+  border: 5px solid #fff;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+}
+.cursor[data-on] {
+  opacity: 1;
+}
+.note {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  width: max-content;
+  max-width: 88%;
+  padding: 10px 20px;
+  border-radius: 14px;
+  background: #0b1a2af2;
+  border: 2px solid #5ee6c9;
+  font-size: 24px;
+  text-align: center;
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity calc(0.15s / var(--ts));
+}
+.note[data-on] {
+  opacity: 1;
+}
+.note[data-bad] {
+  border-color: var(--bad);
+  background: #2a0f12f2;
+}
+
+/* ───── 결과 창 ───── */
+.result {
+  position: absolute;
+  left: 70px;
+  right: 70px;
+  top: 50%;
+  box-sizing: border-box;
+  padding: 30px 36px;
+  border-radius: 26px;
+  background: #111a30;
+  border: 3px solid var(--bad);
+  box-shadow: 0 20px 60px #000c;
+  text-align: center;
+  z-index: 4;
+  cursor: default;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-46%) scale(0.96);
+  transition:
+    opacity calc(0.2s / var(--ts)) ease-out,
+    transform calc(0.2s / var(--ts)) ease-out,
+    visibility 0s linear calc(0.2s / var(--ts));
+}
+.result[data-on] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%);
+  transition-delay: 0s;
+}
+.result[data-win] {
+  border-color: var(--ok);
+}
+.result h3 {
+  margin: 0;
+  font-size: 44px;
+}
+.resultStars {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 6px;
+}
+.resultStars svg {
+  width: 76px;
+  height: 76px;
+  fill: #26324c;
+  stroke: #ffffff55;
+  stroke-width: 4;
+}
+.resultStars svg[data-on] {
+  fill: var(--gold);
+  stroke: #fff3c4;
+}
+.result p {
+  margin: 10px 0 0;
+  font-size: 28px;
+}
+.result .early {
+  display: none;
+  color: #ffb3b3;
+  font-size: 24px;
+}
+.result .early[data-on] {
+  display: block;
+}
+.result button {
+  margin-top: 22px;
+  height: 84px;
+  padding: 0 56px;
+  border-radius: 42px;
+  border: 3px solid #5ee6c9;
+  background: #5ee6c9;
+  color: #08201c !important;
+  font-size: 30px !important;
+  font-weight: 700;
+}
+.result button:focus-visible {
+  outline: 5px solid #fff;
+  outline-offset: 5px;
+}
+
+.status {
+  position: absolute;
+  left: 78px;
+  right: 78px;
+  top: 1490px;
+  margin: 0;
+  font-size: 26px;
+  text-align: center;
+  color: #a8f0dc;
+}
+.status[data-bad] {
+  color: #ffb3b3;
+}
+.help {
+  position: absolute;
+  left: 78px;
+  right: 78px;
+  top: 1538px;
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* ───── 아래: 부스터 ───── */
+.boosters {
+  position: absolute;
+  left: 50%;
+  bottom: 70px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+}
+.booster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 280px;
+  height: 236px;
+  padding: 22px 12px 14px;
+  box-sizing: border-box;
+  border-radius: 28px;
+  background: var(--panel);
+  border: 3px solid #ffffff3d;
+}
+.booster:hover {
+  border-color: #5ee6c9;
+}
+.booster:focus-visible {
+  outline: 5px solid #fff;
+  outline-offset: 4px;
+}
+.bIcon {
+  width: 96px;
+  height: 96px;
+  fill: #9fd8ff;
+}
+.bCore {
+  fill: #fff6c9;
+}
+.bLine {
+  fill: none;
+  stroke: #9fd8ff;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.bName {
+  font-size: 30px;
+  font-weight: 700;
+}
+.booster small {
+  font-size: 22px;
+  opacity: 0.7;
+}
+.badge {
+  position: absolute;
+  right: -14px;
+  top: -14px;
+  min-width: 60px;
+  height: 60px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2b6cff;
+  border: 3px solid #fff;
+  font-style: normal;
+  font-size: 32px;
+  font-weight: 700;
+}
+/* 0개 = 구매 유도: 점선 테두리 · 금색 + 배지 · 글자 "충전" (색만이 아니라 모양 · 글자도 바뀐다) */
+.booster[data-empty] {
+  border-style: dashed;
+  border-color: var(--gold);
+}
+.booster[data-empty] .bIcon {
+  opacity: 0.45;
+}
+.booster[data-empty] .badge {
+  background: var(--gold);
+  color: #2a1a00;
+  font-size: 40px;
+}
+.booster[data-hint] {
+  animation: shopHint calc(0.4s / var(--ts)) ease-in-out 6 alternate;
+}
+/* 0.4초 왕복 = 1.25Hz */
+@keyframes shopHint {
+  from {
+    box-shadow: 0 0 0 0 #ffcc4d00;
+  }
+  to {
+    box-shadow: 0 0 0 12px #ffcc4d88;
+  }
+}
+
+/* ───── 날아가는 아이콘 ───── */
+.flyers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.flyer {
+  position: absolute;
+  left: -40px;
+  top: -40px;
+  width: 80px;
+  height: 80px;
+  opacity: 0;
+  will-change: transform;
+  filter: drop-shadow(0 4px 6px #000a);
+}
+.flyer svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moves[data-warn],
+  .booster[data-hint],
+  .root[data-juice] .star[data-on] svg {
+    animation: none;
+  }
+  .booster[data-hint] {
+    box-shadow: 0 0 0 10px #ffcc4d88;
+  }
+}
+
+/* ───── 가로 (1920×1080): 왼쪽 이동 · 목표 · 점수, 가운데 보드, 오른쪽 부스터 ───── */
+.root[data-aspect='16:9'] .top {
+  left: 48px;
+  right: auto;
+  top: 40px;
+  width: 600px;
+  height: 560px;
+  grid-template-columns: 1fr;
+  grid-template-rows: 230px 1fr;
+  gap: 20px;
+}
+.root[data-aspect='16:9'] .movesNum {
+  font-size: 104px;
+}
+.root[data-aspect='16:9'] .pips {
+  max-width: 520px;
+}
+.root[data-aspect='16:9'] .score {
+  left: 48px;
+  right: auto;
+  top: 630px;
+  width: 600px;
+}
+.root[data-aspect='16:9'] .board {
+  left: 692px;
+  top: 64px;
+  width: 896px;
+  height: 896px;
+}
+.root[data-aspect='16:9'] .status {
+  left: 692px;
+  right: auto;
+  width: 896px;
+  top: 982px;
+}
+.root[data-aspect='16:9'] .help {
+  left: 48px;
+  right: auto;
+  top: 836px;
+  width: 600px;
+  text-align: left;
+  line-height: 1.5;
+}
+.root[data-aspect='16:9'] .boosters {
+  left: auto;
+  right: 44px;
+  top: 64px;
+  bottom: auto;
+  transform: none;
+  flex-direction: column;
+  gap: 34px;
+}
+.root[data-aspect='16:9'] .booster {
+  width: 260px;
+  height: 250px;
+}
