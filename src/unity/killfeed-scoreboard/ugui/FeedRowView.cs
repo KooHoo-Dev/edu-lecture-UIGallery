@@ -1,6 +1,5 @@
 // 피드 한 줄 (프리팹). 고정 열: 나 | 가해자(오른쪽 정렬) | 무기 | 피해자(왼쪽 정렬) | 합친 수 — 칸 너비는 프리팹에서 고정한다.
-// 투명도는 루트 CanvasGroup 하나로 (자식마다 CrossFadeAlpha 하지 않는다). KillFeedView 가 풀에서 꺼내 Bind 하고 돌려받는다.
-// 아이콘은 Image. TMP 글자 안에 넣으려면 비트맵 아틀라스로 TMP Sprite Asset 을 만들어야 해서 이 예제는 쓰지 않는다.
+// 투명도는 루트 CanvasGroup 하나로. KillFeedView 가 풀에서 꺼내 Bind 하고 돌려받는다.
 using System;
 using TMPro;
 using UnityEngine;

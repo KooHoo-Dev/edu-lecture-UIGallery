@@ -1,6 +1,5 @@
-// UI Toolkit 판 — 같은 MatchEventSource · FeedQueue · MatchState · HoldToShow 를 쓴다 (UGUI 폴더). 바뀌는 것은 그리는 쪽뿐이다.
-// 피드 줄: VisualElement 를 풀에서 꺼내 #feed 에 absolute 로 넣고, 들고 나는 연출은 USS transition (수식 클래스 in · out · pushed).
-// 스코어보드: 팀마다 ListView 하나 — makeItem 은 보이는 행 수만큼만 불리고, 정렬이 바뀌면 리스트를 다시 채워 RefreshItems().
+// UI Toolkit 판 — UGUI 폴더의 MatchEventSource · FeedQueue · MatchState · HoldToShow 를 그대로 쓴다.
+// 피드 줄: 풀에서 꺼낸 VisualElement + USS transition (수식 클래스 in · out · pushed). 보드: 팀마다 ListView.
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -25,7 +24,7 @@ namespace UIGallery.KillfeedScoreboard
         }
 
         [SerializeField] MatchEventSource source;
-        [Tooltip("Weapon enum 순서: 펄스 소총 · 산탄 방출기 · 정밀 조준총 · 충격 수류탄 · 진압봉 · 경계 밖")]
+        [Tooltip("Weapon enum 순서 (FeedTheme 과 같다)")]
         [SerializeField] Sprite[] weaponSprites = new Sprite[6];
         [SerializeField, Range(3, 10)] int maxRows = 5;
         [SerializeField, Range(2f, 12f)] float displaySeconds = 5f;
@@ -45,6 +44,7 @@ namespace UIGallery.KillfeedScoreboard
         Label orbitToWin, surfaceToWin, orbitScore, surfaceScore, headTakedowns, headScore, foot;
         HoldToShow hold;
         InputAction cycleSort;
+        IVisualElementScheduledItem hide;
         bool dirty = true;
 
         void OnEnable()
@@ -83,9 +83,10 @@ namespace UIGallery.KillfeedScoreboard
             OnVisible(false);
         }
 
-        // 켤 때 단 것은 끌 때 모두 뗀다 — 껐다 켜도 콜백이 두 벌이 되지 않게
+        // 켤 때 단 것은 끌 때 모두 뗀다
         void OnDisable()
         {
+            OnVisible(false);   // 누른 채 꺼져도 보드가 남지 않게
             source.KillReceived -= OnKill;
             queue.Clear();
             queue.RowShown -= OnShown;
@@ -104,6 +105,11 @@ namespace UIGallery.KillfeedScoreboard
             if (source != null && source.Match != null) source.Match.Changed -= MarkDirty;
         }
 
+        void OnApplicationFocus(bool focus)
+        {
+            if (!focus && hold != null && !hold.tapToggles) hold.Set(false);   // 뗀 신호가 오지 않는다
+        }
+
         void MarkDirty() => dirty = true;
 
         void OnCycleSort(InputAction.CallbackContext _)
@@ -113,11 +119,13 @@ namespace UIGallery.KillfeedScoreboard
             dirty = true;
         }
 
-        /// <summary>보드는 수식 클래스 open 하나로 — opacity · translate 가 USS transition 으로 바뀐다. 닫히면 아래 화면 클릭을 막지 않게 Ignore</summary>
+        /// <summary>수식 클래스 open 으로 페이드. opacity 0 도 포인터를 받으므로 닫힘이 끝나면 visibility Hidden(상속됨)</summary>
         void OnVisible(bool visible)
         {
             board.EnableInClassList("board--open", visible);
-            board.pickingMode = visible ? PickingMode.Position : PickingMode.Ignore;
+            hide?.Pause();
+            if (visible) board.style.visibility = Visibility.Visible;
+            else hide = board.schedule.Execute(() => board.style.visibility = Visibility.Hidden).StartingIn(150);
             dirty |= visible;
         }
 
@@ -151,16 +159,16 @@ namespace UIGallery.KillfeedScoreboard
             feed.Add(v.root);
             Fill(v, r);
             views[r] = v;
-            // 만든 프레임에 바로 바꾸면 시작 스타일이 계산되기 전이라 transition 이 일어나지 않는다 — 한 프레임 뒤에
-            v.root.schedule.Execute(() => v.root.AddToClassList("feed-row--in"));
+            // 지연 없는 schedule.Execute 는 시작 스타일 계산 전에 돌 수 있다 — 16ms 뒤에
+            v.root.schedule.Execute(() => v.root.AddToClassList("feed-row--in")).StartingIn(16);
         }
 
         void OnMerged(FeedRow r)
         {
             if (!views.TryGetValue(r, out FeedRefs v)) return;
             Fill(v, r);
-            v.multi.AddToClassList("feed-row__multi--pop");   // 1.7배로 바로 → 다음 프레임에 떼면 0.26초 동안 1배로
-            v.multi.schedule.Execute(() => v.multi.RemoveFromClassList("feed-row__multi--pop"));
+            v.multi.AddToClassList("feed-row__multi--pop");   // 1.7배로 바로 → 16ms 뒤에 떼면 0.26초 동안 1배로
+            v.multi.schedule.Execute(() => v.multi.RemoveFromClassList("feed-row__multi--pop")).StartingIn(16);
         }
 
         void OnRemoved(FeedRow r)
@@ -187,6 +195,7 @@ namespace UIGallery.KillfeedScoreboard
             v.vic = Add(vic, new Label(), "feed-row__name");
             v.extra = Add(vic, new Label(), "feed-row__extra");
             v.multi = Add(v.root, new Label(), "feed-row__multi");
+            v.root.Query().ForEach(e => e.pickingMode = PickingMode.Ignore);   // pickingMode 는 상속되지 않는다
             return v;
         }
 

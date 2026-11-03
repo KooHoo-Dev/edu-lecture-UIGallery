@@ -8,7 +8,7 @@ export type SortKey = 'score' | 'takedowns' | 'join'
 export type Mine = 'attacker' | 'victim' | null
 
 export const ME = 'harin'
-/** 팀 제압전 — 먼저 이 점수에 닿는 팀이 이긴다 */
+/** 팀 제압전 — 먼저 이 제압 수에 닿는 팀이 이긴다 */
 export const WIN = 50
 export const TEAM_NAME: Record<TeamId, string> = { orbit: '궤도 분대', surface: '지표 분대' }
 export const WEAPON_NAME: Record<WeaponId, string> = {
@@ -64,7 +64,7 @@ export interface FeedEvent {
 export class Match {
   all: Player[] = []
   count = 5
-  /** 경계 밖 이탈로 상대 팀이 얻은 점수 */
+  /** 경계 밖 이탈로 상대 팀이 얻은 제압 수 */
   bonus: Record<TeamId, number> = { orbit: 0, surface: 0 }
 
   constructor(count: number) {
@@ -96,7 +96,7 @@ export class Match {
     const s = this.get(e.assist)
     if (s) s.assists++
   }
-  /** 정렬 — 같으면 제압 → 들어온 순서 (매번 순서가 흔들리지 않게 끝까지 정한다) */
+  /** 정렬 — 점수가 같으면 제압 → 들어온 순서 (매번 순서가 흔들리지 않게 끝까지 정한다) */
   sorted(t: TeamId, key: SortKey) {
     const list = this.team(t)
     if (key === 'join') return list
@@ -107,7 +107,7 @@ export class Match {
 
 /* ───── 가짜 이벤트 소스 (네트워크 대신) ───── */
 
-/** 시드 고정 난수 — 같은 시드면 같은 경기 */
+/** 시드 고정 난수 */
 export function rng(seed: number) {
   let a = seed >>> 0
   return () => {
@@ -167,7 +167,7 @@ export interface FeedConfig {
   displayMs: number
   /** 같은 가해자 · 같은 무기를 한 줄로 합치는 시간 창. 0 = 합치지 않음 */
   mergeWindowMs: number
-  /** 새 줄 사이 최소 간격. 0 = 받는 즉시 */
+  /** 새 줄 사이 기본 간격 (대기가 길면 80ms 까지 줄인다). 0 = 받는 즉시 */
   paceMs: number
   /** 내가 관련된 줄은 이만큼 오래 */
   mineScale: number
@@ -190,11 +190,11 @@ export class FeedQueue {
     const c = this.cfg
     const mine: Mine = e.attacker === me ? 'attacker' : e.victim === me ? 'victim' : null
     if (c.mergeWindowMs > 0 && e.attacker) {
-      const t = [...this.pending, ...this.rows].find(r => !r.leaving && r.attacker === e.attacker && r.weapon === e.weapon && this.now - r.lastAt <= c.mergeWindowMs)
+      // 나와 관련된 소식은 남의 줄에 합치지 않는다 — 내 줄로 따로 서야 강조 · 1.5배 수명을 받는다
+      const t = [...this.pending, ...this.rows].find(r => !r.leaving && r.attacker === e.attacker && r.weapon === e.weapon && (!mine || r.mine) && this.now - r.lastAt <= c.mergeWindowMs)
       if (t) {
         t.victims.push(e.victim)
         t.precision ||= e.precision
-        t.mine ??= mine
         t.lastAt = this.now
         t.lifeMs = c.displayMs * (t.mine ? c.mineScale : 1)
         t.leftMs = t.lifeMs
@@ -219,11 +219,10 @@ export class FeedQueue {
     this.gap = this.cfg.paceMs > 0 ? Math.max(80, this.cfg.paceMs - 30 * this.pending.length) : 0
     this.cap()
   }
+  /** 넘치면 내 줄이 아닌 줄을 마지막 갱신(lastAt)이 오래된 순으로 먼저 뺀다. 남은 줄이 모두 내 줄일 때만 내 줄을 */
   private cap() {
-    const live = this.rows.filter(x => !x.leaving)
-    let over = live.length - this.cfg.maxRows
-    for (const x of live) {
-      if (over-- <= 0) break
+    const live = this.rows.filter(x => !x.leaving).sort((a, b) => +!!a.mine - +!!b.mine || a.lastAt - b.lastAt)
+    for (const x of live.slice(0, Math.max(0, live.length - this.cfg.maxRows))) {
       x.leaving = true
       x.leftMs = Math.min(x.leftMs, EXIT_MS)
       this.stats.pushed++

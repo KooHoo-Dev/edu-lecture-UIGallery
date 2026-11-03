@@ -52,7 +52,8 @@
   align-items: center;
   gap: 10px;
 }
-.top b {
+.top b,
+.toWin b {
   font-family: 'Chakra Petch', 'Consolas', monospace;
   font-size: 36px;
 }
@@ -87,9 +88,6 @@
 @keyframes rowIn {
   from {
     transform: translateX(80px);
-  }
-  to {
-    transform: none;
   }
 }
 .row b {
@@ -151,9 +149,6 @@
 @keyframes pop {
   from {
     transform: scale(1.7);
-  }
-  to {
-    transform: scale(1);
   }
 }
 /* 내가 제압한 줄: 밝은 바탕 — 훑어볼 때 가장 먼저 걸린다 */
@@ -226,10 +221,7 @@
   opacity: 1;
   visibility: visible;
   transform: none;
-  transition:
-    opacity calc(120 * var(--t)),
-    transform calc(120 * var(--t)) ease-out,
-    visibility 0s;
+  transition-delay: 0s;
 }
 .head {
   display: grid;
@@ -276,7 +268,6 @@
 }
 /* 모드에 가장 중요한 숫자 = 가장 크게 */
 .toWin b {
-  font-family: 'Chakra Petch', 'Consolas', monospace;
   font-size: 84px;
   line-height: 1;
 }
@@ -314,18 +305,14 @@
   border-bottom: 2px solid #ffffff1f;
   white-space: nowrap;
 }
+/* 팀 이름 칸은 표의 팀 색(data-team)을 물려받는다 */
 .table th:first-child {
   text-align: left;
   font-size: 24px;
   font-weight: 700;
+  color: inherit;
 }
-.table[data-team='orbit'] th:first-child {
-  color: var(--ally);
-}
-.table[data-team='surface'] th:first-child {
-  color: var(--enemy);
-}
-.table th:first-child svg {
+.table svg {
   vertical-align: -3px;
   margin-right: 8px;
 }
@@ -353,10 +340,6 @@
 }
 .table td[data-bad] {
   color: #ffb35a;
-}
-.table td svg {
-  vertical-align: -3px;
-  margin-right: 8px;
 }
 .table td em {
   margin-left: 10px;

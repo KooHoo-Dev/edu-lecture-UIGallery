@@ -1,5 +1,4 @@
-/* 킬 피드 + 스코어보드 (UI Toolkit). 들고 나는 연출은 transition — C# 는 수식 클래스만 붙였다 뗀다.
-   팀은 색 + 모양: .mark.team-orbit 캡슐, .mark.team-surface 테두리로 만든 삼각형 */
+/* 킬 피드 + 스코어보드 (UI Toolkit). 연출은 transition — C# 는 수식 클래스만 바꾼다. 팀 표식: 캡슐 · 테두리 삼각형 */
 .hud {
     position: absolute;
     left: 0;
@@ -58,7 +57,7 @@
     transition-duration: 0.18s, 0.16s, 0.45s;
     transition-timing-function: ease-out-cubic, ease-out, linear;
 }
-/* 들어온 상태 — 한 프레임 뒤에 붙인다 */
+/* 들어온 상태 — 16ms 뒤에 붙인다 */
 .feed-row--in {
     translate: 0 0;
     opacity: 1;
@@ -147,6 +146,13 @@
 }
 .feed-row--mine-attacker .feed-row__name.team-surface {
     color: rgb(180, 42, 31);
+}
+/* 팀 표식도 밝은 바탕에서는 진한 색 (웹과 같은 대비) */
+.feed-row--mine-attacker .mark.team-orbit {
+    background-color: rgb(8, 102, 143);
+}
+.feed-row--mine-attacker .mark.team-surface {
+    border-bottom-color: rgb(180, 42, 31);
 }
 .feed-row--mine-attacker .feed-row__icon {
     -unity-background-image-tint-color: rgb(16, 20, 28);

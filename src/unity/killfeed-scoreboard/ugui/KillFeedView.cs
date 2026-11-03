@@ -1,6 +1,5 @@
-// 킬 피드 뷰 (UGUI). MatchEventSource.KillReceived → FeedQueue.Push. 큐가 알리는 대로 풀에서 줄을 꺼내고(RowShown) 돌려받는다(RowRemoved).
-// LayoutGroup 없이 위치를 직접 계산해(순번 × rowPitch) 보간하고, 투명도는 줄마다 CanvasGroup.alpha = queue.Alpha(row).
-// useQueueRules 를 끄면 웹 판의 '효과 끄기' 와 같은 나쁜 예 — 줄 수 제한 · 합치기 · 속도 조절 · 흐려짐 없음.
+// 킬 피드 뷰 (UGUI). KillReceived → FeedQueue.Push. 큐가 알리는 대로 풀에서 줄을 꺼내고(RowShown) 돌려받는다(RowRemoved).
+// LayoutGroup 없이 위치를 직접 보간하고, 투명도는 CanvasGroup.alpha. useQueueRules 를 끄면 웹 판 '효과 끄기' 와 같은 나쁜 예.
 using System.Collections.Generic;
 using UnityEngine;
 

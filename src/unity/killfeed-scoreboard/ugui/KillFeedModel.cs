@@ -1,7 +1,6 @@
 // 킬 피드 + 스코어보드 — 화면을 모르는 순수 C# 모델 (MonoBehaviour 아님).
-//  MatchState : 선수 기록 · 팀 점수 · 정렬 (2차 · 3차 기준까지 정해 행이 흔들리지 않게)
-//  FeedQueue  : 피드 줄 큐 — 최대 줄 수 · 유지 시간 · 같은 가해자 합치기 · 몰릴 때 새 줄 간격(속도 조절)
-// UGUI · UI Toolkit 두 뷰가 이 파일을 함께 쓴다. 웹 판 model.ts 와 같은 규칙이다.
+//  MatchState : 선수 기록 · 팀 점수 · 정렬    FeedQueue : 최대 줄 수 · 유지 시간 · 합치기 · 속도 조절
+// UGUI · UI Toolkit 두 뷰가 함께 쓴다. 웹 판 model.ts 와 같은 규칙이다.
 using System;
 using System.Collections.Generic;
 
@@ -17,7 +16,7 @@ namespace UIGallery.KillfeedScoreboard
     {
         public string displayName;
         public Team team;
-        public ushort netId;          // 네트워크에서 오는 선수 번호 (KillEventTranslator 가 이것으로 찾는다)
+        public ushort netId;          // 네트워크 선수 번호
         public bool isMe;
         public int joinOrder;
         public int takedowns, assists, outs, precisionHits, ping;
@@ -39,8 +38,8 @@ namespace UIGallery.KillfeedScoreboard
     {
         public readonly List<PlayerStats> players = new();
         readonly List<PlayerStats> seed;
-        public int winScore;
-        readonly int[] bonus = new int[2];   // 경계 밖 이탈로 상대 팀이 얻은 점수
+        public int winScore;                 // 팀 제압 수 (개인 점수가 아님)
+        readonly int[] bonus = new int[2];   // 경계 밖 이탈로 상대 팀이 얻은 제압 수
         public event Action Changed;
 
         public MatchState(List<PlayerStats> roster, int winScore)
@@ -86,7 +85,7 @@ namespace UIGallery.KillfeedScoreboard
             Changed?.Invoke();
         }
 
-        /// <summary>한 팀을 정렬해 into 에 채운다. 같으면 제압 → 들어온 순서 (동점끼리 매번 자리가 바뀌지 않게)</summary>
+        /// <summary>한 팀을 정렬해 into 에 채운다. 점수가 같으면 제압 → 들어온 순서 (동점끼리 매번 자리가 바뀌지 않게)</summary>
         public void Sorted(Team t, SortKey key, List<PlayerStats> into)
         {
             into.Clear();
@@ -125,7 +124,7 @@ namespace UIGallery.KillfeedScoreboard
         public int maxRows = 5;
         public float displaySeconds = 5f;
         public float mergeWindow = 1.5f;      // 같은 가해자 · 같은 무기를 한 줄로 합치는 시간 창. 0 = 합치지 않음
-        public float paceSeconds = 0.22f;     // 새 줄 사이 최소 간격. 0 = 받는 즉시
+        public float paceSeconds = 0.22f;     // 새 줄 사이 기본 간격 (대기가 길면 0.08초까지). 0 = 받는 즉시
         public float mineLifeScale = 1.5f;
         public const float ExitSeconds = 0.22f, FadeSeconds = 0.45f;
 
@@ -140,7 +139,7 @@ namespace UIGallery.KillfeedScoreboard
         public void Push(KillEvent e, int me)
         {
             Involvement mine = e.attacker == me ? Involvement.Attacker : e.victim == me ? Involvement.Victim : Involvement.None;
-            if (mergeWindow > 0f && e.attacker >= 0 && TryMerge(e, mine)) return;
+            if (mergeWindow > 0f && e.attacker >= 0 && TryMerge(e, mine != Involvement.None)) return;
             float life = displaySeconds * (mine != Involvement.None ? mineLifeScale : 1f);
             var row = new FeedRow { uid = ++uid, attacker = e.attacker, weapon = e.weapon, precision = e.precision, mine = mine, life = life, left = life, lastAt = now };
             row.victims.Add(e.victim);
@@ -148,13 +147,12 @@ namespace UIGallery.KillfeedScoreboard
             else Show(row);
         }
 
-        bool TryMerge(KillEvent e, Involvement mine)
+        bool TryMerge(KillEvent e, bool mine)
         {
-            FeedRow t = Find(pending, e) ?? Find(rows, e);
+            FeedRow t = Find(pending, e, mine) ?? Find(rows, e, mine);
             if (t == null) return false;
             t.victims.Add(e.victim);
             t.precision |= e.precision;
-            if (t.mine == Involvement.None) t.mine = mine;
             t.lastAt = now;
             t.life = t.left = displaySeconds * (t.mine != Involvement.None ? mineLifeScale : 1f);
             merged++;
@@ -162,36 +160,40 @@ namespace UIGallery.KillfeedScoreboard
             return true;
         }
 
-        FeedRow Find(List<FeedRow> list, KillEvent e)
+        // 내 소식은 남의 줄에 합치지 않는다
+        FeedRow Find(List<FeedRow> list, KillEvent e, bool mine)
         {
             foreach (FeedRow r in list)
-                if (!r.leaving && r.attacker == e.attacker && r.weapon == e.weapon && now - r.lastAt <= mergeWindow) return r;
+                if (!r.leaving && r.attacker == e.attacker && r.weapon == e.weapon && (!mine || r.mine != Involvement.None) && now - r.lastAt <= mergeWindow) return r;
             return null;
         }
 
         void Show(FeedRow r)
         {
             rows.Add(r);
-            // 대기가 길수록 간격을 줄인다 — 그래도 한 줄씩 들어오는 것은 보이게 최소 0.08초
+            // 대기가 길수록 간격을 줄인다 (최소 0.08초)
             gap = paceSeconds > 0f ? Math.Max(0.08f, paceSeconds - 0.03f * pending.Count) : 0f;
             RowShown?.Invoke(r);
             Cap();
         }
 
+        // 넘치면 내 줄이 아닌 줄을 lastAt 이 오래된 순으로. 모두 내 줄일 때만 내 줄을
         void Cap()
         {
             int live = 0;
             foreach (FeedRow r in rows) if (!r.leaving) live++;
-            foreach (FeedRow r in rows)
+            for (; live > maxRows; live--)
             {
-                if (live <= maxRows) break;
-                if (r.leaving) continue;
-                r.leaving = true;
-                r.left = Math.Min(r.left, ExitSeconds);
+                FeedRow pick = null;
+                foreach (FeedRow r in rows)
+                    if (!r.leaving && (pick == null || Before(r, pick))) pick = r;
+                pick.leaving = true;
+                pick.left = Math.Min(pick.left, ExitSeconds);
                 pushedOut++;
-                live--;
             }
         }
+
+        static bool Before(FeedRow a, FeedRow b) => (a.mine == 0) != (b.mine == 0) ? a.mine == 0 : a.lastAt < b.lastAt;
 
         public void Tick(float dt)
         {

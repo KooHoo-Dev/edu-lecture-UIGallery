@@ -1,9 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- 킬 피드 + 스코어보드. 피드 줄은 C# 가 만들어 #feed 에 absolute 로 넣는다. 보드 행은 ListView 가 가상화한다 -->
+    <!-- 킬 피드 + 스코어보드. 피드 줄은 C# 가 만든다 -->
     <Style src="KillFeedScoreboard.uss" />
     <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
         <ui:VisualElement name="feed" class="feed" picking-mode="Ignore" />
-        <ui:VisualElement name="board" class="board" picking-mode="Ignore">
+        <ui:VisualElement name="board" class="board">
             <ui:VisualElement class="board__head">
                 <ui:VisualElement class="team-block">
                     <ui:VisualElement class="team-block__title">
@@ -13,6 +13,7 @@
                     <ui:VisualElement class="to-win">
                         <ui:Label text="승리까지" class="to-win__label" />
                         <ui:Label name="orbit-to-win" text="30" class="to-win__value team-orbit" />
+                        <ui:Label text="제압" class="to-win__label" />
                         <ui:Label name="orbit-score" text="20 / 50" class="team-block__score" />
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -25,6 +26,7 @@
                     <ui:VisualElement class="to-win">
                         <ui:Label text="승리까지" class="to-win__label" />
                         <ui:Label name="surface-to-win" text="31" class="to-win__value team-surface" />
+                        <ui:Label text="제압" class="to-win__label" />
                         <ui:Label name="surface-score" text="19 / 50" class="team-block__score" />
                     </ui:VisualElement>
                 </ui:VisualElement>

@@ -1,6 +1,5 @@
-// 스코어보드 (UGUI) — 누르고 있는 동안만 보인다. 열기 · 닫기는 HoldToShow(Input System 의 Hold 상호작용), 보이기는 CanvasGroup.alpha.
-// 행은 팀 인원만큼 한 번 만들고 데이터만 바꿔 다시 쓴다(행 재사용). 승리까지 남은 점수를 가장 큰 글자로 둔다.
-// 정렬 바꾸기: 보드가 열려 있을 때 E · 패드 오른쪽 어깨. 보는 표라 Selectable 을 두지 않아 방향키 · 패드 탐색과 부딪치지 않는다.
+// 스코어보드 (UGUI) — 누르고 있는 동안만 보인다(HoldToShow · CanvasGroup.alpha). 행은 팀 인원만큼 만들어 다시 쓴다.
+// 정렬 바꾸기: 열려 있을 때 E · 패드 오른쪽 어깨. 보는 표라 Selectable 을 두지 않는다.
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,11 +11,9 @@ using UnityEngine.UI;
 namespace UIGallery.KillfeedScoreboard
 {
     /// <summary>
-    /// 누르고 있는 동안 보이기. 액션 Interactions 에 Hold(duration) 를 둔다.
-    ///  started(누름) → 연다 · performed(duration 넘게 누름) → '길게' 로 기억 · canceled(뗌) → 길게였으면 닫는다.
-    ///  짧게 눌렀다 뗐으면 tapToggles 일 때 열린 채 고정하고, 다시 짧게 누르면 닫는다 — 계속 누르기 어려운 사람을 위한 토글.
-    /// PC 게임이 Tab 을 쓰는 것은 왼손이 WASD 에서 손가락 하나만 뻗어 닿는 큰 키라서다. 패드는 가운데 왼쪽 작은 버튼(<Gamepad>/select).
-    /// UGUI · UI Toolkit 두 뷰가 함께 쓴다.
+    /// 누르고 있는 동안 보이기 (UGUI · UI Toolkit 공용). 액션 Interactions 에 Hold(duration).
+    ///  started → 연다 · performed(길게) → 기억 · canceled(뗌) → 길게였으면 닫는다.
+    ///  짧게 눌렀다 떼면 tapToggles 일 때 열린 채 고정, 다시 짧게 누르면 닫는다 — 계속 누르기 어려운 사람을 위한 토글.
     /// </summary>
     public class HoldToShow : IDisposable
     {
@@ -74,7 +71,7 @@ namespace UIGallery.KillfeedScoreboard
 
     public class ScoreboardView : MonoBehaviour
     {
-        /// <summary>행 프리팹의 자식 캐시 — 프리팹: Image 바탕 + MeBar(Image) + TMP_Text 6개(이름 · 제압 · 지원 · 이탈 · 점수 · 핑) 순서</summary>
+        /// <summary>행 프리팹 자식: 바탕 Image · MeBar Image · TMP 6개(이름 · 제압 · 지원 · 이탈 · 점수 · 핑) 순서</summary>
         class Row
         {
             public RectTransform rect;
@@ -86,7 +83,9 @@ namespace UIGallery.KillfeedScoreboard
         [SerializeField] CanvasGroup board;
         [SerializeField] RectTransform orbitRows, surfaceRows;
         [SerializeField] RectTransform rowPrefab;
-        [Tooltip("승리까지 남은 점수 — 보드에서 가장 큰 글자")]
+        [Tooltip("팀 머리: 표식 Image(캡슐 · 삼각) + 이름 TMP — 팀 색을 입힌다")]
+        [SerializeField] Graphic[] orbitHead, surfaceHead;
+        [Tooltip("승리까지 남은 제압 수 — 보드에서 가장 큰 글자")]
         [SerializeField] TMP_Text orbitToWin, surfaceToWin;
         [SerializeField] TMP_Text orbitScore, surfaceScore;
         [Tooltip("머리글 5개: 제압 · 지원 · 이탈 · 점수 · 핑")]
@@ -125,17 +124,21 @@ namespace UIGallery.KillfeedScoreboard
             cycleSort.Enable();
             board.alpha = 0f;
             board.blocksRaycasts = false;
+            foreach (Graphic g in orbitHead) g.color = orbitColor;
+            foreach (Graphic g in surfaceHead) g.color = surfaceColor;
         }
 
         void OnDisable()
         {
+            board.alpha = 0f;   // 누른 채 꺼져도 보드가 남지 않게
+            board.blocksRaycasts = false;
             hold.VisibleChanged -= OnVisible;
             hold.Dispose();
             cycleSort.performed -= OnCycleSort;
             cycleSort.Dispose();
         }
 
-        // MatchState 는 MatchEventSource.Awake 에서 만들어진다 — 모든 Awake 가 끝난 Start 에서 구독
+        // MatchState 는 MatchEventSource.Awake 에서 만들어진다 — Start 에서 구독
         void Start() => source.Match.Changed += MarkDirty;
 
         void OnDestroy()

@@ -1,6 +1,5 @@
-// 가짜 이벤트 소스 — 서버 대신 네트워크 메시지(NetKillMessage)를 만들고, UI 가 쓰는 KillEvent 로 바꿔 알린다.
-// 실제 게임에서는 MatchEventSource.Receive 를 Netcode RPC 수신이 부르고(가짜 생성 부분은 지운다), KillEventTranslator 는 그대로 쓴다.
-// 뷰(KillFeedView · ScoreboardView · KillFeedScoreboardUITK)는 KillReceived 와 MatchState 만 안다 — 네트워크를 모른다.
+// 가짜 이벤트 소스 — 서버 대신 NetKillMessage 를 만들고, UI 가 쓰는 KillEvent 로 바꿔 알린다.
+// 실제 게임에서는 Receive 를 Netcode RPC 수신이 부른다. 뷰는 KillReceived 와 MatchState 만 안다.
 // 시험용 키: 1 내가 제압 · 2 내가 이탈 · 3 몰아치기 · 4 경계 밖 이탈 · R 처음부터
 using System;
 using System.Collections.Generic;
@@ -23,7 +22,7 @@ namespace UIGallery.KillfeedScoreboard
 
     public static class KillEventTranslator
     {
-        /// <summary>네트워크 메시지 → UI 이벤트. 모르는 선수 · 무기면 false (늦게 온 메시지, 버전 차이) — UI 가 깨지지 않게 버린다</summary>
+        /// <summary>네트워크 메시지 → UI 이벤트. 모르는 선수 · 무기면 false (늦게 온 메시지, 버전 차이)</summary>
         public static bool TryTranslate(in NetKillMessage m, MatchState match, out KillEvent e)
         {
             e = new KillEvent
@@ -34,6 +33,7 @@ namespace UIGallery.KillfeedScoreboard
                 precision = (m.flags & NetKillMessage.FlagPrecision) != 0,
             };
             if (e.victim < 0 || m.weaponCode > (byte)Weapon.Boundary) return false;
+            if (m.attackerNetId != 0 && e.attacker < 0) return false;   // 환경으로 치면 상대 팀에 점수가 간다
             e.weapon = (Weapon)m.weaponCode;
             return true;
         }
@@ -47,9 +47,10 @@ namespace UIGallery.KillfeedScoreboard
         }
     }
 
-    /// <summary>가짜 경기 서버. 컴포넌트라 파일 이름과 같은 이름이어야 한다 — 진짜 네트워크로 바꿀 때는 Receive 를 부르는 쪽만 바꾼다</summary>
+    /// <summary>가짜 경기 서버 (컴포넌트라 파일 이름과 같다)</summary>
     public class MatchEventSource : MonoBehaviour
     {
+        [Tooltip("먼저 이 제압 수에 닿는 팀이 이긴다")]
         [SerializeField] int winScore = 50;
         [Tooltip("자동 이벤트 평균 간격 (초)")]
         [SerializeField] float meanInterval = 1.4f;

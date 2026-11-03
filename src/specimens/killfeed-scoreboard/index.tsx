@@ -14,7 +14,7 @@ export { meta } from './meta'
 /** 줄 간격 (좋은 예 · 나쁜 예) */
 const PITCH = 58
 const PITCH_OFF = 44
-/** 새 줄 사이 최소 간격 (속도 조절) */
+/** 새 줄 사이 기본 간격 (속도 조절 — 대기가 길면 80ms 까지 줄인다) */
 const PACE_MS = 220
 /** 이벤트 빈도별 평균 간격 (게임 초) */
 const RATE_SEC: Record<string, number> = { calm: 2.6, normal: 1.4, burst: 1.4 }
@@ -140,11 +140,12 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
       star.team === 'surface' ? randomEvent(match, r, { attacker: star.id, victim: ME, weapon: 'pulse' }) : randomEvent(match, r, { attacker: ME }),
       randomEvent(match, r),
     ]
-    list.forEach((e, i) => x.schedule.push({ at: x.t + i * 0.13, e }))
+    // 첫 건은 바로 — 정지 중에 눌러도 반응이 보이게
+    list.forEach((e, i) => (i ? x.schedule.push({ at: x.t + i * 0.13, e }) : emit(e)))
   }
 
   /* ───── 스코어보드 열기 · 닫기 ───── */
-  const openBoard = (owner: Owner) => Object.assign(S.current.board, { open: true, owner })
+  const openBoard = (owner: Owner, until = 0) => Object.assign(S.current.board, { open: true, owner, until })
   const closeBoard = () => Object.assign(S.current.board, { open: false, owner: null })
   /** 사람이 만졌다: 자동 데모가 연 보드는 닫고, 한동안 다시 열지 않는다 */
   const human = () => {
@@ -165,6 +166,16 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
       rerender()
     }
   }
+  // 정렬 기준 · 팀당 인원은 보드 안에서만 보인다 — 바꾸면 보드를 스크립트 소유로 잠깐 연다 (사람이 연 보드는 그대로)
+  const shown = useRef(sortBy + playersPerTeam)
+  useEffect(() => {
+    const x = S.current
+    if (shown.current === sortBy + playersPerTeam) return
+    shown.current = sortBy + playersPerTeam
+    if (p.thumbnail || (x.board.open && x.board.owner !== 'script')) return
+    openBoard('script', x.t + AUTO_BOARD_SEC)
+    rerender()
+  })
 
   const handle = (id: string) => {
     const x = S.current
@@ -214,8 +225,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
         x.burstAt = x.t + BURST_EVERY
       }
       if (!x.board.open && x.t >= x.boardAt && x.t - x.humanAt > HUMAN_IDLE) {
-        openBoard('script')
-        x.board.until = x.t + AUTO_BOARD_SEC
+        openBoard('script', x.t + AUTO_BOARD_SEC)
         dirty = true
       }
     }
@@ -279,12 +289,11 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
   const boardOpen = x.board.open
   const pitch = juice ? PITCH : PITCH_OFF
   const liveRows = q.rows.filter(rw => !rw.leaving)
-  // 해설 번호가 가리킬 줄 — 서로 다른 줄을 고른다 (나쁜 예의 문장 줄에는 칸이 없어 자리 표시로)
-  const targets = juice ? liveRows : []
-  const mineRow = targets.find(rw => rw.mine)
-  const mergeRow = targets.find(rw => rw.victims.length > 1 && rw !== mineRow) ?? targets.find(rw => rw.victims.length > 1)
-  // 번호는 칸 위에 붙으므로 가장 위(오래된) 줄을 고른다 — 아래 줄을 고르면 번호가 윗줄에 얹혀 다른 줄을 가리키는 것처럼 보인다
-  const colRow = targets.find(rw => rw !== mineRow && rw !== mergeRow) ?? targets[0]
+  // 해설 번호가 가리킬 줄 — 서로 다른 줄을 고른다. 나쁜 예는 문장 줄 자체에 달아 비교로 읽게 한다
+  const mineRow = liveRows.find(rw => rw.mine)
+  const mergeRow = liveRows.find(rw => rw.victims.length > 1 && rw !== mineRow) ?? liveRows.find(rw => rw.victims.length > 1)
+  // 1번은 무기 칸 아래에 붙으므로 맨 아래 줄 쪽에서 고른다 — 그 아래는 비어 있어 다른 줄의 칸을 가리지 않는다
+  const colRow = [...liveRows].reverse().find(rw => rw !== mineRow && rw !== mergeRow) ?? liveRows.at(-1)
   const scores = { orbit: match.teamScore('orbit'), surface: match.teamScore('surface') }
   const dur = juice && !reduced ? 1 : 0
 
@@ -300,7 +309,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
     if (!juice) {
       // 나쁜 예: 문장 한 줄 — 눈이 같은 자리에서 이름 · 무기를 찾을 수 없다
       return (
-        <div key={rw.uid} ref={ref} className={s.plain} style={{ top: i * pitch }}>
+        <div key={rw.uid} ref={ref} className={s.plain} style={{ top: i * pitch }} data-part={rw === mineRow ? 'my-row' : rw === colRow ? 'columns' : undefined} data-pin="left">
           {atk ? (
             <>
               <b data-team={atk.team}>{josa(atk.name, '이', '가')}</b> {josa(WEAPON_NAME[rw.weapon], '으로', '로')} <b data-team={vic.team}>{josa(vic.name, '을', '를')}</b> 제압했습니다{rw.precision ? ' (정밀 타격 보너스 +25점)' : ''}
@@ -336,7 +345,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
             </>
           )}
         </span>
-        <span className={s.wpn} data-part={rw === colRow ? 'columns' : undefined}>
+        <span className={s.wpn} data-part={rw === colRow ? 'columns' : undefined} data-pin="below">
           <WeaponIcon id={rw.weapon} />
           {rw.precision && (
             <span className={s.prec}>
@@ -386,7 +395,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
         </span>
         {/* 보드가 닫혀 있을 때 해설 4번은 여기 — 모드 목표는 평소 HUD 에도 작게 남는다 */}
         <span className={s.topMid} data-part={boardOpen ? undefined : 'goal'} data-pin="below">
-          {x.ended ? `${TEAM_NAME[x.ended.team]} 승리 — 새 경기` : `먼저 ${WIN}`}</span>
+          {x.ended ? `${TEAM_NAME[x.ended.team]} 승리 — 새 경기` : `먼저 ${WIN} 제압`}</span>
         <span data-team="surface">
           <b>{scores.surface}</b> {TEAM_NAME.surface}
           {juice && <TeamMark team="surface" size={26} />}
@@ -412,6 +421,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
                 <div className={s.toWin} data-part={t === 'orbit' && boardOpen ? 'goal' : undefined}>
                   <span>승리까지</span>
                   <b>{Math.max(0, WIN - scores[t])}</b>
+                  <span>제압</span>
                 </div>
                 <div className={s.teamScore}>
                   {scores[t]} / {WIN}
@@ -421,7 +431,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
             <div className={s.mode}>
               팀 제압전
               <br />
-              먼저 {WIN}점
+              먼저 {WIN} 제압
             </div>
           </div>
         ) : (
@@ -467,7 +477,7 @@ export default function KillfeedScoreboard(p: SpecimenProps) {
           </table>
         ))}
         <div className={s.foot}>
-          {juice ? `정렬: ${SORT_LABEL[sortBy]}${sortBy === 'join' ? '' : ' ▼ · 같으면 제압 → 들어온 순서'}` : '정렬 없음 · 들어온 순서'} · 점수 = 제압 100 + 지원 50 + 정밀 25
+          {juice ? `정렬: ${SORT_LABEL[sortBy]}${sortBy === 'join' ? '' : ` ▼ · 같으면 ${sortBy === 'score' ? '제압 → ' : ''}들어온 순서`}` : '정렬 없음 · 들어온 순서'} · 점수 = 제압 100 + 지원 50 + 정밀 25
         </div>
       </div>
 
