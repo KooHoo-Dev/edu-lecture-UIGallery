@@ -16,8 +16,13 @@ type OpenMode = 'hold' | 'toggle'
 /** 사람이 직접 조작하면 자동 데모를 이만큼(게임 시간 초) 쉰다 */
 const MANUAL_PAUSE = 6
 const AUTO_LEN = 11.5
-/** 스와이프 한 칸으로 치는 거리 (논리 px) */
-const SWIPE_PX = 70
+/** 누르고 있기인데 누르는 입력이 없을 때(자동 데모를 넘겨받음 · 이벤트로 엶) 입력이 이만큼 끊기면 닫는다 */
+const UNHELD_CLOSE = 3
+/** 한 번 밀기로 치는 거리 — 화면(CSS) px. 논리 px 로 재면 무대가 줄어든 폰에서 손가락 몇 px 에 한 칸이 들어간다 */
+const SWIPE_PX = 36
+/** 두 축 차이 ÷ 길이가 이보다 작으면 대각선 — 어느 쪽인지 모르니 넣지 않는다 (Unity DirectionQuantizer.diagonalBand) */
+const DIAG_BAND = 0.3
+const UNIT: Record<Dir, [number, number]> = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] }
 /** 오른쪽 장면의 가운데 x */
 const CX = 1410
 const N = COMMANDS.length
@@ -179,10 +184,10 @@ export default function DirectionalComboInput(p: SpecimenProps) {
     S.raw = []
     touch()
   }
-  const closePanel = () => {
+  /** fire: 떼기 · 토글 닫기면 완성해서 기다리던 커맨드를 발동('더 넣지 않겠다'), Esc · 취소 · 포커스 잃음이면 버린다 */
+  const closePanel = (fire: boolean) => {
     if (!S.open) return
-    // 이미 완성해서 기다리던 커맨드는 닫을 때 발동 (손을 뗀 것은 '더 넣지 않겠다' 는 뜻)
-    if (cfgRef.current.juice && M.pending >= 0) {
+    if (fire && cfgRef.current.juice && M.pending >= 0) {
       const i = M.pending
       M.fire(i, S.t)
       onFired(i)
@@ -207,12 +212,13 @@ export default function DirectionalComboInput(p: SpecimenProps) {
     play(ringRef.current, [{ transform: 'scale(0.2)', opacity: 1 }, { transform: 'scale(2.6)', opacity: 0 }], 650)
   }
 
-  const onResult = (r: PushResult, d: Dir, slot: number) => {
+  const onResult = (r: PushResult, d: Dir) => {
     const c = cfgRef.current
     if (r.kind === 'fired') onFired(r.cmd)
     else if (r.kind === 'pending') {
       note(`${COMMANDS[r.cmd].name} 완성 — ${+c.match.prefixWait.toFixed(2)}초 안에 이어 넣으면 더 긴 커맨드`, 'info')
     } else if (r.kind === 'wrong') {
+      const slot = r.slot // 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸 — push 앞에서 세면 틀린다
       S.wrong = { dir: d, slot, t: S.t }
       play(stripRef.current, [0, -18, 16, -12, 8, -4, 0].map(x => ({ transform: `translateX(${x}px)` })), 360) // 가운데 맞춤은 CSS translate 라 겹치지 않는다
       if (r.cooling >= 0) note(`${COMMANDS[r.cooling].name} — 재사용 대기 ${Math.ceil(M.cooldownLeft(r.cooling, S.t))}초`, 'bad')
@@ -237,8 +243,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
       touch()
       return
     }
-    const slot = M.buffer.length
-    for (const r of M.push(d, S.t, c.match)) onResult(r, d, slot)
+    for (const r of M.push(d, S.t, c.match)) onResult(r, d)
     touch()
   }
 
@@ -257,11 +262,13 @@ export default function DirectionalComboInput(p: SpecimenProps) {
     takeOver: (e, info) => {
       human()
       if (info.focused && !isOpenKey(e) && (dirOf(e) || e.key === 'Escape')) {
-        // 자동 데모가 연 목록에 방향키가 왔다: 사람이 이어받는다 (닫아 버리면 그 ←/→ 가 갤러리로 새어 표본이 바뀐다)
+        // 자동 데모가 연 목록에 방향키가 왔다: 사람이 이어받는다 (닫아 버리면 그 ←/→ 가 갤러리로 새어 해설 번호가 넘어간다).
+        // 누르고 있기면 누르는 입력이 없는 상태 — 입력이 UNHELD_CLOSE 초 끊기면 닫고 자동 데모로 돌아간다
         S.owner = 'human'
+        S.heldBy = null
         M.clear()
         S.raw = []
-      } else closePanel() // Q 는 새로 연다 · 무대 밖에서 온 키는 닫고 흘려보낸다
+      } else closePanel(false) // Q 는 새로 연다 · 무대 밖에서 온 키는 닫고 흘려보낸다
       sync()
     },
     onKey: e => {
@@ -273,7 +280,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
       if (isOpenKey(e)) {
         if (!e.repeat) {
           if (c.openMode === 'toggle') {
-            if (S.open) closePanel()
+            if (S.open) closePanel(true)
             else openPanel('human')
           } else {
             if (!S.open) openPanel('human')
@@ -281,7 +288,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
             S.heldBy = 'key'
           }
         }
-      } else if (e.key === 'Escape') closePanel()
+      } else if (e.key === 'Escape') closePanel(false)
       else if (d && !e.repeat) input(d) // 꾹 눌러 생기는 반복 입력은 먹기만 하고 넣지 않는다
       touch()
       sync()
@@ -289,7 +296,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
     },
     onKeyUp: e => {
       if (isOpenKey(e) && S.heldBy === 'key' && cfgRef.current.openMode === 'hold') {
-        closePanel()
+        closePanel(true)
         sync()
         return true
       }
@@ -297,26 +304,21 @@ export default function DirectionalComboInput(p: SpecimenProps) {
     },
   })
   const onBlur = () => {
-    if (S.heldBy && cfgRef.current.openMode === 'hold') closePanel()
+    if (S.heldBy && cfgRef.current.openMode === 'hold') closePanel(false)
     sync()
   }
 
-  /* ───── 포인터 · 터치: 누른 채 밀기 (스와이프 한 번 = 한 칸) ───── */
-  const drag = useRef<{ id: number; x: number; y: number; moved: boolean; wasOpen: boolean } | null>(null)
-  const toLogical = (e: { clientX: number; clientY: number }) => {
-    const r = rootRef.current!.getBoundingClientRect()
-    const k = r.width / p.width || 1
-    return [(e.clientX - r.left) / k, (e.clientY - r.top) / k] as const
-  }
+  /* ───── 포인터 · 터치: 누른 채 밀기 — 한 번 밀기(뗄 때까지 또는 방향을 바꿀 때까지) = 한 칸 ───── */
+  const drag = useRef<{ id: number; x: number; y: number; dir: Dir | null; moved: boolean; wasOpen: boolean } | null>(null)
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (p.thumbnail || (e.pointerType === 'mouse' && e.button !== 0)) return
+    // 첫 포인터만 열기 · 닫기 · 방향을 맡는다 — 두 번째 손가락이 덮어쓰지 않게
+    if (p.thumbnail || drag.current || (e.pointerType === 'mouse' && e.button !== 0)) return
     rootRef.current?.focus({ preventScroll: true })
     human()
     const wasOpen = S.open && S.owner === 'human'
     if (!wasOpen) openPanel('human')
     if (cfgRef.current.openMode === 'hold') S.heldBy = 'pointer'
-    const [x, y] = toLogical(e)
-    drag.current = { id: e.pointerId, x, y, moved: false, wasOpen }
+    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, dir: null, moved: false, wasOpen }
     try {
       rootRef.current?.setPointerCapture(e.pointerId)
     } catch {
@@ -327,23 +329,36 @@ export default function DirectionalComboInput(p: SpecimenProps) {
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const g = drag.current
     if (!g || g.id !== e.pointerId || !S.open) return
-    const [x, y] = toLogical(e)
-    const d = quantize(x - g.x, y - g.y, SWIPE_PX)
+    // 화면(CSS) px 로 잰다 — 무대 축소와 상관없이 손가락이 SWIPE_PX 움직여야 한 칸
+    let dx = e.clientX - g.x
+    let dy = e.clientY - g.y
+    if (g.dir) {
+      // 방금 넣은 방향으로 더 미는 것은 새 칸이 아니다: 기준점이 손가락을 따라가고, 꺾거나 되돌릴 때만 다음 칸
+      const [ux, uy] = UNIT[g.dir]
+      const along = Math.max(0, dx * ux + dy * uy)
+      g.x += along * ux
+      g.y += along * uy
+      dx -= along * ux
+      dy -= along * uy
+    }
+    const d = quantize(dx, dy, SWIPE_PX, DIAG_BAND)
     if (!d) return
-    g.x = x
-    g.y = y
+    g.x = e.clientX
+    g.y = e.clientY
+    g.dir = d
     g.moved = true
     realAt.current = S.t
     input(d)
     sync()
   }
-  const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+  /** fire = 손을 뗌. 취소(pointercancel · 포인터를 잃음)는 기다리던 커맨드를 버리고, 토글이면 열린 채 둔다 */
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>, fire: boolean) => {
     const g = drag.current
     if (!g || g.id !== e.pointerId) return
     drag.current = null
     const mode = cfgRef.current.openMode
-    if (mode === 'hold' && S.heldBy === 'pointer') closePanel()
-    else if (mode === 'toggle' && g.wasOpen && !g.moved) closePanel() // 토글: 밀지 않고 톡 치면 닫기
+    if (mode === 'hold' && S.heldBy === 'pointer') closePanel(fire)
+    else if (fire && mode === 'toggle' && g.wasOpen && !g.moved) closePanel(true) // 토글: 밀지 않고 톡 치면 닫기
     sync()
   }
 
@@ -352,6 +367,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
   const prevSig = useRef(sig)
   useEffect(() => {
     if (prevSig.current === sig) return
+    const errChanged = prevSig.current.split('|')[2] !== errorMode
     prevSig.current = sig
     if (p.thumbnail) return
     const using = S.open && S.owner === 'human' && (openMode === 'toggle' || S.heldBy !== null)
@@ -369,6 +385,8 @@ export default function DirectionalComboInput(p: SpecimenProps) {
       S.raw = ['L', 'U']
       S.freeze = true
       S.previewUntil = S.t + 3
+      // '틀렸을 때' 는 틀려야 보인다: ← ↑ 다음에 ↓ 를 넣어 처음부터(빈 띠) / 그 칸만 다시(← ↑ 유지)를 보여 준다
+      if (errChanged && juice) for (const r of M.push('D', S.t, cfgRef.current.match)) onResult(r, 'D')
     }
     touch()
     sync()
@@ -398,12 +416,12 @@ export default function DirectionalComboInput(p: SpecimenProps) {
   useTrigger(p.trigger, id => {
     human()
     if (id === 'demo') {
-      closePanel()
+      closePanel(false)
       M.readyAt.fill(0)
       S.loop = 0
       autoActive.current = true
     } else if (id === 'open') {
-      if (S.open && S.owner === 'human') closePanel()
+      if (S.open && S.owner === 'human') closePanel(true)
       else ensureOpen()
     } else if (id === 'wrong') {
       // 보급 투하(↑ ← ↓ ↓)를 넣다가 세 번째에 → — 틀림
@@ -439,7 +457,7 @@ export default function DirectionalComboInput(p: SpecimenProps) {
         }
         S.freeze = false
       } else if (a === 'close') {
-        if (S.owner === 'script') closePanel()
+        if (S.owner === 'script') closePanel(true)
       } else if (S.open && S.owner === 'script') {
         if (a.startsWith('!')) input(a.slice(1) as Dir)
         else {
@@ -472,8 +490,15 @@ export default function DirectionalComboInput(p: SpecimenProps) {
       else if (r?.kind === 'timeout') note('입력 사이가 너무 길다 — 처음부터', 'bad')
       if (r) touch()
     }
-    if (S.owner === 'preview' && S.t > S.previewUntil) closePanel()
-    if (S.wrong && S.t - S.wrong.t > 0.7) {
+    if (S.owner === 'preview' && S.t > S.previewUntil) closePanel(false)
+    // 누르고 있기인데 누르는 입력이 없다(자동 데모를 넘겨받음 · 이벤트로 엶): 입력이 끊기면 닫고 자동 데모를 되살린다.
+    // 안 그러면 Esc 전까지 열린 채 남아 데모가 멈추고 ←/→ 도 계속 커맨드로 먹힌다
+    if (c.openMode === 'hold' && S.open && S.owner === 'human' && !S.heldBy && S.t - realAt.current > UNHELD_CLOSE) {
+      closePanel(false)
+      realAt.current = -1e9
+      S.auto = 0
+    }
+    if (S.wrong && S.t - S.wrong.t > 0.7 && S.owner !== 'preview') {
       S.wrong = null
       touch()
     }
@@ -556,8 +581,9 @@ export default function DirectionalComboInput(p: SpecimenProps) {
       onBlur={onBlur}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerUp={e => endDrag(e, true)}
+      onPointerCancel={e => endDrag(e, false)}
+      onLostPointerCapture={e => endDrag(e, false)}
       onContextMenu={e => e.preventDefault()}
     >
       {/* 장면 */}

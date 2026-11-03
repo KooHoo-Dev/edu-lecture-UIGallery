@@ -181,9 +181,11 @@
 .row[data-cool] .icon {
   opacity: 0.4;
 }
+/* 칸 폭(264px)이 아니라 화살표만큼 — 해설 번호 1 의 강조가 실제 화살표를 감싸게 */
 .arrows {
   display: flex;
   gap: 6px;
+  justify-self: start;
 }
 .arrow {
   width: 46px;

@@ -38,6 +38,19 @@ namespace UIGallery.DirectionalComboInput
             return false;
         }
 
+        /// <summary>커맨드 i 의 앞부분이 다른 커맨드인가 (기다림이 0 이면 짧은 쪽이 먼저 발동해 가려진다). 두 HUD 가 같이 쓴다</summary>
+        public bool HasPrefix(int i)
+        {
+            ComboDir[] a = commands[i].sequence;
+            if (a == null) return false;
+            for (int j = 0; j < commands.Count; j++)
+            {
+                ComboDir[] b = commands[j].sequence;
+                if (j != i && b != null && b.Length < a.Length && StartsWith(a, b)) return true;
+            }
+            return false;
+        }
+
         public static bool StartsWith(IReadOnlyList<ComboDir> seq, IReadOnlyList<ComboDir> head)
         {
             if (head.Count > seq.Count) return false;
@@ -65,7 +78,7 @@ namespace UIGallery.DirectionalComboInput
         static ComboCommand New(string id, string name, string desc, float cooldown, params ComboDir[] seq) =>
             new() { id = id, displayName = name, desc = desc, cooldown = cooldown, sequence = seq };
 
-        // 데이터를 넣을 때 접두사 겹침을 알려 준다 — 완성 즉시 발동이면 긴 쪽은 쓸 수 없다
+        // 인스펙터 값이 바뀔 때마다 불린다: 빈 · 같은 시퀀스는 경고(LogWarning), 접두사 겹침은 알림(Debug.Log) — 완성 즉시 발동이면 긴 쪽은 쓸 수 없다
         void OnValidate()
         {
             if (commands == null) return;

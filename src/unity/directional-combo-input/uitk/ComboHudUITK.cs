@@ -1,4 +1,4 @@
-// 방향 커맨드 HUD (UI Toolkit) — 입력은 UGUI 폴더의 ComboInput, 판정은 ComboMatcher, 데이터는 ComboCommandSet 을 그대로 쓴다.
+// 방향 커맨드 HUD (UI Toolkit) — 입력은 UGUI 폴더의 ComboInput, 판정 · 문구는 ComboMatcher.cs, 데이터는 ComboCommandSet 을 그대로 쓴다 (TMPro 를 쓰는 UGUI 화면 파일은 필요 없다).
 // 화살표는 비트맵 없이 ArrowElement(Painter2D)로 그린다. 흔들림은 Update 에서 style.translate 로 (코루틴 없음).
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace UIGallery.DirectionalComboInput
         [SerializeField] float prefixWait = 0.45f;
         [SerializeField] float stepTimeout = 1.5f;
         [SerializeField] bool lenient;
-        [SerializeField] ComboHud.MismatchStyle mismatch = ComboHud.MismatchStyle.Dim;
+        [SerializeField] MismatchStyle mismatch = MismatchStyle.Dim;
 
         public event Action<ComboCommand> Activated;
 
@@ -26,6 +26,7 @@ namespace UIGallery.DirectionalComboInput
         {
             public VisualElement root;
             public VisualElement wait;
+            public VisualElement cool;
             public Label status;
             public ArrowElement[] arrows;
         }
@@ -54,12 +55,7 @@ namespace UIGallery.DirectionalComboInput
             for (int i = 0; i < n; i++)
             {
                 isPrefix[i] = commandSet.IsPrefixOfAnother(i);
-                for (int j = 0; j < n; j++)
-                {
-                    ComboDir[] other = commandSet.commands[j].sequence;
-                    if (j != i && other.Length < commandSet.commands[i].sequence.Length && ComboCommandSet.StartsWith(commandSet.commands[i].sequence, other))
-                        hasPrefix[i] = true;
-                }
+                hasPrefix[i] = commandSet.HasPrefix(i);
             }
         }
 
@@ -147,6 +143,9 @@ namespace UIGallery.DirectionalComboInput
                 row.wait = Ignore(new VisualElement());
                 row.wait.AddToClassList("row__wait");
                 row.root.Add(row.wait);
+                row.cool = Ignore(new VisualElement());   // 재사용 대기 막대 (남은 비율만큼)
+                row.cool.AddToClassList("row__cool");
+                row.root.Add(row.cool);
                 list.Add(row.root);
                 rows.Add(row);
             }
@@ -202,20 +201,21 @@ namespace UIGallery.DirectionalComboInput
             Paint();
         }
 
-        void OnClosed()
+        /// <param name="fire">떼기 · 토글 닫기면 완성해서 기다리던 커맨드를 발동, 취소 · 포커스 잃음 · 꺼짐이면 버린다</param>
+        void OnClosed(bool fire)
         {
-            matcher.Close(Time.time);   // 완성해서 기다리던 커맨드는 발동
+            matcher.Close(Time.time, fire);
             wrongSlot = -1;
             SetOpen(false);
         }
 
         void OnDirection(ComboDir d)
         {
-            int slot = matcher.Buffer.Count;
             StepResult r = matcher.Push(d, Time.time);
             if (r == StepResult.Pending) Note($"{commandSet.commands[matcher.Pending].displayName} 완성 — 이어 넣으면 더 긴 커맨드");
             else if (r == StepResult.WrongReset || r == StepResult.WrongKept || r == StepResult.Cooling)
             {
+                int slot = matcher.WrongSlot;   // Push 뒤에 읽는다 — 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸
                 wrongSlot = slot;
                 wrongDir = d;
                 wrongUntil = Time.unscaledTime + 0.7f;
@@ -289,8 +289,8 @@ namespace UIGallery.DirectionalComboInput
                 bool off = filtering && !cand;
                 if (cand) candidates++;
                 row.root.EnableInClassList("row--candidate", cand);
-                row.root.EnableInClassList("row--mismatch", off && mismatch == ComboHud.MismatchStyle.Dim);
-                row.root.EnableInClassList("row--hidden", off && mismatch == ComboHud.MismatchStyle.Hide);
+                row.root.EnableInClassList("row--mismatch", off && mismatch == MismatchStyle.Dim);
+                row.root.EnableInClassList("row--hidden", off && mismatch == MismatchStyle.Hide);
                 row.root.EnableInClassList("row--cooling", cooling);
                 int lit = cand ? buf.Count : 0;
                 for (int k = 0; k < row.arrows.Length; k++)
@@ -301,6 +301,7 @@ namespace UIGallery.DirectionalComboInput
                 row.status.text = ComboLabels.Status(c, cooling ? matcher.CooldownLeft(i, now) : 0f, pending, isPrefix[i], hasPrefix[i] && prefixWait <= 0f, prefixWait, out bool warn);
                 row.status.EnableInClassList("row__status--warn", warn);
                 row.wait.style.width = pending ? 180f * matcher.PendingProgress(now) : 0f;
+                row.cool.style.width = cooling ? 150f * matcher.CooldownLeft(i, now) / Mathf.Max(0.01f, c.cooldown) : 0f;
             }
             count.text = $"남은 후보 {candidates} / {rows.Count}";
 

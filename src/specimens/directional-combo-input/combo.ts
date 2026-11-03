@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────
  * 방향 커맨드 — 데이터와 판정 (화면을 모르는 순수 로직)
  * 커맨드 정의(이름 · 시퀀스 · 재사용 대기)는 데이터로 두고, 판정기는 입력 버퍼와 접두사 매칭만 한다.
- * Unity 판 ComboCommandSet.cs · ComboMatcher.cs 와 같은 규칙이다.
+ * Unity 판 ComboCommandSet.cs(ComboMatcher 포함)와 같은 규칙이다.
  * 시간은 모두 '게임 시간' 초.
  * ────────────────────────────────────────────────────────────── */
 
@@ -49,7 +49,8 @@ export type PushResult =
   | { kind: 'progress' }
   | { kind: 'pending'; cmd: number }
   | { kind: 'fired'; cmd: number }
-  | { kind: 'wrong'; kept: boolean; cooling: number }
+  /** slot = 틀린 칸(0부터). 기다리던 커맨드가 먼저 발동했으면 새 시퀀스의 칸 */
+  | { kind: 'wrong'; kept: boolean; cooling: number; slot: number }
 
 export class ComboMatcher {
   buffer: Dir[] = []
@@ -108,7 +109,7 @@ export class ComboMatcher {
       const kept = cfg.lenient && len > 0
       if (kept) this.lastAt = now // 관대한 모드: 그 칸만 다시 — 제한 시간도 다시 채운다
       else this.clear()
-      return [{ kind: 'wrong', kept, cooling }]
+      return [{ kind: 'wrong', kept, cooling, slot: len }]
     }
     this.buffer = next
     this.lastAt = now
@@ -166,8 +167,9 @@ export function nextFor(s: Dir[], buf: Dir[]): Dir {
   return s[0]
 }
 
-/** 스와이프 · 스틱 벡터를 4방향으로 (화면 좌표: y 아래 +). 짧으면 null */
-export function quantize(dx: number, dy: number, min: number): Dir | null {
-  if (Math.hypot(dx, dy) < min) return null
+/** 스와이프 벡터를 4방향으로 (화면 좌표: y 아래 +). 짧거나 대각선(두 축 차이 ÷ 길이 < band)이면 null */
+export function quantize(dx: number, dy: number, min: number, band: number): Dir | null {
+  const m = Math.hypot(dx, dy)
+  if (m < min || Math.abs(Math.abs(dx) - Math.abs(dy)) / m < band) return null
   return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'R' : 'L') : dy > 0 ? 'D' : 'U'
 }
