@@ -4,7 +4,7 @@
 //   C : 기기 시계 +1일 (clockSource = Server 면 아무 일도 없어야 정상, Device 면 출석이 다시 열린다)
 //   B : 보급 보상 +30 연료 (최대치 초과)
 //   T : 기준 시계 Server ↔ Device 전환 (나쁜 예 비교)
-// 실제 기기에서는 앱을 백그라운드로 보냈다가 돌아오거나, 설정에서 시계를 바꿔 같은 것을 확인한다.
+// 앱을 끈 시간은 O 키로 시험한다. 가짜 서버는 realtimeSinceStartup 위에서 흘러 실제 백그라운드 시간이 들어간다는 보장이 없다.
 using UnityEngine;
 using UnityEngine.InputSystem;
 

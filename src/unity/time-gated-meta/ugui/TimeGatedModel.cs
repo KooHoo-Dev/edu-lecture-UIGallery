@@ -1,7 +1,6 @@
 // 탐사 연료 · 7일 출석 모델 (순수 C#). 웹 판 model.ts 와 같은 규칙이다.
-// 핵심: 현재값을 매초 더해 저장하지 않는다. '마지막 기록 + 지금 시각' 에서 그때그때 계산한다.
-//   연료 = 마지막 값 + floor((지금 − 마지막 회복 시각) / 간격), 최대치에서 멈춤
-// 시각은 늘 ServerClock.UtcNow 를 넘긴다. 이 클래스들은 시계를 직접 읽지 않는다(시험하기 쉽고, 기기 시계가 끼어들 틈이 없다).
+// 현재값을 매초 더해 저장하지 않고 '마지막 기록 + 지금 시각' 에서 계산한다: 연료 = 마지막 값 + floor(경과 / 간격), 최대치에서 멈춤.
+// 시각은 늘 ServerClock.UtcNow 를 넘겨받는다 — 시계를 직접 읽지 않아 기기 시계가 끼어들 틈이 없다.
 using System;
 using System.Collections.Generic;
 
@@ -65,11 +64,20 @@ namespace UIGallery.TimeGatedMeta
             value += amount;
         }
 
-        /// <summary>cost 만큼 모일 때까지 (부족할 때 버튼에 남은 시간을 쓰려고)</summary>
-        public TimeSpan UntilEnough(int cost, DateTime nowUtc)
+        /// <summary>cost 만큼 모일 때까지. cost &gt; max 면 회복으로는 오지 않는다 → null (보상으로만)</summary>
+        public TimeSpan? UntilEnough(int cost, DateTime nowUtc)
         {
             int v = Current(nowUtc, out TimeSpan next, out _);
-            return v >= cost ? TimeSpan.Zero : next + TimeSpan.FromTicks(Interval.Ticks * (cost - v - 1));
+            if (v >= cost) return TimeSpan.Zero;
+            if (cost > max) return null;
+            return next + TimeSpan.FromTicks(Interval.Ticks * (cost - v - 1));
+        }
+
+        /// <summary>부족할 때 버튼 글자</summary>
+        public string LackLabel(int cost, DateTime nowUtc)
+        {
+            TimeSpan? w = UntilEnough(cost, nowUtc);
+            return w.HasValue ? $"연료 부족 · {cost}까지 {ServerClock.Format(w.Value)}" : $"비용 {cost} > 최대 {max} · 보상으로만";
         }
 
         /// <summary>가득 찰 시각 (로컬 알림 예약용). 가득 · 초과면 null</summary>

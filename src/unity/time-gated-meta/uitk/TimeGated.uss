@@ -20,15 +20,15 @@
 .broke { display: none; padding: 6px 14px; border-radius: 10px; background-color: rgba(255, 107, 91, 0.2); color: rgb(255, 179, 168); font-size: 22px; margin-bottom: 8px; }
 .broke--show { display: flex; }
 
-/* flex-wrap 그리드: 4열 (243 + 좌우 6) × 4 = 1020px = 패널 안쪽 폭. 7일차는 두 칸 폭 */
+/* 4열: width 는 padding · border 포함 → 안쪽 폭 1080 − 60 − 4 = 1016px ≥ (243 + 5 × 2) × 4 = 1012px. 7일차는 두 칸 496px */
 .days { flex-direction: row; flex-wrap: wrap; flex-grow: 1; }
 .slot {
-    width: 243px; height: 216px; margin: 0 6px 12px 6px; padding: 36px 8px 10px 8px;
+    width: 243px; height: 216px; margin: 0 5px 12px 5px; padding: 36px 8px 10px 8px;
     border-radius: 18px; border-width: 2px; border-color: rgb(45, 69, 97); background-color: rgb(26, 40, 60);
     align-items: center; justify-content: center;
     transition-property: scale, border-color; transition-duration: 0.3s;
 }
-.slot--big { width: 498px; border-width: 3px; border-color: rgb(255, 207, 90); background-color: rgb(48, 42, 22); }
+.slot--big { width: 496px; border-width: 3px; border-color: rgb(255, 207, 90); background-color: rgb(48, 42, 22); }
 .slot__day { position: absolute; left: 14px; top: 8px; font-size: 22px; color: rgb(143, 165, 189); }
 .slot__tag { position: absolute; right: 10px; top: 6px; padding: 2px 12px; border-radius: 10px; font-size: 22px; background-color: rgba(143, 165, 189, 0.15); }
 .slot__name { font-size: 24px; }

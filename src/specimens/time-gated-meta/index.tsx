@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { prefersReducedMotion } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { num, str } from '../../core/params'
 import { stageKeyDown } from '../../core/stageKeys'
@@ -65,7 +66,9 @@ export default function TimeGatedMeta(p: SpecimenProps) {
   const mode: Mode = !juice ? 'tick' : clockSource === 'device' ? 'device' : 'server'
   const interval = regenMinutes * MIN
 
-  const cfg = { mode, max: energyMax, interval, cost: stageCost, resetHour, rule, scale, juice }
+  /** 동작 줄이기 설정이면 맥동 · 도장 · 새날 확대 · 흔들기 · 시계 바늘을 멈춘다 */
+  const calm = prefersReducedMotion()
+  const cfg = { mode, max: energyMax, interval, cost: stageCost, resetHour, rule, scale, juice, calm }
   const C = useRef(cfg)
   C.current = cfg
 
@@ -151,15 +154,16 @@ export default function TimeGatedMeta(p: SpecimenProps) {
   useEffect(() => {
     if (firstMode.current === mode) return
     firstMode.current = mode
-    // 화면 기록을 서버 기록에서 다시 만든다 (모드마다 기준 시계가 다르다)
+    // 시계를 먼저 다시 받고, 화면 기록을 서버 기록에서 다시 만든다 (모드마다 기준 시계가 다르다)
+    resync()
+    S.resume = null
     const c = C.current
     const ts = settle(S.T, S.world, c.max, c.interval)
     S.T = ts
     S.E = { value: ts.value, lastAt: basisNow() - (S.world - ts.lastAt) }
     S.tickAcc = ts.value < c.max ? Math.min(c.interval - 1, S.world - ts.lastAt) : 0
-    syncClock(S.clock, S.world, S.mono)
-    S.resume = null
-    S.lastDay = dayOf(basisNow(), resetHour)
+    // 날짜도 출석 규칙(새 주기 · 끊김)을 거쳐 옮긴다
+    dayNote(checkDay())
     touch()
     sync()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,6 +204,7 @@ export default function TimeGatedMeta(p: SpecimenProps) {
       return
     }
     const k = S.att.claimed.length
+    if (k >= 7) return
     const r = REWARDS[k]
     S.att = { claimed: [...S.att.claimed, today], broke: null }
     const fuel = r.kind === 'fuel' ? addFuel(r.count) : null
@@ -219,7 +224,8 @@ export default function TimeGatedMeta(p: SpecimenProps) {
     const ev = shownEnergy()
     if (ev.value < c.cost) {
       S.deniedUntil = S.t + 0.5
-      if (c.juice) note(`연료 부족 — ${c.cost} 필요, 지금 ${ev.value}. ${formatDur(untilEnough(ev, c.cost, c.interval))} 뒤 출발할 수 있다`)
+      const w = untilEnough(ev, c.cost, c.max, c.interval)
+      if (c.juice) note(`연료 부족 — ${c.cost} 필요, 지금 ${ev.value}. ${w < 0 ? `최대치 ${c.max} 보다 커 회복으로는 못 모은다 — 보상으로만` : `${formatDur(w)} 뒤 출발할 수 있다`}`)
       else note('"연료가 부족합니다" — 얼마나 기다려야 하는지 알려 주지 않는다', true)
       touch()
       return
@@ -246,13 +252,22 @@ export default function TimeGatedMeta(p: SpecimenProps) {
     const o = S.off!
     S.off = null
     S.world += o.hours * HOUR
-    // 단조 시계는 앱이 꺼진 동안 흐르지 않았다(또는 플랫폼마다 다르다) → 서버 시각을 다시 받을 때까지 '동기화 중'
+    S.resume = { hours: o.hours, before: o.before }
+    // 단조 시계는 앱이 꺼진 동안 흐르지 않았다(또는 플랫폼마다 다르다) → 서버 모드는 다시 받을 때까지 '동기화 중'.
+    // 다른 모드도 시계는 바로 다시 받는다 — 화면이 안 써도 모드를 바꾸면 쓴다
     if (C.current.mode === 'server') {
       S.clock.synced = false
-      S.resume = { hours: o.hours, before: o.before }
       S.syncUntil = S.t + SYNC_SEC
-    } else finishWake(o.hours, o.before)
+    } else rejoin()
     touch()
+  }
+  /** 복귀 = 다시 동기화. 앱 복귀(wake) · 모드 전환이 모두 여기서 서버 시각을 받는다 */
+  const resync = () => syncClock(S.clock, S.world, S.mono)
+  const rejoin = () => {
+    resync()
+    const r = S.resume!
+    S.resume = null
+    finishWake(r.hours, r.before)
   }
   const finishWake = (hours: number, before: number) => {
     const c = C.current
@@ -292,6 +307,7 @@ export default function TimeGatedMeta(p: SpecimenProps) {
     else if (id === 'device-clock') deviceClock()
     else if (id === 'clock-back') deviceClock(true)
     else if (id === 'bonus') {
+      if (busy()) return note('동기화 중 — 서버 시각을 받기 전에는 주지 않는다')
       const r = addFuel(BONUS)
       note(`보급 보상 +${BONUS}${r.text}`, r.bad)
     }
@@ -339,12 +355,8 @@ export default function TimeGatedMeta(p: SpecimenProps) {
           if (S.E.value >= c.max) S.tickAcc = 0
         } else S.tickAcc = 0
       }
-      if (S.resume && S.t >= S.syncUntil) {
-        syncClock(S.clock, S.world, S.mono)
-        const r = S.resume
-        S.resume = null
-        finishWake(r.hours, r.before)
-      } else if (synced()) dayNote(checkDay())
+      if (S.resume && S.t >= S.syncUntil) rejoin()
+      else if (synced()) dayNote(checkDay())
     }
     if (S.note && S.note.until <= S.t) {
       S.note = null
@@ -406,13 +418,16 @@ export default function TimeGatedMeta(p: SpecimenProps) {
       setText('f2', `지금 = ${S.E.value} + ⌊경과 ${formatDur(el)} ÷ ${c.interval / MIN}분⌋ = ${ev.value}${raw > c.max ? ` (최대 ${c.max})` : ''}`)
     }
     const lack = ok && ev.value < c.cost
-    const wait = lack ? untilEnough(ev, c.cost, c.interval) : 0
+    const wait = lack ? untilEnough(ev, c.cost, c.max, c.interval) : 0
     root.toggleAttribute('data-lack', lack)
     root.toggleAttribute('data-denied', S.t < S.deniedUntil)
-    root.toggleAttribute('data-newday', S.t < S.newDayUntil)
+    root.toggleAttribute('data-newday', S.t < S.newDayUntil && !c.calm)
     root.toggleAttribute('data-sync', !synced())
     if (enterRef.current) enterRef.current.setAttribute('aria-disabled', String(c.juice && lack))
-    setText('enter', c.juice && lack ? `연료 부족 · ${c.cost}까지 ${formatDur(wait)}` : `탐사 출발  −${c.cost}`)
+    setText(
+      'enter',
+      !(c.juice && lack) ? `탐사 출발  −${c.cost}` : wait < 0 ? `비용 ${c.cost} > 최대 ${c.max} · 보상으로만` : `연료 부족 · ${c.cost}까지 ${formatDur(wait)}`,
+    )
 
     // 서버 계산 줄: 서버가 같은 규칙으로 계산한 값. 화면과 다르면 표시한다
     const tv = truth()
@@ -445,6 +460,7 @@ export default function TimeGatedMeta(p: SpecimenProps) {
       className={s.root}
       data-aspect={p.aspect}
       data-juice={juice || undefined}
+      data-calm={calm || undefined}
       data-paused={!p.playing || undefined}
       data-mode={mode}
       data-rule={rule}
@@ -516,7 +532,7 @@ export default function TimeGatedMeta(p: SpecimenProps) {
                 data-state={st}
                 data-big={k === 6 || undefined}
                 data-missed={missed > 0 || undefined}
-                data-part={k === n ? 'today' : undefined}
+                data-part={k === Math.min(n, 6) ? 'today' : undefined}
                 aria-label={`${k + 1}일차 ${r.name} ${r.count}개 — ${tag}`}
               >
                 <span className={s.day}>{k + 1}일차</span>

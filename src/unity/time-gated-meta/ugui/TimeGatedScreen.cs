@@ -1,8 +1,8 @@
-// 7일 출석판 + 탐사 연료 화면 (UGUI). 값은 모두 TimeGatedModel 이 '마지막 기록 + 서버 시각' 으로 계산하고, 이 컴포넌트는 그리기만 한다.
-// 앱이 백그라운드에서 돌아오면(OnApplicationPause(false) · OnApplicationFocus(true)) 서버 시각을 다시 받고 그 뒤 다시 계산한다.
-// 출석판: 1~6일차는 GridLayoutGroup(4열) 의 자식, 7일차 큰 칸은 같은 부모 아래 LayoutElement.ignoreLayout = true 로 오른쪽 아래 두 칸 자리에 둔다
-//        (GridLayoutGroup 은 칸 크기가 모두 같아 두 칸짜리를 못 만든다).
-// 버튼 두 개는 transition = ColorTint 그대로 — Selected Color 를 Normal 과 다르게 두어 키보드 · 패드로 고른 버튼이 보이게 한다.
+// 7일 출석판 + 탐사 연료 화면 (UGUI). 값은 TimeGatedModel 이 '마지막 기록 + 서버 시각' 으로 계산하고 여기서는 그리기만 한다.
+// 앱 복귀(OnApplicationPause(false) · OnApplicationFocus(true)) 때 서버 시각을 다시 받고 다시 계산한다.
+// 1~6일차는 GridLayoutGroup(4열), 7일차 두 칸짜리는 LayoutElement.ignoreLayout 으로 빼서 직접 둔다 (그리드는 칸 크기가 모두 같다).
+// 버튼은 transition = ColorTint, Selected Color 를 Normal 과 다르게 — 키보드 · 패드로 고른 버튼이 보인다.
+// interactable = false 는 쓰지 않는다(선택이 풀려 패드로 못 움직인다). 바탕색만 바꾸고 처리 함수가 막는다.
 using System;
 using TMPro;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace UIGallery.TimeGatedMeta
     [Serializable]
     public class DaySlot
     {
-        public Image frame;          // 상태 색 (받음 · 오늘 · 내일 · 앞날) — 색만이 아니라 tag 글자 · 도장으로도 구분
+        public Image frame;          // 상태 색 — 색만이 아니라 tag 글자 · 도장으로도 구분
         public TMP_Text dayLabel;    // "4일차"
         public TMP_Text tag;         // 받음 · 오늘 · 내일 · +2일
         public TMP_Text reward;      // "냉각 셀 ×3"
@@ -33,6 +33,9 @@ namespace UIGallery.TimeGatedMeta
         public int stageCost = 20;
         public EnergyMeter energy = new EnergyMeter { max = 60, intervalMinutes = 6, value = 37 };
         public AttendanceBook attendance = new AttendanceBook();
+
+        [Header("머리")]
+        [SerializeField] TMP_Text clockText, ruleChip;   // 서버 시각 · 출석 규칙
 
         [Header("출석판")]
         [SerializeField] DaySlot[] slots = new DaySlot[7];
@@ -56,6 +59,7 @@ namespace UIGallery.TimeGatedMeta
         [SerializeField] Color todayColor = new Color(1f, 0.81f, 0.35f);
         [SerializeField] Color nextColor = new Color(0.37f, 0.9f, 0.79f);
         [SerializeField] Color futureColor = new Color(0.16f, 0.23f, 0.32f);
+        [SerializeField] Color offColor = new Color(0.14f, 0.2f, 0.27f);   // 꺼진 버튼 바탕
 
         /// <summary>시험용 (TimeGatedDemo): 사용자가 바꾼 기기 시계 · 앱을 끈 동안 흐른 시간. clockSource = Device 일 때만 화면에 영향</summary>
         [NonSerialized] public double testSkewDays, testOffsetHours;
@@ -67,6 +71,7 @@ namespace UIGallery.TimeGatedMeta
         long lastSecond;
         int todaySlot = -1;
         DateTime? scheduledFull;
+        Color claimOn, enterOn;
 
         DateTime Now => clockSource == ClockSource.Server
             ? clock.UtcNow(Time.realtimeSinceStartupAsDouble)
@@ -79,9 +84,20 @@ namespace UIGallery.TimeGatedMeta
             // 리스너는 한 번만. Refresh 마다 AddListener 하면 한 번 눌러 여러 번 받는다
             claimButton.onClick.AddListener(Claim);
             enterButton.onClick.AddListener(Depart);
+            claimOn = claimButton.targetGraphic.color;
+            enterOn = enterButton.targetGraphic.color;
         }
 
-        void OnEnable() => Resync();
+        void OnEnable()
+        {
+            // 처음 실행: 실제로는 서버 저장값(value · lastRegenUtc). 이 예제는 2분 12초 전 회복으로.
+            // 동기화 전에도 그리는 Device 기준이 가득(0001년)으로 보이지 않게 여기서 정한다
+            if (energy.lastRegenUtc == default) energy.lastRegenUtc = FakeServer.Now.AddSeconds(-132);
+            Resync();
+        }
+
+        // 켠 채 바탕색만 — 고른 채로 버튼 글자(남은 시간)를 읽는다
+        void SetOff(Button b, Color on, bool off) => b.targetGraphic.color = off ? offColor : on;
 
         void OnDisable()
         {
@@ -102,14 +118,13 @@ namespace UIGallery.TimeGatedMeta
 
         public void Resync()
         {
+            if (!isActiveAndEnabled) return;   // 꺼진 동안은 OnEnable 이 다시 부른다
             clock.Invalidate();
             if (syncing != null) StopCoroutine(syncing);
             syncing = StartCoroutine(FakeServer.FetchUtc(utc =>
             {
                 syncing = null;
                 clock.Sync(utc, Time.realtimeSinceStartupAsDouble);
-                // 처음 실행: 실제 게임에서는 서버 저장값(value · lastRegenUtc)을 받는다. 이 예제는 2분 12초 전에 회복한 것으로
-                if (energy.lastRegenUtc == default) energy.lastRegenUtc = utc.AddSeconds(-132);
                 lastDay = int.MinValue;
                 lastSecond = 0;
             }));
@@ -120,7 +135,8 @@ namespace UIGallery.TimeGatedMeta
             if (!Ready)
             {
                 resetCountdown.text = nextText.text = fullText.text = "동기화 중";
-                claimButton.interactable = enterButton.interactable = false;   // 서버 시각을 받기 전에는 판정하지 않는다
+                SetOff(claimButton, claimOn, true);   // 서버 시각을 받기 전에는 판정하지 않는다 (처리 함수가 Ready 로 막는다)
+                SetOff(enterButton, enterOn, true);
                 return;
             }
             DateTime now = Now;
@@ -154,7 +170,7 @@ namespace UIGallery.TimeGatedMeta
                 SlotState st = attendance.State(k, today);
                 int ahead = k - attendance.claimed.Count + (done ? 1 : 0);
                 s.dayLabel.text = $"{k + 1}일차";
-                s.reward.text = k == 6 ? "수리 키트 ×5 · 크레딧 3,000" : $"{r.name} ×{r.count:N0}";
+                s.reward.text = k == 6 ? "수리 키트 ×5 · 크레딧 3,000" : $"{r.name} ×{r.count}";
                 s.tag.text = st == SlotState.Claimed ? "받음" : st == SlotState.Today ? "오늘" : st == SlotState.Next ? "내일" : $"+{ahead}일";
                 s.frame.color = st == SlotState.Claimed ? claimedColor : st == SlotState.Today ? todayColor : st == SlotState.Next ? nextColor : futureColor;
                 s.frame.transform.localScale = Vector3.one;
@@ -168,15 +184,17 @@ namespace UIGallery.TimeGatedMeta
             brokeBanner.gameObject.SetActive(attendance.brokeLost > 0);
             if (attendance.brokeLost > 0)
                 brokeBanner.text = $"연속 끊김 — {ServerClock.DayLabel(attendance.brokeDay, resetHour)} 를 놓쳐 {attendance.brokeLost}칸을 잃었다 · 1일차부터";
-            claimButton.interactable = !done;
+            ruleChip.text = attendance.rule == AttendanceRule.Streak ? "연속 출석 · 놓치면 1일차부터" : "누적 출석 · 놓쳐도 다음 칸으로";
         }
 
         void RefreshTimers(DateTime now, int today)
         {
+            clockText.text = $"서버 {ServerClock.Clock(now, serverTzHours)} (UTC+{serverTzHours})";
             TimeSpan left = ServerClock.NextReset(now, resetHour, serverTzHours) - now;
             resetCountdown.text = ServerClock.Format(left);
-            claimLabel.text = attendance.ClaimedToday(today) ? $"받음 · 다음 보급까지 {ServerClock.Format(left)}" : $"{attendance.claimed.Count + 1}일차 보급 받기";
-            claimButton.interactable = !attendance.ClaimedToday(today);
+            bool done = attendance.ClaimedToday(today);
+            claimLabel.text = done ? $"받음 · 다음 보급까지 {ServerClock.Format(left)}" : $"{attendance.claimed.Count + 1}일차 보급 받기";
+            SetOff(claimButton, claimOn, done);
 
             int v = energy.Current(now, out TimeSpan next, out TimeSpan full);
             bool regen = v < energy.max;
@@ -186,10 +204,10 @@ namespace UIGallery.TimeGatedMeta
             nextText.text = regen ? ServerClock.Format(next) : v > energy.max ? "정지" : "가득";
             fullText.text = regen ? ServerClock.Format(full) : "—";
 
-            // 부족하면 버튼을 끄고 '얼마나 기다리면 되는지' 를 버튼 글자에 쓴다 (꺼진 버튼은 선택되지 않아 이유를 따로 읽을 수 없다)
+            // 부족하면 꺼진 색 + 남은 시간을 버튼 글자에
             bool lack = v < stageCost;
-            enterButton.interactable = !lack;
-            enterLabel.text = lack ? $"연료 부족 · {stageCost}까지 {ServerClock.Format(energy.UntilEnough(stageCost, now))}" : $"탐사 출발  −{stageCost}";
+            SetOff(enterButton, enterOn, lack);
+            enterLabel.text = lack ? energy.LackLabel(stageCost, now) : $"탐사 출발  −{stageCost}";
 
             DateTime? fullAt = energy.FullAt(now);
             if (fullAt != scheduledFull)
@@ -200,10 +218,7 @@ namespace UIGallery.TimeGatedMeta
             notifyText.text = fullAt.HasValue ? $"가득 참 알림 · {ServerClock.Format(fullAt.Value - now)} 뒤" : "가득 참 알림 예약 없음";
         }
 
-        /// <summary>
-        /// 연결 지점만: 가득 참 로컬 알림. Mobile Notifications 패키지(com.unity.mobile.notifications)로 예약하고, 다시 예약하기 전에 이전 것을 취소한다.
-        /// 알림은 기기 시계로 울리므로 서버 시각(fullAtUtc)이 아니라 '남은 시간' 으로 예약한다 — 기기 시계가 틀려도 제때 울린다.
-        /// </summary>
+        /// <summary>연결 지점: 가득 참 로컬 알림 (Mobile Notifications 패키지, 이전 것 취소 후 예약). 기기 시계로 울리니 '남은 시간' 으로 예약한다</summary>
         void ScheduleFullNotification(TimeSpan? delay)
         {
             // 예: 이전 알림 취소 → delay 가 있으면 fireTime = DateTime.Now + delay 로 새로 예약
@@ -230,7 +245,7 @@ namespace UIGallery.TimeGatedMeta
         {
             if (!Ready) return;
             DateTime now = Now;
-            if (!energy.TrySpend(stageCost, now)) return;
+            if (!energy.TrySpend(stageCost, now)) { Message?.Invoke(energy.LackLabel(stageCost, now)); return; }
             Message?.Invoke($"탐사 출발 — 연료 −{stageCost}");
             lastSecond = 0;
         }

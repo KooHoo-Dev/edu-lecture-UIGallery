@@ -20,6 +20,10 @@
 .root[data-paused] * {
   animation-play-state: paused !important;
 }
+.root[data-calm] * {
+  animation: none !important;
+  transition: none !important;
+}
 .num {
   font-family: 'Chakra Petch', 'Malgun Gothic', sans-serif;
   font-variant-numeric: tabular-nums;
@@ -307,7 +311,7 @@
 .slot[data-state='claimed'] {
   background: #152131;
 }
-.slot[data-state='claimed'] > :not(.stamp):not(.missed):not(.day) {
+.slot[data-state='claimed'] > :not(.stamp, .missed, .day, .tag) {
   opacity: 0.2;
 }
 .stamp {
