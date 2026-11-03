@@ -71,9 +71,10 @@ export function addEnergy(e: Energy, n: number, now: number, max: number, interv
   return { value: s.value + n, lastAt: s.lastAt }
 }
 
-/** cost 만큼 모일 때까지 ms (이미 있으면 0) */
-export function untilEnough(v: EnergyView, cost: number, interval: number) {
+/** cost 만큼 모일 때까지 ms (이미 있으면 0). 최대치보다 크면 회복으로는 오지 않는다 → -1 (보상으로만) */
+export function untilEnough(v: EnergyView, cost: number, max: number, interval: number) {
   if (v.value >= cost) return 0
+  if (cost > max) return -1
   return v.next + (cost - v.value - 1) * interval
 }
 

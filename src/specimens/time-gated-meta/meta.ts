@@ -126,7 +126,7 @@ export const meta: SpecimenMeta = {
       n: 5,
       part: 'enter',
       title: '부족하면 꺼진 버튼 + 남은 시간',
-      body: '연료가 모자라면 출발 버튼을 끄고 **"연료 부족 · 20까지 48:00"** 처럼 무엇이 얼마나 모자라고 언제 되는지를 버튼 글자에 쓴다(필요량 − 지금 − 1 칸 × 간격 + 다음 +1 까지). 눌러 보면 살짝 흔들리고 같은 내용을 안내한다. 웹 판은 `aria-disabled` 로 꺼서 포커스는 남긴다 — 키보드로 와서 이유를 읽을 수 있다. 효과를 끄면 버튼은 늘 켜져 있고 눌러야 "부족합니다" 만 나온다.',
+      body: '연료가 모자라면 출발 버튼을 끄고 **"연료 부족 · 20까지 48:00"** 처럼 무엇이 얼마나 모자라고 언제 되는지를 버튼 글자에 쓴다. 남은 시간 = (필요량 − 지금 − 1) × 간격 + 다음 +1 까지. 비용이 최대치보다 크면 기다려도 오지 않으니 "보상으로만" 이라고 쓴다. 눌러 보면 살짝 흔들리고 같은 내용을 안내한다. 웹 판은 `aria-disabled` 로 꺼서 포커스는 남긴다 — 키보드로 와서 이유를 읽을 수 있다. 효과를 끄면 버튼은 늘 켜져 있고 눌러야 "부족합니다" 만 나온다.',
       principle: '어포던스',
       pin: 'below',
     },
@@ -139,25 +139,25 @@ export const meta: SpecimenMeta = {
     { title: '부족한데 이유 없이 회색', body: '버튼만 회색이면 "왜 안 되지?" 가 된다. 필요량 · 지금 값 · 남은 시간을 버튼에 바로 쓴다.' },
   ],
   juiceOff:
-    '흔한 실수 두 가지를 함께 재현한다. ① 연료를 **켜져 있는 동안 흐른 시간만** 세는 매초 증가 방식 — "앱 끄고 n시간 뒤 켜기" 를 해도 연료가 그대로이고 타이머도 처음부터다(아래 "서버 계산" 줄은 이미 가득이라 "화면과 다름"). ② 날짜를 **기기 시계**로 판단 — "기기 시계 바꾸기" 를 누르면 출석이 다시 열려 같은 날 또 받는다. 덤으로 보급 보상은 최대치에서 잘려 사라지고, 부족할 때 출발 버튼이 켜진 채 눌러야 이유 없이 "부족합니다" 만 나온다. 오늘 칸 맥동과 도장 연출도 꺼진다.',
+    '흔한 실수 두 가지를 재현한다. ① **켜져 있는 동안 흐른 시간만** 세는 매초 증가 — "앱 끄고 n시간 뒤 켜기" 를 해도 연료가 그대로이고 타이머도 처음부터다("서버 계산" 줄은 이미 가득이라 "화면과 다름"). ② 날짜를 **기기 시계**로 판단 — "기기 시계 바꾸기" 로 출석이 다시 열려 같은 날 또 받는다. 덤으로 보급 보상은 최대치에서 잘리고, 부족할 때 출발 버튼은 눌러야 "부족합니다" 만 나온다. 맥동 · 도장 연출도 꺼진다.',
   timings: [
     { event: '오늘 칸 맥동', ms: 1250, easing: 'ease-in-out', note: '권장값. 한 주기 1.25초 = 0.8Hz (2Hz 이하). UGUI 는 Update 의 sin, UI Toolkit 은 625ms 마다 수식 클래스 pulse 를 켜고 끄고 USS transition 이 잇는다' },
     { event: '받음 도장 찍기', ms: 320, easing: 'cubic-bezier(0.3, 1.6, 0.5, 1)', note: '권장값. 1.8배 · −30° 에서 −12° 로 내려앉는다. Unity 판은 생략' },
-    { event: '앱 복귀 → 서버 시각 다시 받기 (모형)', ms: 500, easing: '—', note: '이 재현의 가정값. 그동안 숫자 대신 "동기화 중", 받기 · 출발을 막는다. Unity 가짜 서버는 300ms' },
+    { event: '앱 복귀 → 서버 시각 다시 받기 (모형)', ms: 500, easing: '—', note: '이 재현의 가정값. 그동안 숫자 대신 "동기화 중", 받기 · 출발 · 보급을 막는다. Unity 가짜 서버는 300ms' },
     { event: '연료 막대 변화', ms: 300, easing: 'ease-out', note: '권장값. 값 자체는 즉시 바뀌고 막대만 따라간다' },
     { event: '부족할 때 출발 누름 흔들기', ms: 300, easing: 'ease-out', note: '권장값. 좌우 8px' },
   ],
   unity: {
     ugui: {
       hierarchy: `Canvas_TimeGated (Screen Space - Overlay · Canvas Scaler 1920×1080, 세로 화면은 1080×1920)
-├─ Header (TextMeshProUGUI — 제목 · 서버 시각)
+├─ Header (TextMeshProUGUI 제목 · ClockText 서버 시각)
 ├─ CalendarPanel
 │  ├─ RuleChip (TextMeshProUGUI) · ResetCountdown (TextMeshProUGUI)
 │  ├─ BrokeBanner (TextMeshProUGUI — 연속 끊김 안내)
 │  ├─ Days (GridLayoutGroup · Constraint Fixed Column Count 4 · Cell 243×216 · Spacing 16)
 │  │  ├─ Day1 … Day6 (Image Frame + TextMeshProUGUI ×3 Day · Tag · Reward + Stamp(Image + TMP 날짜) + Missed(Image + TMP))
 │  │  └─ Day7 (LayoutElement Ignore Layout = 켬 · 오른쪽 아래 두 칸 자리에 직접 배치 · 같은 구성)
-│  └─ ClaimButton (Button · ColorTint, Selected Color 다르게 + TextMeshProUGUI)
+│  └─ ClaimButton (Button · ColorTint, Selected Color 다르게 + TextMeshProUGUI — 받은 날은 바탕만 꺼진 색)
 ├─ FuelPanel
 │  ├─ Value (TextMeshProUGUI "37 / 60") · OverTag (초과 꼬리표)
 │  ├─ Fill (Image Filled Horizontal)
@@ -167,18 +167,18 @@ export const meta: SpecimenMeta = {
 ServerClock.cs (서버 시각 · 하루 번호 · 남은 시간 포맷 + FakeServer 가짜 서버 — 순수 C#)
 TimeGatedModel.cs (EnergyMeter · AttendanceBook · 보상 표 — 순수 C#)`,
       steps: [
-        '`ServerClock.Sync(서버 UTC, Time.realtimeSinceStartupAsDouble)` 를 접속 때 한 번, 그 뒤 `UtcNow(단조 시계)` = 받은 시각 + 흐른 시간. 서버 호출은 `FakeServer.FetchUtc` 코루틴(300ms 지연)이 흉내 낸다 — 처음 읽은 시각을 고정하고 단조 시계로만 흐르니 시험 중 기기 시계를 바꿔도 따라가지 않는다.',
+        '`ServerClock.Sync(서버 UTC, Time.realtimeSinceStartupAsDouble)` 를 접속 때 한 번, 그 뒤 `UtcNow(단조 시계)` = 받은 시각 + 흐른 시간. 서버 호출은 `FakeServer.FetchUtc` 코루틴(300ms 지연)이 흉내 낸다.',
         '`EnergyMeter` 는 `value` 와 `lastRegenUtc` 만 저장한다. `Current(now, out next, out full)` 이 값 = value + (now − lastRegenUtc).Ticks / 간격, 최대치에서 멈추고 두 타이머를 `TimeSpan` 으로 돌려준다. `TrySpend` · `Add` 는 먼저 `Settle(now)` 로 확정하되 부분 간격은 `lastRegenUtc` 에 남긴다. `Add` 는 자르지 않는다(초과 = 회복 정지).',
         '`AttendanceBook` 은 받은 날의 하루 번호 목록만 저장한다. 하루 번호는 `ServerClock.DayIndex(utc, resetHour, 9)`. 날짜가 바뀐 순간 `SettleDay(today)` — 7칸 완료면 새 주기, 연속 규칙에서 마지막 기록이 어제보다 앞이면 끊김(잃은 칸 수를 남겨 안내). `State(k, today)` 가 칸 상태, `MissedBefore` 가 누적 규칙의 놓친 날.',
-        '`TimeGatedScreen.Update` 는 `Ready`(서버 시각을 받았나) 가 아니면 "동기화 중" 만 쓰고 버튼을 끈다. 하루 번호가 바뀌면 `RefreshBoard`(칸마다 색 · 꼬리표 · 도장 · 놓친 날을 켜기와 끄기 둘 다 설정), 초가 바뀔 때만 `RefreshTimers`(문자열은 1초에 한 번).',
-        '`OnApplicationPause(false)` · `OnApplicationFocus(true)` 에서 `Resync()` — `clock.Invalidate()` 후 서버 시각을 다시 받는다. 꺼져 있던 동안 아무것도 세지 않았지만 다시 계산하면 그 시간이 저절로 들어간다. 시험은 `TimeGatedDemo`: O = 앱 끄고 n시간(가짜 서버 시각을 앞당기고 Resync), M = 이틀 뒤, C = 기기 시계 +1일, B = 연료 +30, T = 기준 시계 Server ↔ Device.',
+        '`TimeGatedScreen.Update` 는 `Ready`(서버 시각을 받았나) 가 아니면 "동기화 중" 만 쓰고 버튼을 꺼진 색으로 둔다(받기 · 출발 · 보급은 `Ready` 로 막는다). 하루 번호가 바뀌면 `RefreshBoard`(칸마다 색 · 꼬리표 · 도장 · 놓친 날을 켜기와 끄기 둘 다 설정), 초가 바뀔 때만 `RefreshTimers`(문자열은 1초에 한 번).',
+        '`OnApplicationPause(false)` · `OnApplicationFocus(true)` 에서 `Resync()` — `clock.Invalidate()` 후 서버 시각을 다시 받는다. 꺼져 있던 동안 아무것도 세지 않았지만 다시 계산하면 그 시간이 저절로 들어간다. 가짜 서버는 `realtimeSinceStartup` 위에서 흐르니 앱을 끈 시간은 키로 시험한다 — `TimeGatedDemo`: O = 앱 끄고 n시간(가짜 서버 시각을 앞당기고 Resync), M = 이틀 뒤, C = 기기 시계 +1일, B = 연료 +30, T = 기준 시계 Server ↔ Device.',
         '가득 참 로컬 알림은 `ScheduleFullNotification(남은 시간)` 이 연결 지점이다. Mobile Notifications 패키지로 이전 알림을 취소하고 새로 예약한다. 알림은 기기 시계로 울리니 서버 시각이 아니라 **남은 시간**(fullAt − 서버 지금)으로 예약한다. 가득 · 초과면 취소.',
       ],
       pitfalls: [
         '`Time.time` · `Time.deltaTime` 으로 회복을 세면 `timeScale` · 일시정지 · 백그라운드에서 멈춘다. `DateTime.Now` 는 사용자가 바꾼다. 서버 UTC + `realtimeSinceStartupAsDouble` 만 쓴다.',
         '`GridLayoutGroup` 은 칸 크기가 모두 같아 7일차 두 칸짜리를 넣을 수 없다. 1~6일차만 그리드가 배치하고, 7일차는 `LayoutElement.ignoreLayout` 으로 빼서 직접 놓는다.',
         '`DateTime` 은 Unity 가 직렬화하지 않는다. 저장은 서버(또는 `ToBinary()` · ISO 문자열)로 하고, 불러온 뒤 `DateTimeKind.Utc` 를 확인한다 — Local 로 읽히면 9시간 어긋난다.',
-        '`interactable = false` 버튼은 선택되지 않아 패드 사용자가 이유를 따로 읽을 수 없다. 남은 시간을 버튼 글자 자체에 넣는다. `transition = None` 으로 바꾸면 선택 표시를 `ISelectHandler` · `IDeselectHandler` 로 직접 그린다.',
+        '`interactable = false` 는 선택돼 있던 버튼의 선택을 풀어 패드로 더 못 움직인다. 이 예제는 버튼을 켠 채 바탕색만 바꾸고 처리 함수에서 막는다 — 고른 채로 버튼 글자의 남은 시간을 읽는다(웹의 `aria-disabled`). `transition = None` 으로 바꾸면 선택 표시를 `ISelectHandler` · `IDeselectHandler` 로 직접 그린다.',
         '클라이언트 판정은 표시용이다. 받기 · 출발은 서버가 자기 시각으로 같은 계산을 다시 해서 확정해야 한다(시계를 바꾼 클라이언트가 보낸 요청을 거절).',
       ],
     },
@@ -193,7 +193,7 @@ TimeGatedModel.cs (EnergyMeter · AttendanceBook · 보상 표 — 순수 C#)`,
 .slot (.slot__day · .slot__tag · .slot__name · .slot__count · .slot__stamp · .slot__missed) + 상태 수식 클래스 claimed · today · next · future, 7일차는 big
 TimeGatedUITK.cs (모델 · 시계는 UGUI 폴더의 TimeGatedModel.cs · ServerClock.cs 를 쓴다)`,
       steps: [
-        '`#days` 는 `flex-direction: row; flex-wrap: wrap`. 칸은 243px + 좌우 여백 6px 로 네 칸이 패널 안쪽 폭(1020px)을 채우고, 7일차는 수식 클래스 big 으로 498px(두 칸) — GridLayoutGroup 과 달리 칸마다 폭을 바꿀 수 있다.',
+        '`#days` 는 `flex-direction: row; flex-wrap: wrap`. `width` 는 padding · border 를 포함하므로 패널 안쪽 폭은 1080 − 60 − 4 = 1016px. 칸 243px + 좌우 여백 5px 네 개가 1012px 라 4열에 들고, 7일차는 수식 클래스 big 으로 496px(두 칸) — GridLayoutGroup 과 달리 칸마다 폭을 바꿀 수 있다.',
         '칸 상태는 `EnableInClassList` 로 네 수식 클래스 중 하나만 켠다(켜기 · 끄기를 한 번에). 도장 · 놓친 날 표시도 클래스로 `display` 를 바꾼다. 칸은 `focusable = false` · `pickingMode = Ignore`.',
         '갱신은 `schedule.Execute(Refresh).Every(250)` — 문자열을 1초에 4번만 만든다. 하루 번호가 바뀐 순간에만 `SettleDay` · `RefreshBoard`. 오늘 칸 맥동은 `Every(625)` 로 수식 클래스 pulse 를 켜고 끄고 USS `transition` 이 크기 · 테두리 색을 잇는다(0.8Hz).',
         '`OnApplicationPause(false)` · `OnApplicationFocus(true)` 에서 `Resync()`: 루트에 수식 클래스 sync 를 켜고 `schedule.Execute(…).StartingIn(300)` 이 가짜 서버 응답(`FakeServer.Now`)으로 `ServerClock.Sync` 한 뒤 다시 계산한다.',
@@ -209,7 +209,7 @@ TimeGatedUITK.cs (모델 · 시계는 UGUI 폴더의 TimeGatedModel.cs · Server
   },
   inspiredBy: [],
   original:
-    '출석판 구성(7칸 · 두 칸 크기 7일차 · 기울어진 받음 도장 · 칸 사이 "놓친 날" 표시 · 연속 끊김 띠), 보상 표(크레딧 · 산소 캔 · 냉각 셀 · 탐사 연료 · 수리 키트 · 회로 조각 · 정비 보급 상자), 탐사 연료 패널(두 타이머 · 초과 빗금 막대 · 가득 참 알림 시각 · 남은 시간이 든 출발 버튼), 시험 도구 줄과 "서버 계산" 비교 줄, 나쁜 예 재현은 모두 이 갤러리에서 새로 만들었다. 후보 카드의 출처는 Unity 문서 · 블로그 · 포럼이라 특정 게임 화면을 확인하지 못했다 — 예로 든 게임의 화면 묘사는 미확인이므로 빌린 시각 요소 없이 장르 관례로만 다룬다.',
+    '출석판(두 칸 7일차 · 기울어진 도장 · "놓친 날" · 끊김 띠), 보상 표, 탐사 연료 패널(두 타이머 · 초과 빗금 막대 · 남은 시간이 든 출발 버튼), 시험 도구와 "서버 계산" 줄, 나쁜 예 재현은 모두 이 갤러리에서 새로 만들었다. 후보 카드의 출처는 Unity 문서 · 블로그 · 포럼이라 특정 게임 화면은 미확인 — 빌린 시각 요소 없이 장르 관례로만 다룬다.',
   references: [
     { label: 'Unity Gaming Services — Daily Rewards 예제 (서버 기준 출석 보상)', url: 'https://docs.unity.com/en-us/services/solutions/daily-rewards' },
     { label: 'Beamable — Inspiring examples of daily login rewards', url: 'https://beamable.com/blog/inspiring-examples-of-daily-login-rewards-for-your-mobile-game' },

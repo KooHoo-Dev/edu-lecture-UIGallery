@@ -38,8 +38,20 @@ namespace UIGallery.TimeGatedMeta
         public static DateTime NextReset(DateTime utc, int resetHour, int tzHours = 9) =>
             DateTime.UnixEpoch.AddDays(DayIndex(utc, resetHour, tzHours) + 1).AddHours(resetHour - tzHours);
 
-        /// <summary>하루 번호 → 그날 날짜 "11/03"</summary>
-        public static string DayLabel(int day, int resetHour) => DateTime.UnixEpoch.AddDays(day).AddHours(resetHour).ToString("M/d");
+        // 날짜 글자는 문화권과 무관하게 직접 만든다 (ToString("M/d") 는 ko-KR 에서 "11-3")
+        /// <summary>하루 번호 → "11/3"</summary>
+        public static string DayLabel(int day, int resetHour)
+        {
+            DateTime d = DateTime.UnixEpoch.AddDays(day).AddHours(resetHour);
+            return $"{d.Month}/{d.Day}";
+        }
+
+        /// <summary>서버 지역 시각 "11.03 13:47:27"</summary>
+        public static string Clock(DateTime utc, int tz)
+        {
+            DateTime d = utc.AddHours(tz);
+            return $"{d.Month:00}.{d.Day:00} {d.Hour:00}:{d.Minute:00}:{d.Second:00}";
+        }
 
         /// <summary>"04:12" · "1:23:00" · "1일 02:00:00"</summary>
         public static string Format(TimeSpan t)
@@ -52,9 +64,8 @@ namespace UIGallery.TimeGatedMeta
     }
 
     /// <summary>
-    /// 가짜 서버. 실제 게임에서는 로그인 · 핑 응답에 실린 서버 UTC 를 쓴다.
-    /// 이 가짜는 처음 한 번 읽은 시각을 '서버 시각' 으로 고정하고 그 뒤로는 단조 시계로만 흐른다 — 시험 중 기기 시계를 바꿔도 따라가지 않는다.
-    /// Advance 는 '앱을 끄고 n시간 뒤 켜기' 시험용 (에디터에서 실제로 n시간 기다릴 수 없으니 서버 시각만 앞당긴다).
+    /// 가짜 서버 (실제로는 로그인 · 핑 응답의 서버 UTC). 처음 읽은 시각에서 단조 시계로만 흘러 기기 시계를 바꿔도 따라가지 않는다.
+    /// Advance = '앱 끄고 n시간 뒤 켜기' 시험용 — 서버 시각만 앞당긴다.
     /// </summary>
     public static class FakeServer
     {

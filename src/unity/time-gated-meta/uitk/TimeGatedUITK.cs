@@ -1,8 +1,6 @@
 // 출석판 + 탐사 연료 (UI Toolkit). 모델(EnergyMeter · AttendanceBook)과 시계(ServerClock · FakeServer)는 UGUI 폴더 것을 그대로 쓴다.
 // 출석 칸 7개를 #days 에 만들어 flex-wrap 그리드로 두고, 상태는 USS 수식 클래스(slot--claimed · today · next · future)만 켜고 끈다.
-// 칸은 보기만 하는 요소라 focusable = false — 포커스는 버튼 두 개만 받아 기본 탐색(NavigationMoveEvent)을 그대로 쓴다.
-// (칸 사이를 직접 옮기려고 NavigationMoveEvent 를 처리한다면 e.StopPropagation() 과 함께 focusController?.IgnoreEvent(e) 를 불러야
-//  Unity 6.3 이 기본 이동을 한 번 더 하지 않는다.)
+// 칸은 보기만 하는 요소라 focusable = false — 포커스는 버튼 두 개만 받아 기본 탐색을 그대로 쓴다.
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -54,7 +52,9 @@ namespace UIGallery.TimeGatedMeta
 
             claim.clicked += OnClaim;
             enter.clicked += OnEnter;
-            // 글자는 1초에 4번이면 충분하다 (매 프레임 문자열을 만들지 않는다). 맥동은 0.8Hz — 클래스를 켜고 끄면 USS transition 이 잇는다
+            // 처음 실행: 2분 12초 전 회복으로 (실제로는 서버 저장값). 동기화 전 Device 기준도 맞게 여기서
+            if (energy.lastRegenUtc == default) energy.lastRegenUtc = FakeServer.Now.AddSeconds(-132);
+            // 글자는 1초에 4번. 맥동 0.8Hz — 클래스를 켜고 끄면 USS transition 이 잇는다
             tick = root.schedule.Execute(Refresh).Every(250);
             pulse = root.schedule.Execute(() =>
             {
@@ -75,12 +75,12 @@ namespace UIGallery.TimeGatedMeta
         /* 앱 복귀 때 서버 시각을 다시 받는다 — 꺼져 있던 시간은 다시 계산하면 저절로 반영된다 */
         void OnApplicationPause(bool paused)
         {
-            if (!paused && root != null) Resync();
+            if (!paused && isActiveAndEnabled) Resync();
         }
 
         void OnApplicationFocus(bool focused)
         {
-            if (focused && root != null) Resync();
+            if (focused && isActiveAndEnabled) Resync();
         }
 
         void Resync()
@@ -93,7 +93,6 @@ namespace UIGallery.TimeGatedMeta
             {
                 DateTime utc = FakeServer.Now;
                 clock.Sync(utc, Time.realtimeSinceStartupAsDouble);
-                if (energy.lastRegenUtc == default) energy.lastRegenUtc = utc.AddSeconds(-132);
                 root.RemoveFromClassList("tg--sync");
                 lastDay = int.MinValue;
                 Refresh();
@@ -112,7 +111,7 @@ namespace UIGallery.TimeGatedMeta
                 slot.Add(MakeLabel("slot__day", $"{k + 1}일차"));
                 slot.Add(MakeLabel("slot__tag", ""));
                 slot.Add(MakeLabel("slot__name", r.name));
-                slot.Add(MakeLabel("slot__count", k == 6 ? "수리 키트 ×5 · 크레딧 3,000" : $"×{r.count:N0}"));
+                slot.Add(MakeLabel("slot__count", k == 6 ? "수리 키트 ×5 · 크레딧 3,000" : $"×{r.count}"));
                 slot.Add(MakeLabel("slot__stamp", "받음"));
                 slot.Add(MakeLabel("slot__missed", ""));
                 days.Add(slot);
@@ -145,7 +144,7 @@ namespace UIGallery.TimeGatedMeta
                 RefreshBoard(today);
             }
 
-            clockLabel.text = $"서버 {now.AddHours(serverTzHours):MM.dd HH:mm:ss} (UTC+{serverTzHours})";
+            clockLabel.text = $"서버 {ServerClock.Clock(now, serverTzHours)} (UTC+{serverTzHours})";
             TimeSpan left = ServerClock.NextReset(now, resetHour, serverTzHours) - now;
             reset.text = ServerClock.Format(left);
             bool done = attendance.ClaimedToday(today);
@@ -165,7 +164,7 @@ namespace UIGallery.TimeGatedMeta
 
             bool lack = v < stageCost;
             enter.SetEnabled(!lack);
-            enter.text = lack ? $"연료 부족 · {stageCost}까지 {ServerClock.Format(energy.UntilEnough(stageCost, now))}" : $"탐사 출발  −{stageCost}";
+            enter.text = lack ? energy.LackLabel(stageCost, now) : $"탐사 출발  −{stageCost}";
         }
 
         void RefreshBoard(int today)
