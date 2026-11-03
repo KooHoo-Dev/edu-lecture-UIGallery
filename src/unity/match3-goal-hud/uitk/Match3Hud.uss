@@ -1,0 +1,341 @@
+/* 퍼즐 목표 HUD (UI Toolkit). 세로 1080×1920 기준 (Panel Settings: Scale With Screen Size · Match 0.5).
+   USS 에 없는 것(gradient · box-shadow · filter · 점선 테두리)은 쓰지 않는다 — 0개 부스터는 금색 테두리 + "+" + "충전" 글자로 구분한다. */
+.hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    color: rgb(234, 240, 250);
+    /* 배경을 칠하지 않는다 — 아래에 카메라가 그린 보드(월드)가 보여야 한다 */
+}
+.safe {
+    flex-grow: 1;
+}
+
+/* ───── 위: 남은 이동 · 목표 ───── */
+.top {
+    flex-direction: row;
+    height: 300px;
+    margin: 40px 36px 0 36px;
+}
+.moves,
+.goals {
+    border-radius: 28px;
+    border-width: 3px;
+    border-color: rgba(255, 255, 255, 0.14);
+    background-color: rgb(15, 24, 48);
+}
+.moves {
+    width: 300px;
+    margin-right: 24px;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+/* 경고: 색 + 글자("이동 부족!") + C# 의 맥동 (2Hz 이하) */
+.moves--warn {
+    background-color: rgb(90, 36, 16);
+    border-color: rgb(255, 138, 61);
+}
+.moves__label {
+    font-size: 28px;
+    -unity-font-style: bold;
+}
+.moves--warn .moves__label {
+    color: rgb(255, 210, 176);
+}
+.moves__count {
+    font-size: 124px;
+    -unity-font-style: bold;
+    margin: 0;
+    padding: 0;
+}
+.goals {
+    flex-grow: 1;
+    padding: 16px 20px 12px 20px;
+}
+.goals__title {
+    font-size: 24px;
+    -unity-font-style: bold;
+}
+.goals__row {
+    flex-grow: 1;
+    flex-direction: row;
+    margin-top: 8px;
+}
+.goal {
+    flex-grow: 1;
+    flex-basis: 0;
+    align-items: center;
+    padding-top: 6px;
+    border-radius: 20px;
+    transition: background-color 0.25s;
+}
+.goal--done {
+    background-color: rgba(124, 242, 197, 0.12);
+}
+.goal__icon {
+    width: 96px;
+    height: 96px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.goal__count {
+    height: 56px;
+    font-size: 50px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+/* 체크: 두 변만 있는 사각형을 돌려 그린다 */
+.goal__check {
+    display: none;
+    width: 40px;
+    height: 20px;
+    margin: 12px 0 24px 0;
+    border-left-width: 8px;
+    border-bottom-width: 8px;
+    border-color: rgb(124, 242, 197);
+    rotate: -45deg;
+}
+.goal--done .goal__count {
+    display: none;
+}
+.goal--done .goal__check {
+    display: flex;
+}
+.goal__name {
+    font-size: 22px;
+}
+
+/* ───── 점수 · 별 ───── */
+.score {
+    height: 160px;
+    margin: 22px 36px 0 36px;
+}
+.score__text {
+    font-size: 34px;
+    -unity-font-style: bold;
+}
+.score__bar {
+    height: 112px;
+    margin: 0 30px;
+}
+/* 채움은 width 퍼센트 — width 는 padding · border 를 포함하니 채움에는 둘 다 두지 않는다 */
+.score__track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50px;
+    height: 28px;
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 0.09);
+    overflow: hidden;
+}
+.score__fill {
+    height: 100%;
+    width: 0;
+    background-color: rgb(79, 176, 255);
+}
+.score__markers {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+/* left 는 C# 가 임계값 / 최대 점수 % 로 넣는다. 가운데를 그 자리에 */
+.marker {
+    position: absolute;
+    top: 0;
+    width: 100px;
+    align-items: center;
+    translate: -50% 0;
+}
+.marker__star {
+    width: 48px;
+    height: 48px;
+    -unity-background-image-tint-color: rgb(38, 50, 76);
+}
+.marker__tick {
+    width: 4px;
+    height: 36px;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+.marker__label {
+    font-size: 22px;
+    -unity-text-align: middle-center;
+}
+.marker--on .marker__star {
+    -unity-background-image-tint-color: rgb(255, 204, 77);
+}
+.marker--on .marker__tick {
+    background-color: rgb(255, 204, 77);
+}
+.marker--on .marker__label {
+    color: rgb(255, 204, 77);
+}
+
+/* 보드는 월드에 있다 — 남는 높이를 비워 둔다 */
+.board-space {
+    flex-grow: 1;
+}
+
+/* ───── 아래: 부스터 ───── */
+.boosters {
+    flex-direction: row;
+    justify-content: center;
+    height: 236px;
+    margin-bottom: 70px;
+}
+.booster {
+    width: 280px;
+    height: 236px;
+    margin: 0 15px;
+    padding: 22px 12px 14px 12px;
+    align-items: center;
+    border-radius: 28px;
+    border-width: 3px;
+    border-color: rgba(255, 255, 255, 0.24);
+    background-color: rgb(15, 24, 48);
+    color: rgb(234, 240, 250);
+}
+.booster:hover {
+    border-color: rgb(94, 230, 201);
+}
+/* 키보드 · 패드로 고른 버튼이 보이게 */
+.booster:focus {
+    border-color: rgb(255, 255, 255);
+    border-width: 5px;
+}
+.booster__icon {
+    width: 96px;
+    height: 96px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.booster__name {
+    font-size: 30px;
+    -unity-font-style: bold;
+}
+.booster__desc {
+    font-size: 22px;
+    color: rgb(170, 182, 204);
+}
+.booster__badge {
+    position: absolute;
+    right: -14px;
+    top: -14px;
+    min-width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    border-width: 3px;
+    border-color: rgb(255, 255, 255);
+    background-color: rgb(43, 108, 255);
+    align-items: center;
+    justify-content: center;
+}
+.booster__count {
+    font-size: 32px;
+    -unity-font-style: bold;
+}
+.booster__plus {
+    display: none;
+    font-size: 40px;
+    -unity-font-style: bold;
+    color: rgb(42, 26, 0);
+}
+/* 0개 = 구매 유도: 금색 테두리 · 배지 "+" · 이름 "충전" */
+.booster--empty {
+    border-color: rgb(255, 204, 77);
+}
+.booster--empty .booster__icon {
+    opacity: 0.45;
+}
+.booster--empty .booster__badge {
+    background-color: rgb(255, 204, 77);
+}
+.booster--empty .booster__count {
+    display: none;
+}
+.booster--empty .booster__plus {
+    display: flex;
+}
+
+/* ───── 날아가는 아이콘 ───── */
+.fly-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+.flyer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80px;
+    height: 80px;
+    margin-left: -40px;
+    margin-top: -40px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+/* ───── 결과 창: 꺼져 있을 때는 display none (opacity 0 만으로는 아래 클릭을 막는다) ───── */
+.result {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(5, 10, 22, 0.6);
+}
+.result--open {
+    display: flex;
+}
+.result__window {
+    width: 860px;
+    padding: 30px 36px;
+    align-items: center;
+    border-radius: 26px;
+    border-width: 3px;
+    border-color: rgb(255, 107, 107);
+    background-color: rgb(17, 26, 48);
+    opacity: 0;
+    scale: 0.96 0.96;
+    transition: opacity 0.2s ease-out, scale 0.2s ease-out;
+}
+.result--shown .result__window {
+    opacity: 1;
+    scale: 1 1;
+}
+.result--clear .result__window {
+    border-color: rgb(124, 242, 197);
+}
+.result__title {
+    font-size: 44px;
+    -unity-font-style: bold;
+}
+.result__detail {
+    margin-top: 10px;
+    font-size: 28px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+.result__retry {
+    height: 84px;
+    margin-top: 22px;
+    padding: 0 56px;
+    border-radius: 42px;
+    border-width: 3px;
+    border-color: rgb(94, 230, 201);
+    background-color: rgb(94, 230, 201);
+    color: rgb(8, 32, 28);
+    font-size: 30px;
+    -unity-font-style: bold;
+}
+.result__retry:focus {
+    border-color: rgb(255, 255, 255);
+    border-width: 5px;
+}

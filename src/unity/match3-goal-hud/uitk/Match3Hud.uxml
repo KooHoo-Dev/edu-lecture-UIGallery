@@ -1,0 +1,39 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 퍼즐 목표 HUD (UI Toolkit). 목표 칸 · 별 마커 · 부스터 버튼은 Match3HudUITK.cs 가 레벨 정의를 읽어 만든다.
+         보드는 월드에 있다: board-space 는 비워 둔 자리이고 입력을 막지 않는다 (picking-mode Ignore).
+         safe 의 padding 은 C# 가 Screen.safeArea 로 맞춘다. 전체 배경은 칠하지 않는다 (보드가 보이게). -->
+    <Style src="Match3Hud.uss" />
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement name="safe" class="safe" picking-mode="Ignore">
+            <ui:VisualElement class="top" picking-mode="Ignore">
+                <ui:VisualElement name="moves" class="moves">
+                    <ui:Label name="moves-label" text="남은 이동" class="moves__label" />
+                    <ui:Label name="moves-count" text="12" class="moves__count" />
+                </ui:VisualElement>
+                <ui:VisualElement class="goals">
+                    <ui:Label name="stage-name" text="정비 구역 07" class="goals__title" />
+                    <ui:VisualElement name="goals" class="goals__row" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="score" picking-mode="Ignore">
+                <ui:Label name="score-text" text="0" class="score__text" />
+                <ui:VisualElement name="score-bar" class="score__bar">
+                    <ui:VisualElement name="score-track" class="score__track">
+                        <ui:VisualElement name="score-fill" class="score__fill" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="markers" class="score__markers" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="board-space" class="board-space" picking-mode="Ignore" />
+            <ui:VisualElement name="boosters" class="boosters" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="fly-layer" class="fly-layer" picking-mode="Ignore" />
+        <ui:VisualElement name="result" class="result">
+            <ui:VisualElement name="result-window" class="result__window">
+                <ui:Label name="result-title" class="result__title" />
+                <ui:Label name="result-detail" class="result__detail" />
+                <ui:Button name="retry" text="다시 하기" class="result__retry" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
