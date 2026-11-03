@@ -13,6 +13,8 @@ export const ALLOWED = [
   '"Bash(node tools/worktree-link.mjs)"', '"Bash(npx tsc --noEmit*)"',
   '"Bash(python tools/shot.py *)"', '"Bash(node tools/live.mjs *)"', '"Bash(node tools/size.mjs *)"',
   '"Bash(powershell -ExecutionPolicy Bypass -File tools/unity-compile.ps1 *)"',
+  // 워커가 스스로 전체 빌드와 검사를 볼 수 있게 (파일럿과 1차 묶음 워커 모두 이 둘이 막혔다고 보고했다)
+  '"Bash(npm run build*)"', '"Bash(python tools/check.py*)"',
   '"Bash(git status*)"', '"Bash(git diff*)"', '"Bash(ls *)"',
 ]
 
