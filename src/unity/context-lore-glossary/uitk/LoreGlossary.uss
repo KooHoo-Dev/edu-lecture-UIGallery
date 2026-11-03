@@ -1,0 +1,236 @@
+/* 맥락 용어집 + 중첩 툴팁 (Panel Settings: Scale With Screen Size 1920×1080).
+   USS 에는 gradient · box-shadow 가 없다 — 테두리 색과 반투명 배경으로만 층을 나눈다. */
+.lore {
+    flex-grow: 1;
+    color: rgb(234, 242, 251);
+    font-size: 26px;
+}
+
+.scene-head {
+    position: absolute;
+    left: 56px;
+    top: 36px;
+}
+.scene-title {
+    font-size: 40px;
+    -unity-font-style: bold;
+}
+
+/* ───── 대사 ───── */
+.dialogue {
+    position: absolute;
+    left: 140px;
+    right: 140px;
+    bottom: 44px;
+    padding: 26px 40px 18px 40px;
+    border-radius: 18px;
+    background-color: rgba(11, 20, 32, 0.95);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.dialogue__text {
+    font-size: 34px;
+    white-space: normal;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 8px;
+}
+/* 글에 포커스가 있으면 테두리 — 어느 글의 키워드를 고르는 중인지 보인다 */
+.dialogue__text:focus,
+.tip__body:focus {
+    border-color: rgb(255, 224, 102);
+}
+.hint {
+    margin-top: 14px;
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+}
+
+/* ───── 툴팁 ───── */
+.tooltip-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+.tip {
+    position: absolute;
+    width: 520px;
+    padding: 18px 22px 14px 22px;
+    border-radius: 14px;
+    background-color: rgba(13, 24, 38, 0.97);
+    border-width: 2px;
+    border-top-width: 6px;
+    border-color: rgba(255, 255, 255, 0.18);
+    opacity: 0;
+    translate: 0 10px;
+    transition-property: opacity, translate;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-out;
+}
+.tip--in {
+    opacity: 1;
+    translate: 0 0;
+}
+.tip--locked {
+    border-color: rgb(255, 224, 102);
+}
+.tip--echo {
+    border-color: rgb(255, 157, 122);
+    border-width: 4px;
+}
+.tip__note {
+    position: absolute;
+    left: 0;
+    top: -40px;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 22px;
+    color: rgb(27, 20, 0);
+    background-color: rgb(255, 224, 102);
+}
+.tip__title {
+    font-size: 30px;
+    margin-bottom: 8px;
+}
+.tip__body {
+    font-size: 25px;
+    white-space: normal;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0);
+    border-radius: 6px;
+}
+.tip__foot {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top-width: 2px;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+/* 잠금 진행: UI Toolkit 에는 Filled 이미지가 없어 막대 width 퍼센트로 (원형은 Painter2D.Arc) */
+.tip__lock {
+    width: 90px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+}
+.tip__lock-fill {
+    height: 100%;
+    width: 0;
+    background-color: rgb(255, 224, 102);
+}
+.tip__status {
+    margin-left: 10px;
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+}
+.tip--locked .tip__status {
+    color: rgb(255, 224, 102);
+}
+.tip__depth {
+    margin-left: auto;
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+}
+.hidden {
+    display: none;
+}
+
+/* ───── 용어집 ───── */
+.glossary {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.16s;
+}
+.glossary--open {
+    opacity: 1;
+}
+.glossary__dim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(2, 6, 11, 0.72);
+}
+.glossary__panel {
+    position: absolute;
+    left: 280px;
+    right: 280px;
+    top: 110px;
+    bottom: 110px;
+    padding: 28px 36px 20px 36px;
+    border-radius: 20px;
+    background-color: rgb(11, 20, 32);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.16);
+}
+.glossary__head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 14px;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.glossary__title {
+    font-size: 36px;
+    -unity-font-style: bold;
+}
+.glossary__count {
+    font-size: 30px;
+    color: rgb(159, 180, 201);
+}
+.glossary__body {
+    flex-grow: 1;
+    flex-direction: row;
+    padding-top: 18px;
+}
+.glossary__list {
+    width: 500px;
+    margin-right: 32px;
+}
+.glossary__row {
+    -unity-text-align: middle-left;
+    font-size: 26px;
+    padding: 8px 12px;
+    margin: 0 0 6px 0;
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(234, 242, 251);
+}
+/* 키보드 · 패드로 고른 항목이 보이게 */
+.glossary__row:focus {
+    border-color: rgb(255, 224, 102);
+    background-color: rgba(255, 255, 255, 0.07);
+}
+.glossary__row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.glossary__detail {
+    flex-grow: 1;
+    padding: 22px 28px;
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+.detail__title {
+    font-size: 40px;
+    -unity-font-style: bold;
+}
+.detail__body {
+    margin-top: 20px;
+    font-size: 28px;
+    white-space: normal;
+}
