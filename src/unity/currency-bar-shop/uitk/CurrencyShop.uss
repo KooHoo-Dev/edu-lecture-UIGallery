@@ -1,0 +1,215 @@
+/* 재화 바 · 상점 · 구매 확인 (UI Toolkit). Panel Settings: Scale With Screen Size 1920×1080.
+   USS 에 없는 box-shadow · gradient 는 쓰지 않고 테두리 색 · 두께로 강조한다 */
+.app {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    color: rgb(234, 240, 250);
+    font-size: 24px;
+}
+
+/* ───── 재화 바 ───── */
+.bar {
+    position: absolute;
+    left: 0; top: 0; right: 0;
+    height: 108px;
+    padding: 0 36px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgba(7, 12, 24, 0.92);
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.bar__title {
+    flex-grow: 1;
+    font-size: 34px;
+    -unity-font-style: bold;
+}
+.slot {
+    flex-direction: row;
+    align-items: center;
+    width: 330px;
+    height: 72px;
+    margin-left: 18px;
+    padding: 0 10px 0 12px;
+    border-radius: 36px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgb(13, 21, 40);
+}
+.slot__icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 23px;
+    transition: scale 0.1s ease-out;
+}
+.slot__icon--credit { background-color: rgb(255, 204, 77); }
+.slot__icon--gem { background-color: rgb(127, 214, 255); border-radius: 8px; rotate: 45deg; width: 34px; height: 34px; margin: 6px; }
+.slot__icon--energy { background-color: rgb(168, 255, 122); border-radius: 4px; width: 26px; margin: 0 10px; }
+/* 아이콘이 닿은 순간 잠깐 커진다 (C# 가 수식 클래스 pulse 를 붙였다 뗀다) */
+.slot__icon--pulse { scale: 1.2 1.2; }
+.slot__amount {
+    flex-grow: 1;
+    -unity-text-align: middle-right;
+    font-size: 32px;
+    -unity-font-style: bold;
+    margin-right: 8px;
+}
+.slot__amount--counting { color: rgb(124, 242, 197); }
+.slot__plus {
+    width: 52px;
+    height: 52px;
+    border-radius: 26px;
+    font-size: 34px;
+    -unity-font-style: bold;
+    color: rgb(234, 240, 250);
+    background-color: rgb(16, 48, 44);
+    border-width: 2px;
+    border-color: rgb(94, 230, 201);
+}
+.slot__gain {
+    position: absolute;
+    right: 70px;
+    top: 76px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background-color: rgba(7, 12, 24, 0.94);
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: rgb(124, 242, 197);
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+.slot__gain--minus { color: rgb(255, 179, 107); }
+.slot__gain--on { opacity: 1; transition-duration: 0s; }
+
+/* ───── 진열 ───── */
+.shop {
+    position: absolute;
+    left: 36px; top: 122px; right: 36px; bottom: 30px;
+}
+.strip {
+    height: 52px;
+    -unity-text-align: middle-center;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgb(201, 214, 234);
+    margin-bottom: 20px;
+}
+.shop__cols { flex-direction: row; flex-grow: 1; }
+.shop__col { flex-grow: 1; margin-right: 28px; }
+.shop__col--packs { flex-grow: 0; width: 660px; margin-right: 0; border-radius: 20px; border-width: 0; border-color: rgb(94, 230, 201); transition: border-width 0.3s; }
+/* 결정 + · 충전 상품 보기 → 목록 강조 */
+.shop__col--hl { border-width: 6px; }
+.shop__title { font-size: 30px; -unity-font-style: bold; height: 56px; }
+.bundles { flex-direction: row; flex-grow: 1; }
+.packs { flex-grow: 1; }
+
+.card {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin: 0 10px 0 0;
+    padding: 18px 14px;
+    border-radius: 20px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgb(23, 34, 61);
+    align-items: center;
+    justify-content: flex-start;
+    color: rgb(234, 240, 250);
+}
+.pack {
+    height: 132px;
+    margin-bottom: 14px;
+    padding: 0 24px;
+    border-radius: 18px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgb(13, 21, 40);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    color: rgb(234, 240, 250);
+}
+/* 키보드 · 패드로 고른 카드가 보이게 :focus 를 직접 그린다 */
+.card:focus, .pack:focus, .card:hover, .pack:hover { border-color: rgb(94, 230, 201); border-width: 4px; }
+.card__sale { background-color: rgb(255, 122, 89); color: rgb(255, 255, 255); padding: 2px 12px; border-radius: 10px; font-size: 22px; -unity-font-style: bold; }
+.card__limit { background-color: rgba(255, 255, 255, 0.1); padding: 2px 12px; border-radius: 10px; font-size: 22px; margin-top: 6px; }
+.card__name { font-size: 30px; -unity-font-style: bold; margin-top: 18px; }
+.card__gives { font-size: 22px; -unity-text-align: upper-center; margin-top: 8px; white-space: normal; }
+.card__price { font-size: 34px; -unity-font-style: bold; margin-top: auto; }
+.card__sub { font-size: 22px; opacity: 0.8; }
+.pack .card__name { margin-top: 0; }
+.pack .card__price { margin-top: 0; -unity-text-align: middle-right; }
+
+/* ───── 확인 창 ───── */
+.confirm {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    display: none;
+}
+.confirm--open { display: flex; }
+.confirm__dim {
+    position: absolute;
+    left: 0; top: 108px; right: 0; bottom: 0;
+    background-color: rgba(5, 10, 22, 0.72);
+}
+.confirm__window {
+    position: absolute;
+    left: 50%;
+    top: 55%;
+    width: 880px;
+    translate: -50% -50%;
+    padding: 30px 38px 24px;
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.24);
+    background-color: rgb(17, 26, 48);
+}
+.confirm__head { flex-direction: row; align-items: center; }
+.confirm__icon { width: 120px; height: 120px; border-radius: 12px; background-color: rgb(74, 107, 143); margin-right: 24px; }
+.confirm__title { font-size: 36px; -unity-font-style: bold; }
+.confirm__contents { font-size: 22px; white-space: normal; }
+.rows { margin-top: 20px; padding: 16px 20px; border-radius: 14px; background-color: rgb(10, 16, 32); }
+.row { flex-direction: row; align-items: center; min-height: 44px; }
+.row__key { width: 150px; opacity: 0.75; font-size: 26px; }
+.row__value { flex-grow: 1; flex-shrink: 1; font-size: 26px; white-space: normal; }
+.short {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-left-width: 6px;
+    border-color: rgb(255, 179, 107);
+    background-color: rgba(255, 179, 107, 0.12);
+    white-space: normal;
+    display: none;
+}
+.short--on { display: flex; }
+.actions { flex-direction: row; margin-top: 22px; }
+.btn {
+    height: 84px;
+    border-radius: 42px;
+    font-size: 30px;
+    -unity-font-style: bold;
+    border-width: 3px;
+}
+.btn--cancel { flex-grow: 1; flex-basis: 0; margin-right: 20px; background-color: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.4); color: rgb(234, 240, 250); }
+.buy-wrap { flex-grow: 1; flex-basis: 0; }
+.btn--buy { background-color: rgb(94, 230, 201); border-color: rgb(94, 230, 201); color: rgb(8, 32, 28); }
+/* 고른 버튼은 흰 테두리 (기본 선택은 취소) */
+.btn:focus { border-color: rgb(255, 255, 255); border-width: 5px; }
+.btn:disabled { opacity: 0.55; }
+.lock { height: 6px; margin: 8px 24px 0; border-radius: 3px; background-color: rgba(255, 255, 255, 0.1); }
+.lock__fill { width: 100%; height: 100%; border-radius: 3px; background-color: rgb(255, 204, 77); }
+
+/* ───── 날아가는 아이콘 ─────
+   left 는 ease-out, top 은 ease-in 이라 두 곡선이 합쳐져 휘어진 길이 된다 (베지어를 transition 두 개로 흉내) */
+.fly-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.coin { position: absolute; width: 48px; height: 48px; border-radius: 24px; }
+.coin--credit { background-color: rgb(255, 204, 77); border-width: 4px; border-color: rgb(229, 169, 43); }
+.coin--gem { background-color: rgb(127, 214, 255); border-radius: 8px; rotate: 45deg; width: 38px; height: 38px; }
+.coin--energy { background-color: rgb(168, 255, 122); border-radius: 4px; width: 28px; }
+.coin--fly {
+    transition-property: left, top, scale;
+    transition-duration: 0.7s, 0.7s, 0.7s;
+    transition-timing-function: ease-out-sine, ease-in-cubic, ease-in;
+    scale: 0.7 0.7;
+}
