@@ -1,7 +1,7 @@
 // 레벨 정의(ScriptableObject)와 HUD · 보드가 함께 쓰는 순수 C# 상태. UGUI · UI Toolkit 두 판이 그대로 쓴다 (같은 namespace).
 //  - LevelDefinition : 이동 수 · 목표(종류 · 개수 · 아이콘) · 별 임계값 · 부스터. HUD 는 이것만 보고 칸을 만든다 (자동 구성)
 //  - GoalLedger      : 목표 하나의 정산. 실제값(collected)은 깨진 순간, 표시값(landed)은 아이콘이 도착한 순간 바뀐다
-//  - StageState      : 남은 이동 · 점수 · 부스터 · 판정. 마지막 연쇄가 끝날 때까지 이동 0 의 실패 판정을 미룬다
+//  - StageState      : 남은 이동 · 점수 · 부스터 · 판정. 마지막 연쇄와 비행이 끝날 때까지 판정(이동 0 의 실패 포함)을 미룬다
 //  - IGoalHud        : 보드(게임) 쪽이 HUD 에 알리는 통로 (GoalHud · Match3HudUITK 가 구현)
 using System;
 using UnityEngine;
@@ -125,7 +125,8 @@ namespace UIGallery.Match3GoalHud
         }
 
         public bool Settled => resolving == 0;
-        public bool CanAct => Result == StageResult.None && Settled;
+        /// <summary>이동 · 부스터를 쓸 수 있는가. 목표를 다 채운 뒤 비행을 기다리는 동안은 쓰지 않는다 (판정만 남았다)</summary>
+        public bool CanAct => Result == StageResult.None && Settled && !AllGoalsDone;
 
         public bool AllGoalsDone
         {
@@ -190,14 +191,12 @@ namespace UIGallery.Match3GoalHud
             Changed?.Invoke();
         }
 
-        /// <summary>판정. 연쇄가 다 끝나고(Settled) 날아오는 아이콘이 다 도착했을 때만 결과를 낸다 (flying = HUD 가 세는 비행 중 수)</summary>
+        /// <summary>판정. 연쇄가 다 끝나고(Settled) 날아오는 아이콘이 다 도착했을 때만 결과를 낸다 (flying = HUD 가 세는 비행 중 수).
+        /// 성공 · 실패 모두 — 실패만 먼저 내면 창 위로 아이콘이 날고 "남은 목표" 와 HUD 숫자가 잠깐 어긋난다</summary>
         public StageResult Judge(int flying)
         {
-            if (Result != StageResult.None || !Settled) return Result;
-            if (AllGoalsDone)
-            {
-                if (flying == 0) Result = StageResult.Clear;
-            }
+            if (Result != StageResult.None || !Settled || flying > 0) return Result;
+            if (AllGoalsDone) Result = StageResult.Clear;
             else if (MovesLeft == 0) Result = StageResult.Fail;
             if (Result != StageResult.None) Changed?.Invoke();
             return Result;

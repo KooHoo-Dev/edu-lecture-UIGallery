@@ -3,6 +3,8 @@
 //  - 목표: 표시값(GoalLedger.Shown)은 GoalFlyer 의 아이콘이 도착할 때 준다. 0 이면 숫자 대신 체크
 //  - 별: 마커를 바 위 '임계값 / 최대 점수' 위치에 앵커로 세운다 — 해상도가 바뀌어도 같은 비율 자리
 //  - 안전 영역: Screen.safeArea 를 SafeArea 의 앵커로 (노치 · 홈 표시줄 피하기). 노치 뒤까지 칠할 띠만 SafeArea 밖에 둔다
+//  - 결과 창: 연 시각을 적어 두고 retryLockSeconds 안에 누른 다시 하기는 버린다 (입력 잠금). 꺼졌다 켜지면 난 결과를 다시 연다
+//  - 다시 시작(Bind): 옛 칸으로 가던 비행을 GoalFlyer.CancelAll() 로 콜백 없이 거둔 뒤 칸을 다시 만든다
 // 프리팹 자식 이름: GoalSlot(Icon · Count · Check) · StarMarker(Star · Label) · BoosterButton(Icon · Name · Badge/Count · Plus)
 using System;
 using System.Collections.Generic;
@@ -39,6 +41,8 @@ namespace UIGallery.Match3GoalHud
         [SerializeField] CanvasGroup resultPanel;
         [SerializeField] TextMeshProUGUI resultTitle, resultDetail;
         [SerializeField] Button retryButton;
+        [Tooltip("결과 창이 뜬 뒤 이 시간 안에 누른 다시 하기는 버린다 (입력 잠금 — 마지막 연쇄 중 연타한 Submit 이 바로 다시 시작하지 않게)")]
+        [SerializeField] float retryLockSeconds = 0.3f;
         [Header("비행")]
         [SerializeField] GoalFlyer flyer;
         [Tooltip("끄면 '나쁜 예': 날아가는 아이콘 · 도착 강조 · 이동 경고 없이 숫자만 바뀐다")] [SerializeField] bool feedback = true;
@@ -74,17 +78,37 @@ namespace UIGallery.Match3GoalHud
         readonly List<StarView> starViews = new();
         float shownScore;
         GameObject resultOpener;
+        float resultOpenedAt, retryPressedAt = -1f;
         Rect lastSafe;
         Vector2Int lastScreen;
 
         public int FlyingCount => flyer != null ? flyer.ActiveCount : 0;
 
-        void Awake() => retryButton.onClick.AddListener(() => RetryPressed?.Invoke());
+        void Awake()
+        {
+            // 포인터는 누른 순간을 적어 둔다 (onClick 은 뗄 때 온다). EventTrigger 는 Button 과 함께 PointerDown 을 받는다
+            var trigger = retryButton.gameObject.AddComponent<EventTrigger>();
+            var down = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+            down.callback.AddListener(_ => retryPressedAt = Time.unscaledTime);
+            trigger.triggers.Add(down);
+            retryButton.onClick.AddListener(OnRetry);
+        }
+
+        void OnRetry()
+        {
+            // 입력 잠금: 창을 연 시각과 누른 시각을 비교한다. 키보드 · 패드 Submit 은 누른 프레임에 바로 오니 지금 시각
+            float pressedAt = retryPressedAt >= 0f ? retryPressedAt : Time.unscaledTime;
+            retryPressedAt = -1f;
+            if (pressedAt - resultOpenedAt < retryLockSeconds) return;
+            RetryPressed?.Invoke();
+        }
 
         void OnEnable()
         {
             if (state != null) state.Changed += Redraw;
             lastScreen = Vector2Int.zero;   // 다시 켜지면 안전 영역을 다시 맞춘다
+            // 꺼질 때 결과 창을 닫았다 — 결과가 이미 났으면 다시 연다 (보드는 같은 결과를 두 번 알리지 않는다)
+            if (state != null && state.Result != StageResult.None) ShowResult(state.Result);
         }
 
         void OnDisable()
@@ -109,6 +133,9 @@ namespace UIGallery.Match3GoalHud
             state = s;
             if (isActiveAndEnabled) state.Changed += Redraw;
             LevelDefinition level = s.level;
+
+            // 옛 목표 칸으로 가던 비행을 콜백 없이 거둔다 — 남겨 두면 도착할 때 지워진 TMP 를 건드린다 (MissingReferenceException)
+            if (flyer != null) flyer.CancelAll();
 
             // 결과 창을 먼저 닫아 선택을 연 곳으로 돌린다. 그게 지울 부스터 버튼이면 같은 자리의 새 버튼으로 옮긴다
             SetResultVisible(false);
@@ -143,6 +170,8 @@ namespace UIGallery.Match3GoalHud
                 m.anchorMin = new Vector2(x, 0f);
                 m.anchorMax = new Vector2(x, 1f);
                 m.pivot = new Vector2(0.5f, 0.5f);
+                // 세로로 늘린 앵커에서 sizeDelta.y 는 '부모보다 얼마나 큰가' — 프리팹 높이가 남으면 바보다 커진다
+                m.sizeDelta = new Vector2(m.sizeDelta.x, 0f);
                 m.anchoredPosition = Vector2.zero;
                 m.Find("Label").GetComponent<TextMeshProUGUI>().text = level.starThresholds[i].ToString("N0", CultureInfo.InvariantCulture);
                 starViews.Add(new StarView { star = m.Find("Star").GetComponent<Image>() });
@@ -305,6 +334,11 @@ namespace UIGallery.Match3GoalHud
             resultPanel.alpha = on ? 1f : 0f;
             resultPanel.interactable = on;
             resultPanel.blocksRaycasts = on;
+            if (on && !wasOn)
+            {
+                resultOpenedAt = Time.unscaledTime;   // 입력 잠금 시작
+                retryPressedAt = -1f;
+            }
             EventSystem es = EventSystem.current;
             if (es == null || on == wasOn) return;
             if (on)
