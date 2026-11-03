@@ -4,20 +4,19 @@ using UnityEngine;
 
 namespace UIGallery.CraftingRecipePanel
 {
-    // 제작 데이터. 레시피(고정 데이터, ScriptableObject)와 인벤토리(바뀌는 수량, 일반 C# 클래스)를 나눈다.
-    // 레시피 상태(가능 · 모자람)는 어디에도 저장하지 않고 Evaluate() 로 그때그때 계산한다.
-    // UI Toolkit 판도 이 파일을 그대로 쓴다 (같은 namespace).
+    // 제작 데이터: 레시피(고정, ScriptableObject)와 인벤토리(바뀌는 수량)를 나눈다.
+    // 상태(가능 · 모자람)는 저장하지 않고 Evaluate() 로 그때그때 계산한다. UI Toolkit 판도 쓴다.
 
     public enum RecipeTab { Maintenance, Survival, Gear }
 
     [Serializable]
     public struct Ingredient
     {
-        public string itemId;   // 기본 자원 id 또는 다른 레시피의 resultId (완성품도 재료가 된다)
+        public string itemId;   // 자원 id 또는 다른 레시피의 resultId
         public int count;
     }
 
-    /// 아이템 표시 정보 (id → 이름 · 아이콘). 레시피와 인벤토리는 id 로만 이야기한다
+    /// id → 이름 · 아이콘. 레시피와 인벤토리는 id 로만 이야기한다
     [Serializable]
     public struct ItemInfo
     {
@@ -38,7 +37,7 @@ namespace UIGallery.CraftingRecipePanel
         [Min(1)] public int resultCount = 1;
         public bool startsLocked;
 
-        /// 인벤토리를 '조회만' 해서 상태를 만든다. 레시피 에셋에 결과를 쓰지 않는다
+        /// 인벤토리를 조회만 한다. 에셋에 결과를 쓰지 않는다
         public RecipeStatus Evaluate(Inventory inv)
         {
             var status = new RecipeStatus { MaxCount = ingredients.Count > 0 ? int.MaxValue : 0 };
@@ -59,15 +58,15 @@ namespace UIGallery.CraftingRecipePanel
         public bool CanCraft => Missing.Count == 0;
     }
 
-    /// 인벤토리. 수량을 바꾸는 메서드는 끝에 Changed 를 한 번만 부른다 → 구독자가 레시피 상태 전체를 다시 계산한다
+    /// 수량을 바꾸는 메서드는 끝에 Changed 를 한 번 부른다 → 구독자가 전부 다시 계산한다
     [Serializable]
     public class Inventory
     {
-        [SerializeField] List<Ingredient> start = new();   // 인스펙터에서 시작 수량
+        [SerializeField] List<Ingredient> start = new();   // 시작 수량
         readonly Dictionary<string, int> counts = new();
         bool ready;
 
-        /// 인자: 바뀐 이유 (기록 · 디버그용)
+        /// 인자: 바뀐 이유
         public event Action<string> Changed;
 
         void Init()

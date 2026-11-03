@@ -4,12 +4,8 @@ using UnityEngine.InputSystem;
 
 namespace UIGallery.CraftingRecipePanel
 {
-    /// <summary>
-    /// 시험용 입력 (새 Input System). CraftingStation 과 같은, 늘 켜져 있는 오브젝트에 붙인다.
-    /// G: 재료 획득  U: 새 레시피 해금  R: 창 닫았다 열기 (선택 복원 확인)
-    /// 고르기 · 제작은 EventSystem(InputSystemUIInputModule)의 Navigate · Submit, 탭 Q · E 는 창이 직접 처리한다.
-    /// 숫자 키는 쓰지 않았다 — 핫바를 붙인다면 Input System 에 숫자 키 액션을 따로 만든다.
-    /// </summary>
+    // 시험용 입력. CraftingStation 오브젝트에 붙인다. G 재료 획득 · U 새 레시피 해금 · R 창 닫았다 열기.
+    // 고르기 · 제작은 EventSystem 의 Navigate · Submit, 탭 Q · E 는 창이 처리한다.
     public class CraftingDemo : MonoBehaviour
     {
         [SerializeField] CraftingStation station;

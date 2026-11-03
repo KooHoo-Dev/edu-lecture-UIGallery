@@ -6,12 +6,8 @@ using UnityEngine.UIElements;
 
 namespace UIGallery.CraftingRecipePanel
 {
-    /// <summary>
-    /// 제작 패널 — UI Toolkit 판. Recipe · Inventory · CraftingStation 은 ugui 폴더의 것을 그대로 쓴다.
-    /// 갱신 방식: runtime data binding 대신 '직접 갱신'. Inventory.Changed 한 곳에서 RecomputeAll() 이 줄의 클래스와 글자를 바꾼다.
-    ///   (레시피마다 바인딩용 상태 객체와 "3 / 5" · 클래스 토글 변환기를 만드는 것보다, 전부 다시 계산하는 흐름을 그대로 읽을 수 있다)
-    /// UIDocument 는 켤 때마다 트리를 새로 만든다 → OnDisable 에서 탭 · 탭별 선택 · 검색어 · scrollOffset 을 저장하고 OnEnable 에서 되살린다.
-    /// </summary>
+    // 제작 패널 (UI Toolkit). Recipe · Inventory · CraftingStation 은 ugui 폴더의 것을 쓴다.
+    // 직접 갱신: Inventory.Changed → RecomputeAll(). 트리는 켤 때마다 새로 만들어지므로 보기 상태는 필드에 둔다.
     [RequireComponent(typeof(UIDocument))]
     public class CraftingUITK : MonoBehaviour
     {
@@ -38,14 +34,15 @@ namespace UIGallery.CraftingRecipePanel
         readonly List<Row> rows = new();
         readonly Dictionary<Recipe, RecipeStatus> status = new();
 
-        // ── 저장되는 보기 상태 (트리가 새로 만들어져도 이 필드는 남는다) ──
+        // 저장되는 보기 상태
         int tab;
         readonly Recipe[] selectedByTab = new Recipe[4];
         Vector2 savedOffset;
         string savedSearch = "";
-        bool hasSaved;
+        bool savedFilter, hasSaved;
 
-        Recipe Selected => selectedByTab[tab];
+        Recipe shown, keep;   // UGUI 판과 같다: 표시한 선택 · ✕ 로 남길 레시피
+        Row autoFocus;        // 프로그램이 준 포커스 (FocusInEvent 가 늦게 와도 선택 · 배지를 안 바꾼다)
 
         static VisualElement E(string cls)
         {
@@ -89,21 +86,23 @@ namespace UIGallery.CraftingRecipePanel
                 Array.Clear(selectedByTab, 0, selectedByTab.Length);
                 savedOffset = Vector2.zero;
                 savedSearch = "";
+                keep = null;
             }
             search.SetValueWithoutNotify(savedSearch);
-            search.RegisterValueChangedCallback(_ => BuildRows());
-            craftableOnly.RegisterValueChangedCallback(_ => BuildRows());
+            craftableOnly.SetValueWithoutNotify(savedFilter);
+            search.RegisterValueChangedCallback(_ => ViewChanged());
+            craftableOnly.RegisterValueChangedCallback(_ => ViewChanged());
 
             station.Inventory.Changed += OnInventoryChanged;
             station.QueueChanged += BuildQueue;
             station.Unlocked += OnUnlocked;
 
             for (int i = 0; i < StockIds.Length; i++) stock.Add(new Label { name = "stock-" + StockIds[i] });
-            rows.Clear();   // 지난번 트리의 줄은 버린다
+            rows.Clear();
             RecomputeAll();
             BuildQueue();
             PaintTabs();
-            // scrollOffset 은 레이아웃이 끝나야 먹는다 (지금 넣으면 내용 높이가 0 이라 0 으로 잘린다) → 한 번만
+            // scrollOffset 은 레이아웃이 끝나야 먹는다 (지금은 내용 높이가 0) → 한 번만
             list.contentContainer.RegisterCallback<GeometryChangedEvent>(RestoreScroll);
         }
 
@@ -111,7 +110,10 @@ namespace UIGallery.CraftingRecipePanel
         {
             list.contentContainer.UnregisterCallback<GeometryChangedEvent>(RestoreScroll);
             list.scrollOffset = savedOffset;
-            rows.Find(r => r.recipe == Selected)?.root.Focus();
+            Row row = rows.Find(r => r.recipe == shown);
+            if (row == null) return;
+            list.ScrollTo(row.root);   // 선택이 보이게
+            FocusRow(row);
         }
 
         void OnDisable()
@@ -121,22 +123,34 @@ namespace UIGallery.CraftingRecipePanel
             station.Unlocked -= OnUnlocked;
             savedOffset = list.scrollOffset;
             savedSearch = search.value;
+            savedFilter = craftableOnly.value;
             hasSaved = true;
         }
 
         void OnInventoryChanged(string reason) => RecomputeAll();
         void OnUnlocked(Recipe r) => BuildRows();
 
-        // ───────── 상태 계산 ─────────
+        void ViewChanged()
+        {
+            keep = null;
+            BuildRows();
+        }
 
-        /// 어느 수량이 바뀌었든 레시피 전부를 다시 계산한다
+        void FocusRow(Row row)
+        {
+            if (row == null) return;
+            autoFocus = row;
+            row.root.Focus();
+        }
+
+        /// 무엇이 바뀌었든 전부 다시 계산한다
         void RecomputeAll()
         {
             status.Clear();
             foreach (Recipe r in station.Recipes) status[r] = r.Evaluate(station.Inventory);
             for (int i = 0; i < StockIds.Length; i++)
                 stock.Q<Label>("stock-" + StockIds[i]).text = $"{station.DisplayName(StockIds[i])} {station.Inventory.Count(StockIds[i])}";
-            // '만들 수 있는 것만' 이 켜져 있으면 보이는 줄이 바뀔 수 있다 → 다시 만들고, 아니면 제자리에서 글자 · 클래스만 바꾼다
+            // 필터가 켜져 있으면 보이는 줄이 바뀔 수 있어 다시 만든다
             if (craftableOnly.value || rows.Count == 0) BuildRows();
             else
             {
@@ -145,16 +159,13 @@ namespace UIGallery.CraftingRecipePanel
             }
         }
 
-        bool Visible(Recipe r)
+        bool Visible(Recipe r, int t)
         {
-            if (!station.IsUnlocked(r)) return false;
-            if (tab > 0 && (int)r.tab != tab - 1) return false;
+            if (!station.IsUnlocked(r) || t > 0 && (int)r.tab != t - 1) return false;
             string q = search.value.Trim();
             if (q.Length > 0 && !r.displayName.Contains(q)) return false;
-            return !craftableOnly.value || status[r].CanCraft;
+            return !craftableOnly.value || status[r].CanCraft || r == keep;
         }
-
-        // ───────── 목록 ─────────
 
         void BuildRows()
         {
@@ -163,7 +174,7 @@ namespace UIGallery.CraftingRecipePanel
             rows.Clear();
             foreach (Recipe r in station.Recipes)
             {
-                if (!Visible(r)) continue;
+                if (!Visible(r, tab)) continue;
                 var row = new Row { root = E("row"), recipe = r, state = L("", "row__state"), badge = L("새", "row__new") };
                 row.root.focusable = true;
                 row.root.Add(L(r.displayName, "row__name"));
@@ -178,9 +189,10 @@ namespace UIGallery.CraftingRecipePanel
                 list.Add(row.root);
                 rows.Add(row);
             }
-            if (Selected == null || !Visible(Selected)) selectedByTab[tab] = rows.Count > 0 ? rows[0].recipe : null;
+            Recipe want = selectedByTab[tab];
+            shown = want != null && Visible(want, tab) ? want : rows.Count > 0 ? rows[0].recipe : null;
             MarkSelected();
-            if (hadFocus) rows.Find(x => x.recipe == Selected)?.root.Focus();
+            if (hadFocus) FocusRow(rows.Find(x => x.recipe == shown));
             RefreshDetail();
         }
 
@@ -194,28 +206,40 @@ namespace UIGallery.CraftingRecipePanel
 
         void MarkSelected()
         {
-            foreach (Row r in rows) r.root.EnableInClassList("row--selected", r.recipe == Selected);
+            foreach (Row r in rows) r.root.EnableInClassList("row--selected", r.recipe == shown);
             for (int t = 0; t < 4; t++) tabs[t].EnableInClassList("tab--new", TabHasNew(t));
         }
 
+        /// 보이는 줄만 센다 (가려진 배지는 지울 수 없다)
         bool TabHasNew(int t)
         {
             foreach (Recipe r in station.Recipes)
-                if (station.IsNew(r) && station.IsUnlocked(r) && (t == 0 || (int)r.tab == t - 1)) return true;
+                if (station.IsNew(r) && Visible(r, t)) return true;
             return false;
         }
 
+        /// 사람이 고른 것만 저장하고 배지를 지운다
         void Select(Row row)
         {
-            selectedByTab[tab] = row.recipe;
-            station.MarkSeen(row.recipe);   // 고르면 '새' 배지가 사라진다
-            row.badge.AddToClassList("hidden");
+            if (row == autoFocus) autoFocus = null;
+            else
+            {
+                selectedByTab[tab] = row.recipe;
+                station.MarkSeen(row.recipe);
+                row.badge.AddToClassList("hidden");
+                if (keep != null && keep != row.recipe)
+                {
+                    keep = null;
+                    list.schedule.Execute(BuildRows);   // ✕ 줄은 이벤트가 끝난 뒤 뺀다
+                }
+            }
+            shown = row.recipe;
             MarkSelected();
             list.ScrollTo(row.root);
             RefreshDetail();
         }
 
-        /// 위아래 이동을 직접 처리한다. StopPropagation 만 하면 Unity 6.3 은 기본 포커스 이동을 한 번 더 해서 한 칸씩 건너뛴다
+        /// 위아래 이동을 직접 처리한다 (IgnoreEvent 가 없으면 6.3 은 한 칸씩 건너뛴다)
         void Move(Row row, NavigationMoveEvent e)
         {
             int step = e.direction == NavigationMoveEvent.Direction.Up ? -1 : e.direction == NavigationMoveEvent.Direction.Down ? 1 : 0;
@@ -229,9 +253,10 @@ namespace UIGallery.CraftingRecipePanel
         void SetTab(int t)
         {
             tab = t;
+            keep = null;
             PaintTabs();
             BuildRows();
-            rows.Find(x => x.recipe == Selected)?.root.Focus();
+            FocusRow(rows.Find(x => x.recipe == shown));
         }
 
         void PaintTabs()
@@ -239,11 +264,9 @@ namespace UIGallery.CraftingRecipePanel
             for (int i = 0; i < 4; i++) tabs[i].EnableInClassList("tab--active", i == tab);
         }
 
-        // ───────── 상세 ─────────
-
         void RefreshDetail()
         {
-            Recipe r = Selected;
+            Recipe r = shown;
             ingredients.Clear();
             if (r == null)
             {
@@ -265,31 +288,23 @@ namespace UIGallery.CraftingRecipePanel
                 if (sp != null) icon.style.backgroundImage = new StyleBackground(sp);
                 line.Add(icon);
                 line.Add(L(station.DisplayName(ing.itemId), "ing__name"));
-                line.Add(L($"{have} / {ing.count}", "ing__count"));                          // 보유 / 필요
-                line.Add(L(lack ? $"✕ {ing.count - have}개 부족" : "✓ 충분", "ing__tag"));   // 색 + 기호 + 글자
+                line.Add(L($"{have} / {ing.count}", "ing__count"));
+                line.Add(L(lack ? $"✕ {ing.count - have}개 부족" : "✓ 충분", "ing__tag"));
                 ingredients.Add(line);
             }
 
-            RecipeStatus st = status[r];
-            bool full = station.Queue.Count >= station.QueueSize;
-            craft.SetEnabled(st.CanCraft && !full);
-            if (full) reason.text = $"✕ 대기열 가득 참 ({station.Queue.Count}/{station.QueueSize})";
-            else if (st.CanCraft) reason.text = $"✓ 지금 재료로 ×{st.MaxCount} 가능";
-            else
-            {
-                var parts = new List<string>();
-                foreach ((string id, int have, int need) in st.Missing) parts.Add($"{station.DisplayName(id)} {need - have}개");
-                reason.text = "✕ " + string.Join(", ", parts) + " 부족";
-            }
-            reason.EnableInClassList("reason--ok", st.CanCraft && !full);
+            reason.text = station.Reason(status[r], out bool ok);
+            reason.EnableInClassList("reason--ok", ok);
+            craft.SetEnabled(ok);
         }
 
+        /// 건 레시피를 선택으로 굳혀 남긴다 (UGUI 판과 같다)
         void Craft()
         {
-            if (Selected != null) station.Enqueue(Selected);
+            if (shown == null) return;
+            keep = selectedByTab[tab] = shown;
+            station.Enqueue(shown);
         }
-
-        // ───────── 대기열 ─────────
 
         void BuildQueue()
         {
@@ -324,12 +339,12 @@ namespace UIGallery.CraftingRecipePanel
                     headTime = time;
                 }
             }
-            RefreshDetail();   // 대기열이 차면 제작 버튼의 이유가 바뀐다
+            RefreshDetail();
         }
 
         void Update()
         {
-            // 맨 앞 작업의 진행만 매 프레임 칠한다 (UI Toolkit 에는 Filled 이미지가 없어 폭 % 로)
+            // 맨 앞 작업만 칠한다 (Filled 이미지가 없어 폭 % 로)
             if (station.Queue.Count > 0 && headFill != null)
             {
                 CraftingStation.Job job = station.Queue[0];
@@ -337,8 +352,9 @@ namespace UIGallery.CraftingRecipePanel
                 headTime.text = $"{Mathf.Max(0f, job.Duration - job.Elapsed):0.0}초";
             }
 
-            // 탭 Q · E (패드 L · R), 필터 F, 마지막 취소 Backspace. 검색창에 포커스가 있으면 글자로 둔다
-            if (search.focusController?.focusedElement is VisualElement f && search.Contains(f)) return;
+            // 검색창에 포커스가 있으면 Q · E · F · Backspace 는 글자다.
+            // focusedElement 는 TextField 자신이고 Contains 는 자기 자신을 포함하지 않는다
+            if (search.focusController?.focusedElement is VisualElement f && (f == search || search.Contains(f))) return;
             Keyboard kb = Keyboard.current;
             Gamepad pad = Gamepad.current;
             if (kb != null && kb.qKey.wasPressedThisFrame || pad != null && pad.leftShoulder.wasPressedThisFrame) SetTab((tab + 3) % 4);

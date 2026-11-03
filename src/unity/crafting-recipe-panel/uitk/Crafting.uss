@@ -1,4 +1,4 @@
-/* 제작 패널 (UI Toolkit). 1920×1080 기준. USS 에는 gradient · box-shadow 가 없으므로 단색 + 테두리로만 그린다 */
+/* 제작 패널 (UI Toolkit). 1920×1080. USS 에 gradient · box-shadow 가 없어 단색 + 테두리로 그린다 */
 .craft-root {
     flex-grow: 1;
     padding: 28px 48px;
@@ -72,7 +72,7 @@
     color: rgb(238, 242, 247);
     -unity-font-style: bold;
 }
-/* 새 레시피가 든 탭: 오른쪽 테두리를 굵은 빨간 띠로 (색 + 모양) */
+/* 새 레시피가 든 탭: 오른쪽 굵은 빨간 띠 (색 + 모양) */
 .tab--new {
     border-right-width: 8px;
     border-right-color: rgb(232, 71, 90);
@@ -93,7 +93,7 @@
     flex-grow: 1;
 }
 
-/* 레시피 줄 — .row 의 수식 클래스 ok · selected 는 C# 가 붙인다 */
+/* 레시피 줄 — 수식 클래스는 C# 가 붙인다 */
 .row {
     flex-direction: row;
     align-items: center;
