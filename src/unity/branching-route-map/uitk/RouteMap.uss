@@ -1,0 +1,203 @@
+/* 분기 경로 맵 — Panel Settings: Scale With Screen Size, Reference Resolution 1080×1920.
+   한글이 네모로 보이면 Panel Settings 의 Text Settings 에 한글 글꼴(Font Asset)을 넣는다.
+   USS 에 없는 것(점선 · 그림자 · 그라디언트)은 쓰지 않는다. 곡선 간선은 C# 의 Painter2D 로 그린다. */
+
+.screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding: 30px;
+    background-color: rgb(12, 23, 36);
+    color: rgb(234, 242, 251);
+}
+
+.head {
+    height: 110px;
+    justify-content: center;
+}
+
+.head__title {
+    font-size: 30px;
+    -unity-font-style: bold;
+}
+
+.head__here {
+    font-size: 24px;
+    color: rgb(159, 180, 201);
+}
+
+.map {
+    flex-grow: 1;
+    border-width: 2px;
+    border-color: rgb(47, 74, 102);
+    border-radius: 24px;
+    background-color: rgba(8, 17, 27, 0.8);
+}
+
+.map__content {
+    align-self: center;
+}
+
+/* 노드 — 왼쪽 위를 C# 가 정한다. 종류 색은 kind-* 클래스, 상태는 node--* 클래스 */
+.node {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    border-width: 4px;
+    background-color: rgb(13, 26, 40);
+    align-items: center;
+    justify-content: center;
+    transition-property: scale, opacity;
+    transition-duration: 0.2s, 0.2s;
+}
+
+.node:disabled {
+    opacity: 1;
+}
+
+.node__icon {
+    width: 58%;
+    height: 58%;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.kind-fight { border-color: rgb(255, 154, 107); }
+.kind-elite { border-color: rgb(255, 84, 112); }
+.kind-rest { border-color: rgb(94, 230, 201); }
+.kind-shop { border-color: rgb(255, 209, 102); }
+.kind-loot { border-color: rgb(185, 167, 255); }
+.kind-signal { border-color: rgb(124, 199, 255); }
+.kind-goal { border-color: rgb(255, 255, 255); border-width: 6px; }
+
+.kind-fight .node__icon, .legend__btn.kind-fight .legend__icon { -unity-background-image-tint-color: rgb(255, 154, 107); }
+.kind-elite .node__icon, .legend__btn.kind-elite .legend__icon { -unity-background-image-tint-color: rgb(255, 84, 112); }
+.kind-rest .node__icon, .legend__btn.kind-rest .legend__icon { -unity-background-image-tint-color: rgb(94, 230, 201); }
+.kind-shop .node__icon, .legend__btn.kind-shop .legend__icon { -unity-background-image-tint-color: rgb(255, 209, 102); }
+.kind-loot .node__icon, .legend__btn.kind-loot .legend__icon { -unity-background-image-tint-color: rgb(185, 167, 255); }
+.kind-signal .node__icon, .legend__btn.kind-signal .legend__icon { -unity-background-image-tint-color: rgb(124, 199, 255); }
+
+/* 지나온 칸 · 현재 칸: 종류 색으로 채우고 아이콘은 어둡게 */
+.node--visited.kind-fight, .node--current.kind-fight { background-color: rgb(255, 154, 107); }
+.node--visited.kind-elite, .node--current.kind-elite { background-color: rgb(255, 84, 112); }
+.node--visited.kind-rest, .node--current.kind-rest { background-color: rgb(94, 230, 201); }
+.node--visited.kind-shop, .node--current.kind-shop { background-color: rgb(255, 209, 102); }
+.node--visited.kind-loot, .node--current.kind-loot { background-color: rgb(185, 167, 255); }
+.node--visited.kind-signal, .node--current.kind-signal { background-color: rgb(124, 199, 255); }
+.node--visited.kind-goal, .node--current.kind-goal { background-color: rgb(255, 255, 255); }
+.node--visited .node__icon,
+.node--current .node__icon {
+    -unity-background-image-tint-color: rgb(11, 22, 34);
+}
+
+.node--current {
+    scale: 1.1 1.1;
+}
+
+/* 갈 수 있는 다음 노드: 흰 테두리 + 크게. 루트의 screen--beat 가 0.5초마다 바뀌어 1Hz 로 숨쉰다 */
+.node.node--next {
+    border-color: rgb(255, 255, 255);
+    scale: 1.15 1.15;
+}
+
+.screen--beat .node.node--next {
+    scale: 1.25 1.25;
+}
+
+.node.node--past {
+    opacity: 0.28;
+}
+
+/* 범례 강조: 같은 종류는 크게, 나머지는 흐리게 */
+.node.node--hit {
+    scale: 1.2 1.2;
+    border-width: 8px;
+}
+
+.node.node--dim {
+    opacity: 0.18;
+}
+
+.node:focus {
+    border-color: rgb(255, 255, 255);
+    border-width: 7px;
+}
+
+.legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.legend__btn {
+    width: 245px;
+    height: 70px;
+    margin: 0 10px 10px 0;
+    padding: 0 12px;
+    flex-direction: row;
+    align-items: center;
+    border-width: 2px;
+    border-color: rgb(47, 74, 102);
+    border-radius: 14px;
+    background-color: rgb(13, 26, 40);
+    color: rgb(234, 242, 251);
+    font-size: 22px;
+    -unity-text-align: middle-left;
+}
+
+.legend__btn--on {
+    border-color: rgb(255, 255, 255);
+    background-color: rgb(27, 44, 64);
+}
+
+.legend__icon {
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.legend__name {
+    flex-grow: 1;
+    font-size: 22px;
+}
+
+.legend__count {
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+}
+
+.save {
+    height: 230px;
+    margin-top: 10px;
+    padding: 14px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+    border-radius: 16px;
+    background-color: rgba(2, 6, 11, 0.8);
+}
+
+.save__seed {
+    font-size: 24px;
+    -unity-font-style: bold;
+}
+
+.save__json {
+    flex-grow: 1;
+    font-size: 22px;
+    white-space: normal;
+    color: rgb(183, 199, 216);
+}
+
+.save__buttons {
+    flex-direction: row;
+}
+
+.save__btn {
+    height: 56px;
+    padding: 0 22px;
+    margin-right: 12px;
+    font-size: 22px;
+    border-radius: 12px;
+}
