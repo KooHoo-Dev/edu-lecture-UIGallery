@@ -38,11 +38,12 @@ export interface SkillNode {
 
 export const BRANCH_NAME: Record<Branch, string> = { core: '공통', harin: '하린 · 탐사', doyun: '도윤 · 정비', sera: '세라 · 통신' }
 
-/** 표 → 노드 목록. 머리 줄과 빈 줄 · # 주석은 건너뛰고, 없는 선행 id 는 바로 알린다 (표를 잘못 붙여 넣은 경우) */
+/** 표 → 노드 목록. 머리 줄과 빈 줄 · # 주석은 건너뛰고, 칸마다 앞뒤 공백을 지운다(엑셀의 "scan, o2").
+ * 없는 선행 id 는 바로 알린다 (표를 잘못 붙여 넣은 경우) */
 export function parseTree(tsv: string): SkillNode[] {
   const rows = tsv.split(/\r?\n/).filter(l => l.trim() && !l.startsWith('#') && !l.startsWith('id\t'))
   const nodes = rows.map(l => {
-    const c = l.split('\t')
+    const c = l.split('\t').map(x => x.trim())
     return {
       id: c[0],
       name: c[1],
@@ -58,6 +59,7 @@ export function parseTree(tsv: string): SkillNode[] {
     }
   })
   const ids = new Set(nodes.map(n => n.id))
+  if (!nodes.length) throw new Error('스킬트리 표: 노드가 없다')
   for (const n of nodes) for (const r of n.req) if (!ids.has(r)) throw new Error(`스킬트리 표: ${n.id} 의 선행 ${r} 가 없다`)
   return nodes
 }
@@ -83,8 +85,8 @@ export type LearnCheck = { ok: true } | { ok: false; reason: 'max' | 'req' | 'po
 
 /** 한 단계 올릴 수 있는가 — 최대 → 선행 → 포인트 순서로 본다 (이유가 여럿이면 플레이어가 먼저 풀어야 할 것부터) */
 export function checkLearn(tree: SkillNode[], r: Ranks, total: number, id: string): LearnCheck {
-  const n = tree.find(x => x.id === id)!
-  if (rankOf(r, id) >= n.max) return { ok: false, reason: 'max', missing: [] }
+  const n = tree.find(x => x.id === id)
+  if (!n || rankOf(r, id) >= n.max) return { ok: false, reason: 'max', missing: [] }
   const missing = n.req.filter(x => rankOf(r, x) === 0)
   if (missing.length) return { ok: false, reason: 'req', missing }
   if (total - spentPoints(tree, r) < n.cost) return { ok: false, reason: 'points', missing: [] }
@@ -99,6 +101,39 @@ export function checkRefund(tree: SkillNode[], r: Ranks, id: string): RefundChec
   if (k === 0) return { ok: false, reason: 'none', by: [] }
   const by = k === 1 ? tree.filter(n => n.req.includes(id) && rankOf(r, n.id) > 0).map(n => n.id) : []
   return by.length ? { ok: false, reason: 'needed', by } : { ok: true }
+}
+
+/** 습득 기록을 규칙(checkLearn)대로 다시 쌓는다. 표에 없는 id · 규칙에 걸리는 단계는 건너뛴다 */
+export function replay(tree: SkillNode[], ids: string[], total: number) {
+  const ranks: Ranks = {}
+  const history: string[] = []
+  for (const id of ids)
+    if (checkLearn(tree, ranks, total, id).ok) {
+      ranks[id] = rankOf(ranks, id) + 1
+      history.push(id)
+    }
+  return { ranks, history }
+}
+
+/** 예산이 줄어 쓴 포인트가 넘치면 기록 끝에서부터 checkRefund 를 통과하는 단계를 되돌린다. 되돌린 단계 수를 돌려준다 */
+export function fitBudget(tree: SkillNode[], s: { ranks: Ranks; history: string[] }, total: number) {
+  let n = 0
+  while (spentPoints(tree, s.ranks) > total) {
+    let i = s.history.length - 1
+    while (i >= 0 && !checkRefund(tree, s.ranks, s.history[i]).ok) i--
+    if (i < 0) {
+      s.ranks = {}
+      s.history = []
+      return n + 1
+    }
+    const id = s.history[i]
+    const k = rankOf(s.ranks, id) - 1
+    s.ranks = { ...s.ranks, [id]: k }
+    if (!k) delete s.ranks[id]
+    s.history.splice(i, 1)
+    n++
+  }
+  return n
 }
 
 /** 전체 초기화로 돌려받는 포인트 (= 쓴 포인트 전부) */

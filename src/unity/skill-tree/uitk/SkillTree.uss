@@ -1,6 +1,4 @@
-/* 스킬트리 — Panel Settings: Scale With Screen Size, Reference Resolution 1920×1080.
-   한글이 네모로 보이면 Panel Settings 의 Text Settings 에 한글 Font Asset 을 넣는다.
-   USS 에는 점선 테두리 · 그림자 · 그라디언트가 없다. 상태는 테두리 두께 · 모양(둥근 정도) · 고리 · 표식 · 글자로 구분한다. */
+/* 스킬트리 — Panel Settings: Scale With Screen Size 1920×1080. 상태는 테두리 두께 · 둥근 정도 · 고리 · 표식 · 글자로 구분한다. */
 
 .screen {
     position: absolute;
@@ -33,7 +31,7 @@
     background-color: rgba(8, 17, 27, 0.8);
 }
 
-/* 확대 기준을 왼쪽 위로 — 가운데(기본값)면 휠 기준점 계산이 어긋난다 */
+/* 확대 기준 왼쪽 위 (기본값 가운데면 휠 기준점이 어긋난다) */
 .world {
     position: absolute;
     left: 0;
@@ -46,7 +44,7 @@
 .branch-sera { --bc: rgb(143, 184, 255); }
 .branch-doyun { --bc: rgb(255, 179, 92); }
 
-/* 노드 — 왼쪽 위 · 크기는 C# 가 정한다. 상태는 node--* 클래스로만 바꾼다 */
+/* 노드 — 위치 · 크기는 C# 가 */
 .node {
     position: absolute;
     margin: 0;
@@ -73,7 +71,7 @@
     -unity-background-image-tint-color: rgb(106, 127, 149);
 }
 
-/* 잠김: 얇은 흐린 원 + 자물쇠 + "잠김" (기본값) · 습득 가능: 굵은 갈래 색 고리 · 습득: 채운 원 · 최대: 둥근 사각 + 바깥 테두리 */
+/* 잠김(기본): 얇은 흐린 원 · 습득 가능: 굵은 고리 · 습득: 채운 원 · 최대: 둥근 사각 + 바깥 테두리 */
 .node--available .node__shape {
     border-width: 7px;
     border-color: var(--bc);
@@ -122,7 +120,7 @@
     border-color: var(--bc);
 }
 
-/* 지금 살 수 있는 노드 — 0.5초마다 world--beat 가 바뀌며 고리가 퍼졌다 돌아온다 (1Hz) */
+/* 지금 살 수 있는 노드 — world--beat 가 0.5초마다 바뀌어 1Hz */
 .node--can .node__ring {
     opacity: 1;
 }
@@ -169,7 +167,7 @@
     -unity-background-image-tint-color: rgb(169, 184, 200);
 }
 
-/* 글자 묶음 — C# 가 scale 을 1/배율 로 되돌린다. 위 가운데를 기준으로 줄어들고 늘어난다 */
+/* 글자 묶음 — C# 가 scale 을 1/배율 로 (기준 위 가운데) */
 .node__labels {
     position: absolute;
     left: -52px;
@@ -214,7 +212,7 @@
     background-color: rgba(8, 17, 27, 0.88);
 }
 
-/* 확대 단계별 정보 — 멀리: 아이콘 + 표식만 · 중간: + 단계 · 가까이: + 이름 · 다음 수치 */
+/* 확대 단계: 멀리 아이콘 + 표식 · 중간 + 단계 · 가까이 + 이름 · 수치 */
 .lod-far .node__labels {
     display: none;
 }

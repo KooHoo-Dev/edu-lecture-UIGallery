@@ -576,6 +576,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  height: 68px;
   padding: 0 8px;
   font-size: 24px;
 }
@@ -629,4 +630,11 @@
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
+}
+
+/* 움직임 줄이기 — 회전 고리 · 맥동 · 흐름 · 흔들림을 멈춘다. 고리 · 점선 · 빨간 표시는 정지한 채 남는다 */
+@media (prefers-reduced-motion: reduce) {
+  .root * {
+    animation: none !important;
+  }
 }

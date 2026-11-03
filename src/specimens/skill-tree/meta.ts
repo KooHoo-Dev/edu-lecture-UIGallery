@@ -21,7 +21,7 @@ export const meta: SpecimenMeta = {
   difficulty: 3,
   stage: { aspect: '16:9', backdrop: 'none' },
   params: [
-    { key: 'points', label: '보유 포인트', type: 'range', min: 6, max: 32, step: 1, default: 14, unit: '점', hint: '트리 전체를 채우려면 32점. 적으면 습득 가능 노드가 금방 "포인트 부족" 으로 바뀌고 강조 고리가 꺼진다' },
+    { key: 'points', label: '보유 포인트', type: 'range', min: 6, max: 32, step: 1, default: 14, unit: '점', hint: '트리 전체는 32점. 적으면 금방 "포인트 부족" 이 되어 강조 고리가 꺼진다. 쓴 것보다 줄이면 최근 습득부터 되돌린다' },
     {
       key: 'stateCue',
       label: '상태 표시',
@@ -42,7 +42,7 @@ export const meta: SpecimenMeta = {
         { value: 'lod', label: '확대 단계별 (멀리 아이콘 · 중간 단계 · 가까이 이름)' },
         { value: 'always', label: '항상 이름 · 수치 (글자 크기는 그대로)' },
       ],
-      hint: '항상 표시로 두고 축소하면 글자는 읽히는 크기지만 이웃 노드의 이름과 겹친다. 글자를 줄이지 않으려면 보여 줄 정보를 줄여야 한다',
+      hint: '항상 표시로 두고 축소하면 글자 크기는 지켜도 이웃 이름과 겹친다. 글자를 줄이지 않으려면 정보를 줄여야 한다',
     },
     { key: 'highlightAvailable', label: '습득 가능 강조', type: 'toggle', default: true, hint: '지금 바로 살 수 있는 노드(선행 충족 + 포인트 충분)에 1Hz 로 퍼지는 고리, 그 노드로 가는 연결선에 흐르는 점선' },
     {
@@ -56,7 +56,7 @@ export const meta: SpecimenMeta = {
       ],
       hint: '한 단계씩: 우클릭 · Backspace 로 1단계 환불. 다른 습득 노드의 선행이면 막고 이유를 보여 준다. 전체 초기화만: 개별 되돌리기 버튼이 꺼진다',
     },
-    { key: 'startZoom', label: '처음 확대', type: 'range', min: 0.4, max: 1.6, step: 0.05, default: 0.75, unit: '배', hint: '0.65 미만은 멀리(아이콘 + 표식), 1 이상은 가까이(이름 · 다음 수치). 바꾸면 트리 가운데로 다시 맞춘다' },
+    { key: 'startZoom', label: '처음 확대', type: 'range', min: 0.4, max: 1.6, step: 0.05, default: 0.75, unit: '배', hint: '0.65 미만은 멀리(아이콘 + 표식), 1 이상은 가까이(이름 · 다음 수치). 바꾸면 트리 가운데로 다시 맞추고 고른 노드를 창 안에 둔다' },
   ],
   presets: [
     {
@@ -111,7 +111,7 @@ export const meta: SpecimenMeta = {
       n: 2,
       part: 'lod',
       title: '글자를 줄이지 말고 정보를 줄인다',
-      body: '확대 배율은 노드 **좌표**에만 곱하고, 글자 · 표식은 화면 px 그대로 둔다. 대신 배율에 따라 보여 줄 것을 바꾼다: 0.65 미만은 아이콘 + 상태 표식, 1 미만은 + 단계(1/3), 그 이상은 + 이름 · 다음 수치. 막대 끝 글은 지금 노드 글자의 **실제 크기**다. 효과를 끄면 트리 전체를 `scale()` 해 이 숫자가 10px 까지 떨어진다.',
+      body: '확대 배율은 노드 **좌표**에만 곱하고 글자 · 표식은 화면 px 그대로 둔다. 대신 배율에 따라 보여 줄 것을 바꾼다: 0.65 미만은 아이콘 + 상태 표식, 1 미만은 + 단계(1/3), 그 이상은 + 이름 · 다음 수치. 막대 끝 글은 노드 글자의 **실제 크기**다. 효과를 끄면 트리 전체를 `scale()` 해 10px 까지 떨어진다.',
       principle: '가독성',
       pin: 'below',
     },
@@ -126,7 +126,7 @@ export const meta: SpecimenMeta = {
       n: 4,
       part: 'tooltip',
       title: '누르기 전에 결과를 알려 주는 툴팁',
-      body: '지금 효과, **다음 단계 수치**와 비용, **필요한 선행**을 ✓ ✗ 로 보여 준다. 선행이 둘이면 "(모두)" 라고 적는다. 잠긴 노드를 누르면 흔들리면서 빠진 선행 노드와 그 연결선이 빨갛게 표시된다. 툴팁은 네 방향 중 **노드를 덜 가리는 쪽**(선행 노드는 3배로 센다)에 두고, 넘치면 뒤집고 창 안에 고정한다([인벤토리 툴팁](#/s/inventory-grid-tooltip)과 같은 배치 함수).',
+      body: '지금 효과, **다음 단계 수치**와 비용, **필요한 선행**을 ✓ ✗ 로 보여 준다. 선행이 둘이면 "(모두)" 라고 적는다. 잠긴 노드를 누르면 흔들리면서 빠진 선행 노드와 그 연결선이 빨갛게 표시된다. 툴팁은 네 방향과 창의 네 모서리 중 **노드를 덜 가리는 곳**(✗ 빠진 선행은 3배로 센다)에 두고, 넘치면 뒤집고 창 안에 고정한다([인벤토리 툴팁](#/s/inventory-grid-tooltip)과 같은 배치 함수). "잠긴 노드 눌러 보기" 는 둘이 함께 보이게 카메라도 옮긴다.',
       principle: '인지 부하',
       pin: 'below',
     },
@@ -134,20 +134,20 @@ export const meta: SpecimenMeta = {
       n: 5,
       part: 'data',
       title: '트리는 표 한 장, 규칙은 순수 함수',
-      body: '노드 하나가 표의 한 줄(id · 이름 · 갈래 · 최대 단계 · 선행 · 비용 · 위치 · 아이콘 · 효과 · 단계별 수치)이다. 엑셀에서 짜서 붙여 넣으면 트리가 바뀐다. 선행 검사 `checkLearn`, 되돌리기 검사 `checkRefund`, 환불 `refundAll` 은 화면을 모르는 함수라 테스트하기 쉽고, Unity 판도 같은 표를 `TextAsset` 으로 읽어 같은 규칙을 쓴다.',
+      body: '노드 하나가 표의 한 줄(id · 이름 · 갈래 · 최대 단계 · 선행 · 비용 · 위치 · 아이콘 · 효과 · 단계별 수치)이다. 엑셀에서 짜서 붙여 넣으면 트리가 바뀐다 — 시작 상태도 id 를 박아 두지 않고 습득 기록을 규칙대로 다시 쌓는다. `checkLearn` · `checkRefund` · `refundAll` 은 화면을 모르는 함수라 테스트하기 쉽고, Unity 판도 같은 표를 `TextAsset` 으로 읽어 같은 규칙을 쓴다.',
       principle: '인지 부하',
       pin: 'left',
     },
   ],
   mistakes: [
-    { title: '색만으로 상태 구분', body: '잠김 · 습득 가능 · 습득을 회색 · 파랑 · 초록으로만 나누면 색각에 따라, 또는 어두운 화면에서 잠김과 습득 가능을 헷갈린다. 모양(원 · 육각) · 테두리(점선 · 고리) · 표식 · 단계 글자를 함께 쓴다.' },
-    { title: '트리 전체를 scale() 로 축소', body: '확대 · 축소를 컨테이너 크기 조절 하나로 끝내면 26px 글자가 0.45배에서 12px 이 된다. 좌표만 확대하거나(웹) 글자 묶음에 확대의 역수를 곱해(Unity) 화면 크기를 지키고, 대신 단계별로 정보를 줄인다.' },
-    { title: '축소해도 모든 글자를 다 그림', body: '글자 크기를 지켜도 노드 간격이 좁아지면 이름끼리 겹쳐 읽을 수 없다. "항상 이름 표시 (비교용)" 프리셋에서 볼 수 있다. 멀리서는 아이콘 · 표식만 남긴다.' },
-    { title: '선행을 깨는 환불', body: '한 단계씩 되돌리기를 허용하면서 검사를 빼면, 상위 노드는 남고 선행만 사라진 "떠 있는 노드" 가 생긴다. 마지막 1단계를 빼기 전에 이 노드를 선행으로 쓰는 습득 노드가 있는지 보고, 있으면 막고 이름을 알린다.' },
-    { title: '규칙을 버튼 코드 안에 씀', body: '선행 검사와 포인트 계산이 클릭 처리기 안에 흩어지면 키보드 · 패드 · 자동 데모 · 툴팁이 서로 다른 판정을 한다. 규칙 함수 하나를 모두가 부른다.' },
+    { title: '색만으로 상태 구분', body: '잠김 · 습득 가능 · 습득을 회색 · 파랑 · 초록으로만 나누면 색각이나 어두운 화면에 따라 잠김과 습득 가능을 헷갈린다. 모양 · 테두리 · 표식 · 단계 글자를 함께 쓴다.' },
+    { title: '트리 전체를 scale() 로 축소', body: '컨테이너 크기 조절 하나로 끝내면 26px 글자가 0.45배에서 12px 이 된다. 좌표만 확대하거나(웹) 글자 묶음에 역수를 곱해(Unity) 크기를 지키고, 대신 단계별로 정보를 줄인다.' },
+    { title: '축소해도 모든 글자를 다 그림', body: '글자 크기를 지켜도 노드 간격이 좁아지면 이름끼리 겹친다("항상 이름 표시" 프리셋). 멀리서는 아이콘 · 표식만 남긴다.' },
+    { title: '선행을 깨는 환불', body: '검사 없이 한 단계씩 되돌리면 선행만 사라진 "떠 있는 노드" 가 생긴다. 마지막 1단계를 빼기 전에 이 노드를 선행으로 쓰는 습득 노드가 있으면 막고 이름을 알린다. 포인트를 줄일 때도 같은 검사로 최근 습득부터 되돌린다.' },
+    { title: '규칙을 버튼 코드 안에 씀', body: '선행 검사와 포인트 계산이 클릭 처리기에 흩어지면 키보드 · 패드 · 자동 데모 · 툴팁이 서로 다르게 판정한다. 규칙 함수 하나를 모두가 부른다.' },
   ],
   juiceOff:
-    '흔한 실수인 **트리 전체 축소**다. 노드 좌표만 확대하던 것을 트리 층 전체의 `transform: scale()` 로 바꾸고 확대 단계별 정보 전환도 끈다. 그래서 기본 배율 0.75 에서 노드 이름이 약 20px, "멀리 보기" 에서는 약 12px 로 작아져 읽을 수 없다. 확대 막대 끝에 실제 글자 크기가 빨갛게 나온다. 상태 표시 · 강조 · 툴팁은 그대로 둬서 글자 크기 차이만 비교한다.',
+    '흔한 실수인 **트리 전체 축소**다. 노드 좌표만 확대하던 것을 트리 층 전체의 `transform: scale()` 로 바꾸고 확대 단계별 정보 전환도 끈다. 그래서 기본 배율 0.75 에서 노드 이름이 약 20px, "멀리 보기" 에서는 약 12px 로 작아져 읽을 수 없다. 확대 막대 끝에 실제 글자 크기가 빨갛게 나온다. 상태 표시 · 강조 · 툴팁은 그대로라 글자 크기만 비교된다. 기본 배율에서는 차이가 작으니 이벤트 **"멀리 보기"** 에서 비교하자.',
   timings: [
     { event: '버튼 · 키 확대 (화면 점 고정)', ms: 300, easing: '지수 감쇠 (λ = 14)', note: '권장값. 휠 · 핀치는 입력마다 즉시' },
     { event: '노드 따라가기 · 맞춤', ms: 450, easing: '지수 감쇠 (λ = 9)', note: '권장값' },
@@ -158,8 +158,8 @@ export const meta: SpecimenMeta = {
   unity: {
     ugui: {
       hierarchy: `Canvas (Canvas Scaler: Scale With Screen Size 1920×1080)
-├─ TreeScroll (ScrollRect · Clamped · Scroll Sensitivity 0 + SkillTreeView.cs + SkillTreeDemo.cs)
-│  ├─ Viewport (RectMask2D)
+├─ TreeScroll (ScrollRect · Unrestricted · Scroll Sensitivity 0 + SkillTreeView.cs + SkillTreeDemo.cs)
+│  ├─ Viewport (RectMask2D · TreeScroll 을 꽉 채움)
 │  │  └─ Content (앵커 · 피벗 왼쪽 위 · localScale = 확대 배율, 크기는 코드가)
 │  │     ├─ Edges (빈 RectTransform · 늘이기 — 연결선이 노드 아래에)
 │  │     └─ Nodes (빈 RectTransform · 늘이기 — SkillNodeView 프리팹들)
@@ -171,22 +171,23 @@ export const meta: SpecimenMeta = {
 Prefab_Node (Button + SkillNodeView.cs · 96×96)
 ├─ PulseRing · Frame · Shape > Icon · Badge · FocusRing (Image, Raycast 끔 — Shape 만 켬)
 └─ Labels (피벗 위 가운데, 노드 아래) > NameText · RankText · NextText (TMP)
-Prefab_Edge (Image · 높이 6 · Raycast Target 끔)
+Prefab_Edge (Image · 높이 6 · Raycast Target 끔) + 점선 스프라이트 (선택, Wrap Repeat)
 skill-tree.txt (TextAsset · 탭 구분 표 — 웹 판 tree.ts 와 같은 내용. 비우면 DefaultTsv)`,
       steps: [
-        '엑셀에서 한 줄에 노드 하나로 짠 표를 탭 구분 텍스트 `skill-tree.txt` 로 저장해 `SkillTreeView.table` 에 넣는다(`.tsv` 확장자는 TextAsset 으로 임포트되지 않는다). 비우면 코드 안의 `DefaultTsv`(웹 판과 같은 표). 인스펙터에서 고치려면 `[Serializable]` 인 `SkillNode` 목록을 ScriptableObject 에 두어도 규칙 코드는 그대로다.',
-        '`SkillTreeData.Parse()` 는 없는 선행 id 가 있으면 바로 예외를 낸다. 숫자는 `CultureInfo.InvariantCulture` 로 읽어 쉼표 소수점 지역에서도 `2.5` 가 깨지지 않는다.',
-        '규칙은 `SkillProgress` 한 곳에: `CheckLearn`(최대 → 선행 → 포인트), `CheckRefund`(마지막 1단계를 빼면 고아가 생기는가), `ResetAll`(쓴 포인트 전부 환불). 툴팁 · 안내 문구도 여기서 만들어 두 화면이 같은 문장을 쓴다. 바뀌면 `Changed` 이벤트로 다시 그린다.',
-        '연결선은 피벗을 왼쪽 가운데에 둔 Image 를 두 노드 거리만큼 늘리고 `Atan2` 각도로 돌린다([분기 경로 맵](#/s/branching-route-map)과 같은 방식). Edges 를 Nodes 보다 먼저 두어 선이 노드 아래에 그려지게 한다.',
-        '팬은 `ScrollRect` 가, 줌은 Content 의 `localScale` 이 맡는다. 휠(`IScrollHandler`)이 오면 포인터 아래 Content 좌표를 확대 전후로 재서 그 차이만큼 `anchoredPosition` 을 옮긴다 — 포인터 아래의 노드가 제자리에 남는다.',
-        '확대해도 글자를 지키려면 각 노드의 **Labels · Badge 에 `1 / 배율`** 을 곱한다. 그리고 배율이 0.65 미만이면 Labels 를 끄고, 1 미만이면 이름 · 다음 수치를 끈다. `keepTextSize` 를 끄면 나쁜 예(글자도 함께 축소)를 볼 수 있다.',
-        '노드 Button 은 `transition = None` 이라 선택 색이 없다. `SkillNodeView` 가 `ISelectHandler` · `IDeselectHandler` 로 FocusRing 을 켜고 툴팁을 띄운다. Navigation 은 Automatic — 화면 위치로 가장 가까운 노드를 고른다.',
+        '엑셀에서 한 줄에 노드 하나로 짠 표를 탭 구분 텍스트 `skill-tree.txt` 로 저장해 `SkillTreeView.table` 에 넣는다(`.tsv` 확장자는 TextAsset 으로 임포트되지 않는다). 비우면 코드 안의 `DefaultTsv`(웹 판과 같은 표).',
+        '`SkillTreeData.Parse()` 는 칸마다 `Trim`(엑셀의 "scan, o2"), 숫자는 `InvariantCulture`, 없는 선행 id 는 바로 예외. 첫 화면은 습득 기록을 `Replay()` 로 규칙대로 다시 쌓아 만든다 — 기본 표일 때만 웹과 같은 기록을 쓰고, 표를 바꾸면 빈 트리와 표의 첫 노드에서 시작한다.',
+        '규칙은 `SkillProgress` 한 곳에: `CheckLearn`(최대 → 선행 → 포인트), `CheckRefund`(고아가 생기는가), `ResetAll`(전부 환불), 연결선 상태 `EdgeOf`, 툴팁 문구. 바뀌면 `Changed` 로 다시 그린다.',
+        '연결선은 피벗을 왼쪽 가운데에 둔 Image 를 두 노드 거리만큼 늘리고 `Atan2` 각도로 돌린다([분기 경로 맵](#/s/branching-route-map)과 같은 방식). 상태는 색 + **굵기 + 점선 스프라이트**, 빠진 선행은 빨강.',
+        '팬은 `ScrollRect`, 줌은 Content 의 `localScale`. 확대 기준점 · 범위 고정 · 따라가기 · 정보 단계 계산은 `TreeMath` 정적 함수라 UI Toolkit 판과 같은 값이 나온다.',
+        '각 노드의 **Labels · Badge 에 `1 / 배율`** 을 곱해 글자를 지키고, 0.65 미만이면 Labels 를, 1 미만이면 이름 · 다음 수치를 끈다. `keepTextSize` 를 끄면 나쁜 예.',
+        '노드 Button 은 `transition = None` 이라 `ISelectHandler` 로 FocusRing 을 직접 켠다. 마우스를 올리면 선택 · 툴팁만 옮기고 지도는 키 · 패드 이동 때만 따라간다(`EnsureVisible`).',
       ],
       pitfalls: [
         'ScrollRect 는 휠로도 스크롤한다. 휠을 줌에 쓰려면 `scrollSensitivity = 0` 으로 끄고 같은 오브젝트의 `IScrollHandler` 에서 받는다.',
-        '`Clamped` 는 Content 가 창보다 작아지면 왼쪽 위로 붙인다. 최소 배율을 트리가 창에 맞는 값 근처로 두거나 Content 에 여백을 준다.',
+        '`Clamped` 는 Content 가 창보다 작으면 위에 붙이고 휠 기준점 보정을 덮어쓴다. `Unrestricted` 로 두고 `LateUpdate` 에서 직접 고정한다.',
+        '마우스 올림에서 `EnsureVisible` 을 부르면 가장자리 노드에 올리기만 해도 지도가 커서 밑에서 밀린다.',
         '툴팁을 Content 아래에 두면 함께 확대되고 마스크에 잘린다. Viewport 의 형제로 두고, 크기는 `LayoutRebuilder.ForceRebuildLayoutImmediate` 후에 읽는다.',
-        '규칙(선행 · 포인트)을 Button 의 `interactable` 로만 막으면 잠긴 노드의 툴팁을 볼 수 없다. 모든 노드를 고를 수 있게 두고, 누르면 이유를 알린다.',
+        '규칙을 Button 의 `interactable` 로만 막으면 잠긴 노드의 툴팁을 볼 수 없다. 모든 노드를 고를 수 있게 두고, 누르면 이유를 알린다.',
       ],
     },
     uitk: {
@@ -204,12 +205,12 @@ skill-tree.txt (TextAsset · 탭 구분 표 — 웹 판 tree.ts 와 같은 내�
          └─ .side > Label #points · Button #btn-learn · #btn-refund · #btn-reset · Label #toast
 SkillTreeData.cs 는 UGUI 폴더의 것을 그대로 (같은 namespace)`,
       steps: [
-        'UGUI 판의 `SkillTreeData.cs` 를 그대로 쓴다. 표 읽기 · 규칙은 UI 기술과 무관하다.',
-        '노드는 `Button` 을 `ClearClassList()` 로 기본 모양을 떼고 `.node` · `.branch-*` 를 붙여 `style.left/top` 으로 놓는다. 상태는 `.node--locked` · `--available` · `--acquired` · `--maxed` 클래스로만 바꾼다. USS 에는 점선 테두리가 없어서 잠김은 얇은 흐린 테두리 + 자물쇠 표식 + "잠김", 최대는 둥근 사각 + 바깥 고리(이중선)로 모양을 바꾼다.',
-        '줌은 `#world` 의 `style.scale`, 팬은 `style.translate`. 휠은 `viewport.WorldToLocal(e.mousePosition)` 아래의 월드 점이 제자리에 남도록 translate 를 다시 계산한다. 끌기는 8px 넘게 움직였을 때만 `CapturePointer` 해서 노드 클릭과 나눈다.',
-        '글자 묶음 `.node__labels` 와 표식에 `style.scale = 1 / 배율` 을 준다(USS `transform-origin` 은 위 가운데). 배율에 따라 `.lod-far` · `.lod-mid` · `.lod-near` 를 `#world` 에 붙여 USS 가 무엇을 보일지 정한다.',
-        '연결선은 `EdgeLayer` 하나가 `Painter2D.LineTo` 로 그린다. `#world` 안에 있어 함께 확대되므로 `lineWidth` 를 배율로 나눠 화면 굵기를 지킨다. 상태가 바뀌면 `MarkDirtyRepaint()`.',
-        '방향키 · 스틱은 `NavigationMoveEvent` 에서 그 방향의 가장 가까운 노드를 직접 골라 `Focus()` 한다. 툴팁은 `FocusInEvent` · `PointerEnterEvent` 에서 채우고, 위치는 레이아웃이 끝난 뒤(`Update`) 창 안에 고정한다.',
+        'UGUI 판의 `SkillTreeData.cs`(표 · 규칙 · `TreeMath`)를 그대로 쓴다.',
+        '노드는 `Button` 을 `ClearClassList()` 로 기본 모양을 떼고 `.node` · `.branch-*` 를 붙여 `style.left/top` 으로 놓는다. 상태는 `.node--locked` 같은 클래스로만 바꾼다. USS 에는 점선 테두리가 없어 잠김은 얇은 흐린 테두리 + 자물쇠 + "잠김", 최대는 둥근 사각 + 바깥 고리로 모양을 바꾼다.',
+        '줌은 `#world` 의 `style.scale`, 팬은 `style.translate`. 휠은 `viewport.WorldToLocal(e.mousePosition)` 을 기준점으로 `TreeMath.ZoomPan`. 끌기는 8px 넘게 움직였을 때만 `CapturePointer` 해서 노드 클릭과 나눈다.',
+        '글자 묶음 `.node__labels` 와 표식에 `style.scale = 1 / 배율`(USS `transform-origin` 은 위 가운데), `#world` 에 `.lod-far` · `.lod-mid` · `.lod-near` 를 붙여 USS 가 무엇을 보일지 정한다.',
+        '연결선은 `EdgeLayer` 하나가 `Painter2D` 로 그린다. `#world` 와 함께 확대되므로 굵기 · 점선 길이를 배율로 나눈다. 상태는 `EdgeOf` 의 다섯 가지를 색 + 굵기 + 점선으로.',
+        '방향키 · 스틱은 `NavigationMoveEvent` 에서 그 방향의 가장 가까운 노드(↑ 는 직계 선행 우선)를 골라 `Focus()` 한다. 마우스를 올려도 `Focus()` 해서 Enter · 버튼이 같은 노드에 작동한다. 툴팁 위치는 `Update` 에서 창 안에 고정한다.',
       ],
       pitfalls: [
         '`NavigationMoveEvent` 를 직접 처리할 때 `StopPropagation()` 만 부르면 기본 포커스 이동이 한 번 더 일어나 한 칸을 건너뛴다. `focusController?.IgnoreEvent(e)` 를 함께 부른다.',

@@ -3,11 +3,11 @@ import { prefersReducedMotion } from '../../core/flash'
 import { clamp, damp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num, str } from '../../core/params'
-import { placeFloating, type Placement, type Side } from '../../core/placement'
+import { placeFloating, type Side } from '../../core/placement'
 import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { Badge, ICONS, Icon } from './Icons'
-import { BRANCH_NAME, BY_ID, TREE, checkLearn, checkRefund, effectText, rankOf, refundAll, rowText, spentPoints, stateOf, type Branch, type NodeState, type Ranks, type SkillNode } from './tree'
+import { BRANCH_NAME, BY_ID, TREE, checkLearn, checkRefund, effectText, fitBudget, rankOf, refundAll, replay, rowText, spentPoints, stateOf, type Branch, type NodeState, type SkillNode } from './tree'
 import s from './style.module.css'
 
 export { meta } from './meta'
@@ -16,8 +16,8 @@ export { meta } from './meta'
 const VX = 40, VY = 150, VW = 1340, VH = 890
 const SIDE_X = 1410
 const CX = 200, CY = 190, PX = 120, PY = 100
-const WORLD_W = PX * 2 + 8 * CX
-const WORLD_H = PY * 2 + 4 * CY
+const WORLD_W = PX * 2 + Math.max(...TREE.map(n => n.col)) * CX
+const WORLD_H = PY * 2 + Math.max(...TREE.map(n => n.row)) * CY
 /** 노드 지름(월드 px) · 확대 범위 · 정보 단계 경계 */
 const NODE = 96
 const Z_MIN = 0.4, Z_MAX = 1.6, FAR = 0.65, NEAR = 1
@@ -34,10 +34,12 @@ const STATE_NAME: Record<NodeState, string> = { locked: '잠김', available: '�
 const BRANCH_ICON: Record<Branch, string> = { core: 'badge', harin: 'boot', sera: 'antenna', doyun: 'wrench' }
 
 const EDGES = TREE.flatMap(n => n.req.map(r => ({ from: BY_ID.get(r)!, to: n })))
-/** 자동 데모가 고르는 순서 — 세 갈래를 번갈아 */
-const AUTO_ORDER = ['base', 'o2', 'relay', 'repair', 'stride', 'scan', 'ping', 'coolant', 'cache', 'decode', 'plating', 'uplink', 'drone', 'joint']
-const START: Ranks = { base: 1, stride: 3, scan: 1, repair: 1 }
-const START_HISTORY = ['base', 'stride', 'stride', 'stride', 'scan', 'repair']
+/** 자동 데모 순서(세 갈래를 번갈아) · 시작 기록 · 첫 선택은 기본 표일 때만. 표를 바꾸면 표 순서 · 빈 트리 · 첫 노드 */
+const DEMO = ['base', 'o2', 'relay', 'repair', 'stride', 'scan', 'ping', 'coolant', 'cache', 'decode', 'plating', 'uplink', 'drone', 'joint']
+const IS_DEMO = DEMO.length === TREE.length && DEMO.every(id => BY_ID.has(id))
+const AUTO_ORDER = IS_DEMO ? DEMO : TREE.map(n => n.id)
+const START = IS_DEMO ? ['base', 'stride', 'stride', 'stride', 'scan', 'repair'] : []
+const FIRST = IS_DEMO ? 'scan' : TREE[0].id
 
 const hex = (r: number) => Array.from({ length: 6 }, (_, i) => {
   const a = (Math.PI / 3) * i - Math.PI / 2
@@ -71,6 +73,8 @@ const panRange = (x: number, z: number, span: number, view: number) => {
   return clamp(x, Math.min(a, b), Math.max(a, b))
 }
 const centered = (z: number) => ({ x: (VW - WORLD_W * z) / 2, y: (VH - WORLD_H * z) / 2 })
+/** 화면 좌표 v 가 창 가장자리 m 안쪽에 들어오게 하는 이동량 */
+const inside = (v: number, view: number, m = 150) => (v < m ? m - v : v > view - m ? view - m - v : 0)
 
 /**
  * 스킬트리 · 성장 노드.
@@ -91,9 +95,8 @@ export default function SkillTree(p: SpecimenProps) {
   const [, setV] = useState(0)
   const rerender = () => setV(v => v + 1)
   const R = useRef({
-    ranks: { ...START } as Ranks,
-    history: [...START_HISTORY],
-    sel: 'scan',
+    ...replay(TREE, START, total), // 시작 상태도 습득 규칙으로 쌓는다 (없는 id 는 건너뜀)
+    sel: FIRST,
     toast: '노드를 고르면 효과 · 다음 단계 · 필요한 선행이 툴팁에 나온다',
     tone: '' as '' | 'ok' | 'bad',
     shake: '',
@@ -104,10 +107,26 @@ export default function SkillTree(p: SpecimenProps) {
     auto: { pending: false, learns: 0, idle: 0, phase: '' as '' | 'far' | 'near' },
   }).current
 
+  // param · 프리셋이 바뀌어도 다시 마운트되지 않는다 — 포인트가 줄어 넘치면 최근 습득부터 되돌려 예산 안으로
+  const budget = useRef(total)
+  if (budget.current !== total) {
+    budget.current = total
+    const n = fitBudget(TREE, R, total)
+    if (n) {
+      R.need = []
+      R.auto.pending = false
+      R.toast = `보유 포인트 ${total}점 — 넘친 ${n}단계를 최근 습득부터 되돌림`
+      R.tone = 'bad'
+    }
+  }
+
+  /** 트리 가운데에 맞추되 고른 노드가 창 밖이면 들어올 만큼 옮긴다 (툴팁이 숨지 않게) */
   const startCam = (): Cam => {
     const z = clamp(startZoom, Z_MIN, Z_MAX)
     const c = centered(z)
-    return { z, x: c.x, y: c.y, tz: z, tx: c.x, ty: c.y, anchor: null, moving: false }
+    const n = BY_ID.get(R.sel)!
+    const x = c.x + inside(wx(n) * z + c.x, VW), y = c.y + inside(wy(n) * z + c.y, VH)
+    return { z, x, y, tz: z, tx: x, ty: y, anchor: null, moving: false }
   }
   const cam = useRef<Cam>(startCam())
   const startKey = useRef(startZoom)
@@ -120,7 +139,9 @@ export default function SkillTree(p: SpecimenProps) {
   const vpRef = useRef<HTMLDivElement>(null)
   const layerRef = useRef<HTMLDivElement>(null)
   const tipRef = useRef<HTMLDivElement>(null)
-  const tipSide = useRef<Side>('right')
+  const tipSide = useRef('right')
+  /** paint 가 값이 바뀔 때만 DOM 을 쓰도록 기억해 두는 것: --ns · 툴팁 크기(렌더 뒤에만 다시 잼) · 해설 3번 대상 */
+  const last = useRef({ ns: '', tw: 0, th: 0, bx: VW, bh: 0, measure: true, part: '', sel: '' })
   const zoomRef = useRef<HTMLElement>(null)
   const lodRef = useRef<HTMLSpanElement>(null)
   const nodeEls = useRef(new Map<string, HTMLDivElement>())
@@ -178,11 +199,16 @@ export default function SkillTree(p: SpecimenProps) {
     const c = cam.current
     const n = BY_ID.get(id)!
     const z = c.tz
-    const x = wx(n) * z + c.tx, y = wy(n) * z + c.ty
-    const m = 150
-    const dx = x < m ? m - x : x > VW - m ? VW - m - x : 0
-    const dy = y < m ? m - y : y > VH - m ? VH - m - y : 0
+    const dx = inside(wx(n) * z + c.tx, VW), dy = inside(wy(n) * z + c.ty, VH)
     if (dx || dy) flyTo(z, c.tx + dx, c.ty + dy)
+  }
+  /** 노드 여럿(잠긴 노드 + 빠진 선행)이 함께 보이게 — 묶음 가운데로, 넘치면 그만큼 축소 */
+  const frame = (ids: string[]) => {
+    const ns = ids.map(id => BY_ID.get(id)!)
+    const xs = ns.map(wx), ys = ns.map(wy)
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+    const z = Math.max(Z_MIN, Math.min(cam.current.tz, (VW - 600) / (x1 - x0 || 1), (VH - 300) / (y1 - y0 || 1)))
+    flyTo(z, VW / 2 - ((x0 + x1) / 2) * z, VH / 2 - ((y0 + y1) / 2) * z)
   }
 
   /* ───── 규칙 (tree.ts 의 순수 함수) ───── */
@@ -216,7 +242,7 @@ export default function SkillTree(p: SpecimenProps) {
           ? `잠김 — 먼저 ${chk.missing.map(m => BY_ID.get(m)!.name).join(' · ')} 습득`
           : chk.reason === 'points'
             ? `포인트 부족 — ${n.cost} 필요, 남은 ${left()}`
-            : `${n.name} 은 이미 최대 단계`,
+            : `이미 최대 단계 — ${n.name} ${n.max}/${n.max}`,
         'bad',
       )
     }
@@ -292,7 +318,7 @@ export default function SkillTree(p: SpecimenProps) {
       const t = locked.find(n => n.req.some(r => rankOf(R.ranks, r) > 0)) ?? locked[0]
       if (t) {
         learn(t.id)
-        ensureVisible(t.id)
+        frame([t.id, ...R.need])
       }
     }
   }
@@ -317,8 +343,8 @@ export default function SkillTree(p: SpecimenProps) {
       }
       if (A.phase === 'near') {
         A.phase = ''
-        const c = centered(startZoom)
-        return flyTo(clamp(startZoom, Z_MIN, Z_MAX), c.x, c.y)
+        const c = startCam()
+        return flyTo(c.z, c.x, c.y)
       }
       const pick = autoPick(false)
       if (!pick) {
@@ -349,6 +375,7 @@ export default function SkillTree(p: SpecimenProps) {
   useGameLoop(p.playing, p.timeScale, dt => {
     tRef.current += dt
     const c = cam.current
+    const moving = c.anchor || c.moving // 멈춘 카메라는 다시 그리지 않는다
     if (c.anchor) {
       const a = c.anchor
       c.z = Math.abs(c.z - c.tz) < 0.002 ? c.tz : damp(c.z, c.tz, 14, dt)
@@ -368,7 +395,7 @@ export default function SkillTree(p: SpecimenProps) {
         rerender()
       }
     }
-    paint()
+    if (moving) paint()
   })
 
   const paint = () => {
@@ -376,8 +403,10 @@ export default function SkillTree(p: SpecimenProps) {
     if (!root) return
     const c = cam.current
     const z = c.z
+    const L = last.current
     const ns = juice ? clamp(NODE * z, 54, 112) : NODE
-    root.style.setProperty('--ns', `${ns.toFixed(1)}px`)
+    const nsText = `${ns.toFixed(1)}px`
+    if (L.ns !== nsText) root.style.setProperty('--ns', (L.ns = nsText))
     const lod: Lod = !juice || labelMode === 'always' ? 'near' : lodOf(z)
     if (root.dataset.lod !== lod) root.dataset.lod = lod
     if (layerRef.current) layerRef.current.style.transform = juice ? '' : `translate(${c.x}px, ${c.y}px) scale(${z})`
@@ -397,45 +426,79 @@ export default function SkillTree(p: SpecimenProps) {
       l.setAttribute('y2', sy(e.to).toFixed(1))
     })
     if (zoomRef.current) zoomRef.current.textContent = `${Math.round(z * 100)}%`
-    if (lodRef.current)
-      lodRef.current.textContent = juice
-        ? labelMode === 'always'
-          ? `이름 항상 표시 · 글자 ${LABEL_PX}px`
-          : `${LOD_TEXT[lod]} · 글자 ${LABEL_PX}px`
-        : `트리 전체 축소 · 글자 ${Math.round(LABEL_PX * z)}px`
+    const lodText = juice
+      ? labelMode === 'always'
+        ? `이름 항상 표시 · 글자 ${LABEL_PX}px`
+        : `${LOD_TEXT[lod]} · 글자 ${LABEL_PX}px`
+      : `트리 전체 축소 · 글자 ${Math.round(LABEL_PX * z)}px`
+    const lodEl = lodRef.current
+    if (lodEl && lodEl.textContent !== lodText) {
+      lodEl.textContent = lodText
+      L.measure = true // 확대 막대 폭이 바뀌었다
+    }
     const tip = tipRef.current
     const sel = BY_ID.get(R.sel)
-    if (tip && sel) {
-      const cx = wx(sel) * z + c.x, cy = wy(sel) * z + c.y
-      const r = (juice ? ns : NODE * z) / 2 + 6
-      const on = cx > -r && cx < VW + r && cy > -r && cy < VH + r
-      const size = { w: tip.offsetWidth, h: tip.offsetHeight }
-      const place = (side: Side) => placeFloating({ x: cx - r, y: cy - r, w: r * 2, h: r * 2 }, size, { x: 12, y: 12, w: VW - 24, h: VH - 24 }, side, 18)
-      // 네 방향 중 노드를 덜 가리는 쪽 — 선행 노드를 가리면 3배로 센다(툴팁이 "필요한 선행" 을 말하는데 그 노드를 덮으면 안 된다).
-      // 지금 쪽보다 1 이상 나을 때만 옮겨 팬 · 줌 중에 툴팁이 오락가락하지 않게 한다
-      const covered = (pl: Placement) =>
-        TREE.reduce((acc, n) => {
-          if (n === sel) return acc
-          const nx = wx(n) * z + c.x, ny = wy(n) * z + c.y
-          const hit = nx > pl.x - r && nx < pl.x + size.w + r && ny > pl.y - r && ny < pl.y + size.h + r
-          return acc + (hit ? (sel.req.includes(n.id) ? 3 : 1) : 0)
-        }, 0)
-      let pl = place(tipSide.current)
-      let cur = covered(pl)
-      for (const side of ['right', 'left', 'bottom', 'top'] as Side[]) {
-        const alt = place(side)
-        const sc = covered(alt)
-        if (sc + 1 <= cur) {
-          pl = alt
-          cur = sc
-          tipSide.current = side
-        }
-      }
-      tip.style.transform = `translate(${pl.x.toFixed(1)}px, ${pl.y.toFixed(1)}px)`
-      tip.style.visibility = on ? '' : 'hidden'
+    if (!tip || !sel || !lodEl) return
+    const at = (n: SkillNode) => [wx(n) * z + c.x, wy(n) * z + c.y]
+    const [cx, cy] = at(sel)
+    const r = (juice ? ns : NODE * z) / 2 + 6
+    const on = cx > -r && cx < VW + r && cy > -r && cy < VH + r
+    if (L.measure) {
+      // 크기는 렌더 · 글이 바뀐 뒤에만 잰다 (멈춘 동안 매 프레임 레이아웃을 읽지 않게)
+      const bar = lodEl.parentElement!
+      L.measure = false
+      L.tw = tip.offsetWidth
+      L.th = tip.offsetHeight
+      L.bx = bar.offsetLeft
+      L.bh = bar.offsetTop + bar.offsetHeight
+    }
+    const w = L.tw, h = L.th
+    const hits = (x: number, y: number, n: SkillNode) => {
+      const [nx, ny] = at(n)
+      return nx > x - r && nx < x + w + r && ny > y - r && ny < y + h + r
+    }
+    // 후보: 노드의 네 방향 + 창의 네 모서리(노드에서 멀어 3점을 얹는다). 가린 노드마다 1점, 빠진 선행 3점, 고른 노드 · 확대 막대 5점.
+    // 툴팁이 "✗ 빠진 선행" 을 말하는데 그 노드를 덮으면 안 된다. 지금 자리보다 1 이상 나을 때만 옮겨 팬 · 줌 중에 오락가락하지 않게
+    const cands: [string, number, number, number][] = (['right', 'left', 'bottom', 'top'] as Side[]).map(sd => {
+      const pl = placeFloating({ x: cx - r, y: cy - r, w: r * 2, h: r * 2 }, { w, h }, { x: 12, y: 12, w: VW - 24, h: VH - 24 }, sd, 18)
+      return [sd, pl.x, pl.y, 0]
+    })
+    cands.push(['tl', 12, 12, 3], ['tr', VW - 12 - w, L.bh + 8, 3], ['bl', 12, VH - 12 - h, 3], ['br', VW - 12 - w, VH - 12 - h, 3])
+    const score = ([, x, y, base]: (typeof cands)[number]) =>
+      TREE.reduce(
+        (acc, n) => acc + (hits(x, y, n) ? (n === sel ? 5 : sel.req.includes(n.id) && !rankOf(R.ranks, n.id) ? 3 : 1) : 0),
+        base + (x + w > L.bx && y < L.bh ? 5 : 0),
+      )
+    if (L.sel !== sel.id) [L.sel, tipSide.current] = [sel.id, 'right'] // 새 노드는 옆자리부터 (모서리는 더 나을 때만)
+    let pl = cands.find(k => k[0] === tipSide.current)!
+    let cur = score(pl)
+    for (const k of cands) {
+      const sc = score(k)
+      if (sc + 1 <= cur) [pl, cur, tipSide.current] = [k, sc, k[0]]
+    }
+    tip.style.transform = `translate(${pl[1].toFixed(1)}px, ${pl[2].toFixed(1)}px)`
+    tip.style.visibility = on ? '' : 'hidden'
+
+    // 해설 3번 대상 — 창 안에 있고 툴팁에 가리지 않은 습득 가능 노드(지금 살 수 있는 것 먼저) 중 고른 노드에서 가장 먼 것
+    const seen = (n: SkillNode) => {
+      const [x, y] = at(n)
+      return x > 60 && x < VW - 60 && y > (x > L.bx - 60 ? L.bh + 150 : 90) && y < VH - 60 && !(on && hits(pl[1], pl[2], n))
+    }
+    const rank = (n: SkillNode) => {
+      const st = nodeEls.current.get(n.id)?.dataset
+      return (st?.can ? 2e4 : 0) + (st?.state === 'available' ? 1e4 : 0) + Math.hypot(wx(n) - wx(sel), wy(n) - wy(sel))
+    }
+    const part = TREE.filter(seen).sort((a, b) => rank(b) - rank(a))[0]?.id ?? TREE[TREE.length - 1].id
+    if (part !== L.part) {
+      nodeEls.current.get(L.part)?.querySelector('svg')?.removeAttribute('data-part')
+      nodeEls.current.get(part)?.querySelector('svg')?.setAttribute('data-part', 'available')
+      L.part = part
     }
   }
-  useLayoutEffect(() => paint())
+  useLayoutEffect(() => {
+    last.current.measure = true
+    paint()
+  })
 
   /* ───── 포인터: 끌어 이동 · 두 손가락 핀치 · 탭/클릭 ───── */
   const ptrs = useRef(new Map<number, { x: number; y: number }>())
@@ -511,6 +574,7 @@ export default function SkillTree(p: SpecimenProps) {
     const vp = vpRef.current
     if (!vp || p.thumbnail) return
     const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return // Ctrl+휠 = 브라우저 확대 (가로채지 않는다)
       e.preventDefault()
       const a = api.current
       a.real()
@@ -531,7 +595,9 @@ export default function SkillTree(p: SpecimenProps) {
       const vx = wx(n) - wx(from), vy = wy(n) - wy(from)
       const along = vx * dx + vy * dy
       if (n === from || along <= 0) continue
-      const score = along + 2.5 * Math.abs(vx * dy - vy * dx)
+      // ↑ 는 직계 선행, ↓ 는 직계 후행을 반값으로 — 대각선 위의 선행을 건너뛰고 두 줄 위로 가지 않게
+      const link = dy < 0 ? from.req.includes(n.id) : dy > 0 && n.req.includes(from.id)
+      const score = (along + 2.5 * Math.abs(vx * dy - vy * dx)) * (link ? 0.5 : 1)
       if (score < bestScore) {
         bestScore = score
         best = n
@@ -566,17 +632,16 @@ export default function SkillTree(p: SpecimenProps) {
   const spent = spentPoints(TREE, ranks)
   const remain = total - spent
   const states = new Map(TREE.map(n => [n.id, stateOf(n, ranks)]))
+  const can = new Set(TREE.filter(n => checkLearn(TREE, ranks, total, n.id).ok).map(n => n.id))
   const sel = BY_ID.get(R.sel)!
-  // 해설 번호용 습득 가능 노드 — 툴팁에 가리지 않게 고른 노드에서 가장 먼 것. 없으면 마지막 노드(번호는 DOM 에 늘 있다)
-  const firstAvail =
-    TREE.filter(n => states.get(n.id) === 'available').sort((a, b) => Math.hypot(wx(b) - wx(sel), wy(b) - wy(sel)) - Math.hypot(wx(a) - wx(sel), wy(a) - wy(sel)))[0]?.id ?? 'joint'
   const selState = states.get(sel.id)!
   const selK = rankOf(ranks, sel.id)
   const selChk = checkLearn(TREE, ranks, total, sel.id)
+  // 흐르는 선은 지금 살 수 있는 노드(선행 + 포인트)로 가는 길만
   const edgeState = (e: (typeof EDGES)[number]) => {
     const a = rankOf(ranks, e.from.id) > 0
     if (a && rankOf(ranks, e.to.id) > 0) return 'done'
-    if (a && states.get(e.to.id) === 'available') return 'open'
+    if (a && can.has(e.to.id)) return 'open'
     return a ? 'half' : 'locked'
   }
   const hint = selChk.ok
@@ -596,7 +661,7 @@ export default function SkillTree(p: SpecimenProps) {
       data-juice={juice || undefined}
       data-paused={!p.playing || undefined}
       data-cue={cue}
-      data-hl={(highlight && juice) || undefined}
+      data-hl={highlight || undefined}
       data-lod="mid"
       style={{ '--ts': Math.max(0.05, p.timeScale) } as CSSProperties}
       tabIndex={p.thumbnail ? -1 : 0}
@@ -661,17 +726,17 @@ export default function SkillTree(p: SpecimenProps) {
                 data-id={n.id}
                 data-branch={n.branch}
                 data-state={st}
-                data-can={checkLearn(TREE, ranks, total, n.id).ok || undefined}
+                data-can={can.has(n.id) || undefined}
                 data-sel={R.sel === n.id || undefined}
                 data-need={R.need.includes(n.id) || undefined}
                 data-shake={R.shake === n.id || undefined}
-                data-part={n.id === firstAvail ? 'available' : undefined}
               >
                 <i className={s.selRing} />
+                {/* 해설 3번 data-part 는 paint 가 창 안의 습득 가능 노드 하나의 이 모양에 단다 */}
                 <svg className={s.shape} viewBox="-50 -50 100 100" aria-hidden>
                   {hexed ? <polygon className={s.outer} points={HEX_OUT} /> : <circle className={s.outer} r="47" />}
                   {hexed ? <polygon className={s.body} points={HEX_IN} /> : <circle className={s.body} r="40" />}
-                  <path className={s.glyph} d={ICONS[n.icon]} transform="translate(-21 -21) scale(1.75)" />
+                  <path className={s.glyph} d={ICONS[n.icon] ?? ICONS.star} transform="translate(-21 -21) scale(1.75)" />
                 </svg>
                 <Badge state={st} className={s.badge} />
                 <div className={s.label}>
@@ -773,10 +838,10 @@ export default function SkillTree(p: SpecimenProps) {
 
         <div className={s.actions}>
           <button type="button" tabIndex={p.thumbnail ? -1 : 0} onClick={() => (real(), learn(R.sel))}>
-            습득 <KeyCap label="Enter" size={30} />
+            습득 <KeyCap label="Enter" size={56} />
           </button>
           <button type="button" tabIndex={p.thumbnail ? -1 : 0} onClick={() => (real(), refund(R.sel))} data-off={refundRule !== 'free' || undefined}>
-            되돌리기 <KeyCap label="⌫" size={30} />
+            되돌리기 <KeyCap label="⌫" size={52} />
           </button>
           <button type="button" tabIndex={p.thumbnail ? -1 : 0} onClick={() => (real(), resetAll())}>
             초기화
