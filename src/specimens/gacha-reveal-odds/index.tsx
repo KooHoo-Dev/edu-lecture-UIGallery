@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { prefersReducedMotion, requestFlash } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { createInputLock } from '../../core/inputLock'
 import { num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   EXCHANGE_ITEM,
@@ -491,22 +492,19 @@ export default function GachaRevealOdds(p: SpecimenProps) {
 
   /* ───── 입력 ───── */
   const pressedAt = useRef(0)
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail) return
-    const t = e.target as HTMLElement
-    if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return
-    // 연출 중일 때만 Enter(다음 장) · Esc(건너뛰기)를 쓴다. 나머지 키(Space · 숫자 · J …)는 갤러리로 흘려보낸다
-    if (!revealing() || e.repeat) return
+  // 연출 중일 때만 Enter(다음 장) · Esc(건너뛰기)를 먹는다(core/stageKeys). 나머지 키(Space · 숫자 · J …)는 갤러리로 흘려보낸다
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail || !revealing() || e.repeat) return
     // 건너뛰기 버튼에 포커스가 있으면 Enter 는 그 버튼이 처리한다
-    if (e.key === 'Enter' && t.closest('button')) return
+    if (e.key === 'Enter' && (e.target as HTMLElement).closest('button')) return
     if (e.key === 'Enter') tap('Enter')
     else if (e.key === 'Escape') skip('Esc')
     else return
-    e.preventDefault()
-    e.stopPropagation()
     human()
     sync()
-  }
+    return true
+  })
+
 
   /* ───── 렌더 ───── */
   const X = S

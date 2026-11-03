@@ -96,6 +96,31 @@ def check_unity_files() -> None:
             err(f"C# 가 namespace UIGallery.<표본> 블록 밖에 있음: {f.relative_to(ROOT)}")
 
 
+KEYDOWN_LISTEN = re.compile(r"""addEventListener\(\s*['"]keydown['"]|\.onkeydown\s*=""")
+ONKEYDOWN = re.compile(r"\bonKeyDown(?:=\{([^}]*)\}|:\s*([\w.]+)|\s*(?=[,}\n]))")
+
+
+def check_stage_keys() -> None:
+    """갤러리 단축키 가드: 표본의 키 처리는 core/stageKeys 를 거친다 (docs/specimen-guide.md '키보드')"""
+    for f in sorted((SRC / "specimens").rglob("*.ts*")):
+        rel = f.relative_to(ROOT)
+        raw = f.read_text(encoding="utf-8")
+        for i, line in enumerate(raw.splitlines(), 1):
+            # 듣기만 하고 먹지 않는 window 리스너(입력 장치 표시 등)는 같은 줄에 '키를 먹지 않음' 을 적는다
+            if KEYDOWN_LISTEN.search(line) and "키를 먹지 않음" not in line:
+                err(f"{rel}:{i}: keydown 을 직접 듣지 말고 core/stageKeys 의 useStageKeys 를 쓴다")
+        code = re.sub(r"/\*.*?\*/", "", raw, flags=re.S)
+        code = re.sub(r"//[^\n]*", "", code)
+        for m in ONKEYDOWN.finditer(code):
+            handler = (m.group(1) or m.group(2) or "onKeyDown").strip()
+            if handler.startswith("stageKeyDown("):
+                continue
+            name = re.escape(handler)
+            if not re.search(rf"\b(?:const|let)\s+{name}\s*=\s*stageKeyDown\b", code):
+                line = code.count("\n", 0, m.start()) + 1
+                err(f"{rel}: onKeyDown 핸들러 '{handler}' 를 core/stageKeys 의 stageKeyDown 으로 감싼다 (주석 제외 {line}번째 줄 근처)")
+
+
 IMPORT_RE = re.compile(r"""(?:import|export)[^'"]*?from\s*['"](\.[^'"]+)['"]|import\(\s*['"](\.[^'"]+)['"]""")
 EXTS = ["", ".ts", ".tsx", ".js", ".css", "/index.ts", "/index.tsx"]
 
@@ -208,6 +233,7 @@ def main() -> int:
     titles = check_specimens()
     print(f"  표본 {len(titles)}개")
     check_unity_files()
+    check_stage_keys()
     check_import_case()
     check_dist(titles)
     if "--links" in sys.argv:

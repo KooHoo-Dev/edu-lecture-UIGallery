@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { requestFlash } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap, PadButton, Shoulder, useLastInputDevice, type Device as InputDevice } from '../../core/input'
 import { str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { hintsFor, PresetIcon } from './Glyphs'
 import {
@@ -295,7 +296,7 @@ export default function SettingsAccessibility(p: SpecimenProps) {
   })
 
   /* ───── 입력 ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     const k = e.key
     // Tab 키로 버튼(프리셋·탭·복원·확인 창)에 포커스를 옮긴 상태의 Enter/Space 는 그 버튼이 받게 둔다
     if (e.target !== e.currentTarget && (e.target as HTMLElement).tagName === 'BUTTON' && (k === 'Enter' || k === ' ')) return
@@ -322,13 +323,11 @@ export default function SettingsAccessibility(p: SpecimenProps) {
     else if (k === 'r' || k === 'R') openReset()
     else if (k === 'c' || k === 'C') quick()
     else used = false
-    if (used) {
-      // 무대에 포커스가 있을 때만 처리하고, 갤러리 단축키(←/→ 해설 넘김 등)로 번지지 않게 막는다
-      e.preventDefault()
-      e.stopPropagation()
-      if (u.demoDevice) patch(() => ({ demoDevice: null }))
-    }
-  }
+    // 메뉴가 쓴 키만 먹는다(→ 갤러리 단축키 ←/→ 해설 넘김 등으로 번지지 않게). 매핑 안 된 키(Esc · Space · Enter(슬라이더) 등)는 갤러리로 흘린다
+    if (!used) return
+    if (u.demoDevice) patch(() => ({ demoDevice: null }))
+    return true
+  })
   const onPointerDown = () => {
     // 장치 종류는 공통 훅이 판별한다. 여기서는 자동 데모의 덮어쓰기만 푼다
     if (uiRef.current.demoDevice) patch(() => ({ demoDevice: null }))

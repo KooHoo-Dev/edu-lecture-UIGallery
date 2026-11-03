@@ -1,8 +1,9 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap, MouseGlyph } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import s from './style.module.css'
 import { bearingTo, COLORS, dirName, DRONE_PATROLS, drawMinimapMap, drawWorld, HALF, OBJECTIVES, POIS, wrapAngle, type View } from './world'
@@ -517,22 +518,19 @@ export default function CircularMinimap(p: SpecimenProps) {
 
   const toggleOrient = () => setOrient(o => (o === 'rotate' ? 'north-up' : o === 'north-up' ? 'rotate' : o))
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget && (e.target as HTMLElement).tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return
+  // 조작 키만 먹는다 (M 은 방향 방식이 '없음' 이면 쓰지 않는 키라 흘려보낸다)
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     const key = e.key
-    let used = true
     if (key === 'q' || key === 'Q') turn(-1)
     else if (key === 'e' || key === 'E') turn(1)
     else if (key === 'ArrowUp' || key === '+' || key === '=') setZoom(st.current.zoomTo + 0.3)
     else if (key === 'ArrowDown' || key === '-') setZoom(st.current.zoomTo - 0.3)
-    else if (key === 'm' || key === 'M') toggleOrient()
-    else used = false
-    if (used) {
-      // 무대에 포커스가 있을 때만 처리하고 갤러리 단축키로 번지지 않게 막는다
-      e.preventDefault()
-      e.stopPropagation()
-    }
-  }
+    else if (key === 'm' || key === 'M') {
+      if (orient === 'none') return
+      toggleOrient()
+    } else return
+    return true
+  })
 
   /* ───── 아이콘 모양 ───── */
   const pin = () => (

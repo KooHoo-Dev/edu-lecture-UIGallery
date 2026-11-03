@@ -3,6 +3,7 @@ import { prefersReducedMotion } from '../../core/flash'
 import { damp, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap, MouseGlyph, Shoulder } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { ITEMS, angleOf, sectorOf, sectorPath } from './wheel'
 import s from './style.module.css'
@@ -180,27 +181,36 @@ export default function RadialQuickSelect(p: SpecimenProps) {
     setVec(x / len, y / len, 'stick')
     if (!x && !y) setVec(0, 0, 'stick')
   }
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
     const c = cfgRef.current
-    const keys = ['q', 'Escape', 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd']
-    if (keys.includes(k)) human()
+    const wasOpen = S.open // human() 이 자동 데모의 휠을 닫기 전의 상태
+    const dir = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(k)
+    // 휠이 닫혀 있으면 방향키 · W A S D · Esc · Enter 는 할 일이 없다 — 갤러리로 흘려보낸다
+    if (k !== 'q' && !(wasOpen && (dir || k === 'Escape' || k === 'Enter'))) return
+    human()
     if (k === 'q') {
       if (!e.repeat) {
         if (c.openMode === 'toggle' && S.open) closeWheel(true)
         else openWheel()
       }
-    } else if (k === 'Escape' && S.open) closeWheel(false)
-    else if (k === 'Enter' && S.open) closeWheel(true)
-    else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(k)) {
+    } else if (k === 'Escape') {
+      if (S.open) closeWheel(false)
+    } else if (k === 'Enter') {
+      if (S.open) closeWheel(true)
+    } else {
+      // 자동 데모가 연 휠이었다면 human() 이 이미 닫았다 — 방향 입력은 사람이 연 휠에만
+      if (!S.open) {
+        sync()
+        return true
+      }
       keyVec.current.add(k)
       applyKeyVec()
-    } else return
-    e.preventDefault()
-    e.stopPropagation()
+    }
     sync()
-  }
+    return true
+  })
   const onKeyUp = (e: KeyboardEvent<HTMLDivElement>) => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
     if (k === 'q' && cfgRef.current.openMode === 'hold' && S.owner === 'human') closeWheel(true)

@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { DPad, KeyCap, MouseGlyph, PadButton, TouchGlyph, useLastInputDevice, type Device } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import { placeFloating, type Rect } from '../../core/placement'
 import type { SpecimenProps } from '../../core/types'
 import {
@@ -509,7 +510,7 @@ export default function InventoryGridTooltip(p: SpecimenProps) {
   /* ───── 입력 ───── */
   const device: Device = useLastInputDevice(p.thumbnail ? 'keyboard' : 'auto')
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     const k = e.key
     // 입력 소비: 무대 안 버튼(정렬·필터)에 포커스가 있으면 Enter·Space 는 그 버튼만 처리한다 (장착까지 관통하지 않게)
     if ((k === 'Enter' || k === ' ') && e.target !== e.currentTarget) return
@@ -526,12 +527,9 @@ export default function InventoryGridTooltip(p: SpecimenProps) {
     } else if (k === 'q' || k === 'Q') cycleSort()
     else if (k === 'f' || k === 'F') toggleFilter()
     else used = false
-    if (used) {
-      // 무대에 포커스가 있을 때만 처리하고, 갤러리 단축키(←/→ 해설 넘김 등)로 번지지 않게 막는다
-      e.preventDefault()
-      e.stopPropagation()
-    }
-  }
+    // 무대에 포커스가 있을 때만 처리하고, 갤러리 단축키(←/→ 해설 넘김 등)로 번지지 않게 먹는다 (core/stageKeys)
+    return used
+  })
 
   const onGridPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     if (!rootRef.current) return

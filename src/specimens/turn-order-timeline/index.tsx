@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { easeOutCubic } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { bool, num, str } from '../../core/params'
 import { ROLE_COLOR, Silhouette } from '../../core/silhouettes'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { DIST, TurnQueue, firstIndex, type Entry, type Unit } from './model'
 import s from './style.module.css'
@@ -302,12 +303,11 @@ export default function TurnOrderTimeline(p: SpecimenProps) {
   })
   useLayoutEffect(() => paint(0))
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.key !== 'Enter' || e.repeat) return
-    e.preventDefault()
-    e.stopPropagation()
-    handle('next')
-  }
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail || e.key !== 'Enter') return
+    if (!e.repeat) handle('next') // 길게 눌러도 한 번만 — 반복 키는 먹기만 한다
+    return true
+  })
 
   /* ───── 렌더 ───── */
   const S = st.current

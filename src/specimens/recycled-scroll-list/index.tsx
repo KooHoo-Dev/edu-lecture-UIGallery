@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { easeInOutSine, easeOutCubic, formatNumber } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { createRecycler, itemOffset, visibleRange, type IndexRange, type Recycler } from '../../core/virtualList'
 import { CREST_PATHS, generateRows, reshuffle, rng, type Row } from './model'
@@ -540,7 +541,7 @@ export default function RecycledScrollList(p: SpecimenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.thumbnail])
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const c = cfgRef.current
     const h = c.itemHeight
@@ -554,21 +555,20 @@ export default function RecycledScrollList(p: SpecimenProps) {
     else if (e.key === 'Home') to = 0
     else if (e.key === 'End') to = max
     else if (e.key === 'm' || e.key === 'M') {
-      if (e.repeat) return
+      if (e.repeat) return true // 길게 눌러도 한 번만 — 반복 키는 먹기만 한다
       jumpMe()
     } else if ((e.key === 'Enter' || e.key === ' ') && (e.target as Element).closest?.('[data-cheer]')) {
       // 응원 버튼에 포커스가 있으면 Enter / Space 로 누른다
-      if (e.repeat) return
+      if (e.repeat) return true
       const n = Number((e.target as Element).closest('[data-cell]')?.getAttribute('data-cell'))
       const rec = Number.isFinite(n) ? S.cells[n] : undefined
       if (rec && rec.index >= 0) cheer(rec)
     } else return
     if (to !== null) scrollTo(clamp(to, 0, max), 0.2)
-    e.preventDefault()
-    e.stopPropagation()
     human()
     sync()
-  }
+    return true
+  })
 
   /* ───── 물리 (ScrollRect 와 같은 순서: 범위 밖이면 탄성, 아니면 관성) ───── */
   const physics = (dt: number) => {

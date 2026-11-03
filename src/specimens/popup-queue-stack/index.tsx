@@ -3,6 +3,7 @@ import { prefersReducedMotion } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   DEFS,
@@ -327,7 +328,9 @@ export default function PopupQueueStack(p: SpecimenProps) {
   useLayoutEffect(paintHold)
 
   /* ───── 키보드 (무대에 포커스가 있을 때) ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  // Esc · Backspace(뒤로)는 늘 먹는다 — 창이 없을 때의 '뒤로' 가 이 표본의 주제다(종료 확인 · 바로 종료 · 무시).
+  // ←/→ · Enter · Space 는 창이 맨 위에 떠 있을 때만 (아니면 갤러리 해설 넘김 · 재생으로)
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const c = cfgRef.current
     const top = topPopup(sim, c)
@@ -346,11 +349,9 @@ export default function PopupQueueStack(p: SpecimenProps) {
         if (!e.repeat) holdStart()
       } else if (!e.repeat) press(top.kind, b)
     } else return
-    // 처리한 키는 갤러리 단축키(Esc 발표 모드 해제, ←/→ 해설 넘김)로 번지지 않게
-    e.preventDefault()
-    e.stopPropagation()
     real()
-  }
+    return true
+  })
   const onKeyUp = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') holdEnd()
   }
@@ -575,6 +576,7 @@ export default function PopupQueueStack(p: SpecimenProps) {
             <input
               type="checkbox"
               tabIndex={-1}
+              onMouseDown={e => e.preventDefault()} // 눌러도 포커스는 무대에 남는다 — 체크 뒤에도 Esc · Enter 가 창으로 간다
               checked={sim.eventChecked}
               onChange={e => {
                 sim.eventChecked = e.target.checked

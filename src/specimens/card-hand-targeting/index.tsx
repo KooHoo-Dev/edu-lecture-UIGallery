@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { easeInOutSine } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, damp, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import { Silhouette } from '../../core/silhouettes'
 import type { SpecimenProps } from '../../core/types'
 import {
@@ -462,7 +463,9 @@ export default function CardHandTargeting(p: SpecimenProps) {
     }
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  // 조작 키(A · D · ←/→ · Space · Enter · E)는 무대에 포커스가 있으면 늘 먹는다 — 적 턴이나 빈 손패에서 누른 Space 가 갤러리 재생/정지로 가지 않게.
+  // Esc · Backspace 는 카드를 집었을 때만 (아니면 갤러리 발표 모드 해제로)
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
     const c = cfgRef.current
@@ -474,12 +477,12 @@ export default function CardHandTargeting(p: SpecimenProps) {
         h.kbTarget = (h.kbTarget + dir + n) % Math.max(1, n)
       } else if (!h) {
         const { list } = layout()
-        if (!list.length) return
+        if (!list.length) return true
         const i = list.findIndex(x => x.uid === S.focus)
         S.focus = list[i < 0 ? Math.floor(list.length / 2) : (i + dir + list.length) % list.length].uid
       }
     } else if (k === 'Enter' || k === ' ') {
-      if (e.repeat) return
+      if (e.repeat) return true
       if (h?.kb) release(0, 0)
       else if (!h && S.focus !== null && S.phase === 'player') {
         const card = S.hand.find(x => x.uid === S.focus)
@@ -498,12 +501,11 @@ export default function CardHandTargeting(p: SpecimenProps) {
       cancel('취소 — 카드는 손패로')
     } else if (k === 'e') endTurn()
     else return
-    e.preventDefault()
-    e.stopPropagation()
     human()
     touch()
     sync()
-  }
+    return true
+  })
 
   /* ───── 턴 ───── */
   const endTurn = () => {

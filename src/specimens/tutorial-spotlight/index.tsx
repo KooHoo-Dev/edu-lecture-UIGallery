@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, damp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { bool, num, str } from '../../core/params'
 import { placeFloating, type Rect } from '../../core/placement'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { SHOP_ITEMS, STEPS, resolveShape, type HoleShape, type TargetId } from './steps'
 import s from './style.module.css'
@@ -455,21 +456,22 @@ export default function TutorialSpotlight(p: SpecimenProps) {
   useLayoutEffect(() => paint(0))
 
   /* ───── 키보드: Enter = 강조된 대상 누르기, Esc = 건너뛰기 묻기 ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.repeat) return
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail) return
     if (e.key === 'Enter' || e.key === ' ') {
       if (S.finished !== 'none') return
+      if (e.repeat) return true // 길게 눌러도 한 번만 — 반복 키는 먹기만 한다
       tapTarget()
     } else if (e.key === 'Escape') {
       if (S.finished !== 'none' || !skippable) return
+      if (e.repeat) return true
       S.skipAsk = !S.skipAsk
       touch()
       sync()
     } else return
-    e.preventDefault()
-    e.stopPropagation()
     real()
-  }
+    return true
+  })
 
   const step = STEPS[S.step]
   const active = S.finished === 'none'

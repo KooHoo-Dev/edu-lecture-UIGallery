@@ -3,6 +3,7 @@ import { useGameLoop, useTrigger } from '../../core/hooks'
 import { BindingGlyph, bindingFromKeyboard, bindingLabel, sameBinding, useLastInput, type Binding, type Device } from '../../core/input'
 import { createInputLock } from '../../core/inputLock'
 import { bool, num, str } from '../../core/params'
+import { useStageKeys } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   ACTIONS,
@@ -336,38 +337,25 @@ export default function InputRebinding(p: SpecimenProps) {
    * 무대에 포커스가 있을 때만 가로챈다: 대기 · 충돌 창 중에는 모든 키, 평소에는 ↑↓←→ 칸 이동 · Enter 대기 시작 ·
    * Backspace 행 복원 · Delete 길게 = 전체 복원 · 묶인 키는 '시험해 보기'. 묶이지 않은 키(숫자 · J · S …)는 갤러리 단축키로 그대로.
    * 무대 밖에서 온 키, 또는 자동 데모가 연 상태에 들어온 키는 사람이 넘겨받은 것으로 보고 그 상태를 닫는다(무대 밖 키는 그대로 흘려보낸다).
-   * 무대 밖 입력 칸(조절 패널의 슬라이더 · 선택 상자 · 검색창)은 절대 가로채지 않는다.
-   * stopPropagation 만 쓴다 — window 캡처의 다른 듣기(useLastInput 의 장치 추적)는 그대로 돌게 */
-  useEffect(() => {
-    if (p.thumbnail) return
-    const eat = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    const onDown = (e: KeyboardEvent) => {
-      const root = rootRef.current
-      const target = e.target instanceof HTMLElement ? e.target : null
-      const inStage = !!root && !!target && root.contains(target)
-      const field = !inStage && !!target && (target.matches('input, select, textarea') || target.isContentEditable)
-      const focused = !!root && root.contains(document.activeElement) && !field
-      if (busy() && (!focused || S.by === 'auto')) {
-        takeOver()
-        sync()
-        if (!focused) return
-      }
-      if (!focused) return
+   * 무대 밖 입력 칸(조절 패널의 슬라이더 · 선택 상자 · 검색창)은 절대 가로채지 않는다. 이 규칙은 core/stageKeys 가 지킨다 */
+  useStageKeys(rootRef, {
+    enabled: !p.thumbnail,
+    modifiers: true, // 대기 중에는 Ctrl · Alt · Shift 같은 키 하나도 그대로 받는다
+    autoOpen: ({ focused }) => busy() && (!focused || S.by === 'auto'),
+    takeOver: () => {
+      takeOver()
+      sync()
+    },
+    onKey: e => {
       if (S.listen) {
-        // 대기 중에는 Ctrl · Alt · Shift 같은 키 하나도 그대로 받는다
-        eat(e)
         human()
         const b = bindingFromKeyboard(e)
         if (!e.repeat && b.kind === 'key') keyInput(b.key)
         sync()
-        return
+        return true
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return
       if (S.pending) {
-        eat(e)
         human()
         const k = e.key
         if (k === 'Escape') choose(1)
@@ -376,12 +364,9 @@ export default function InputRebinding(p: SpecimenProps) {
           touch()
         } else if ((k === 'Enter' || k === ' ') && !e.repeat) choose(S.pending.choice, e.timeStamp)
         sync()
-        return
+        return true
       }
-      if (S.hold) {
-        eat(e)
-        return
-      }
+      if (S.hold) return true
       // 평소 (무대 포커스)
       const k = e.key
       const f = S.focus
@@ -390,7 +375,7 @@ export default function InputRebinding(p: SpecimenProps) {
       } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
         f.col = f.col === 'kb' ? 'pad' : 'kb'
       } else if (k === 'Enter') {
-        if (e.repeat) return eat(e)
+        if (e.repeat) return true
         S.by = 'human'
         if (f.row === FIXED_ROW) fixedNote()
         else startListen(ACTIONS[f.row].id, f.col, 'Enter')
@@ -413,32 +398,24 @@ export default function InputRebinding(p: SpecimenProps) {
         human()
         testInput(b)
         sync()
-        eat(e)
-        return
+        return true
       }
-      eat(e)
       human()
       touch()
       sync()
-    }
-    const onUp = (e: KeyboardEvent) => {
-      if (S.listen && S.listen.ignore === e.code) {
-        S.listen.ignore = null
-        e.stopPropagation()
-      }
+      return true
+    },
+    onKeyUp: e => {
       if (S.hold?.by === 'key' && e.key === 'Delete') {
         releaseHold()
         sync()
       }
-    }
-    addEventListener('keydown', onDown, true)
-    addEventListener('keyup', onUp, true)
-    return () => {
-      removeEventListener('keydown', onDown, true)
-      removeEventListener('keyup', onUp, true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.thumbnail])
+      if (S.listen && S.listen.ignore === e.code) {
+        S.listen.ignore = null
+        return true
+      }
+    },
+  })
 
   const fixedNote = () => note('메뉴 열기 · 대기 취소는 바꿀 수 없다 — 다른 키를 어떻게 바꿔도 Esc · 패드 메뉴 버튼으로 늘 빠져나올 수 있게', 'info')
 

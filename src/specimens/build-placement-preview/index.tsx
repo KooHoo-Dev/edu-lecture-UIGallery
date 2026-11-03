@@ -3,6 +3,7 @@ import { easeInOutSine } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { damp, useGameLoop, useTrigger } from '../../core/hooks'
 import { bool, num, str } from '../../core/params'
+import { useStageKeys } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   BUILDINGS,
@@ -370,20 +371,16 @@ export default function BuildPlacementPreview(p: SpecimenProps) {
     after()
   }
 
-  /* ───── 키보드 — 무대에 포커스가 있고 사람이 연 상태일 때만 가로챈다 ───── */
-  useEffect(() => {
-    if (p.thumbnail) return
-    const onDown = (e: KeyboardEvent) => {
-      const root = rootRef.current
-      if (!root) return
-      const t = e.target instanceof HTMLElement ? e.target : null
-      const field = !!t && (t.matches('input, select, textarea') || t.isContentEditable)
-      if (S.ghost?.owner === 'script') {
-        // 자동 데모 · 시연이 연 고스트 — 사람이 넘겨받은 것으로 보고 닫는다. 키는 그대로 흘려보낸다 (Space · 1~9 …)
-        human()
-        return after()
-      }
-      if (field || !root.contains(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return
+  /* ───── 키보드 — 무대에 포커스가 있고 사람이 연 상태일 때만 가로챈다 (core/stageKeys) ─────
+   * 자동 데모 · 시연이 연 고스트에 키가 오면 사람이 넘겨받은 것으로 보고 닫는다. 무대 밖 키는 그대로 흘려보낸다 (Space · 1~9 …) */
+  useStageKeys(rootRef, {
+    enabled: !p.thumbnail,
+    autoOpen: () => S.ghost?.owner === 'script',
+    takeOver: () => {
+      human()
+      after()
+    },
+    onKey: e => {
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
       const g = S.ghost
       const bi = ['q', 'w', 'e'].indexOf(k)
@@ -403,16 +400,12 @@ export default function BuildPlacementPreview(p: SpecimenProps) {
         setOrigin(Math.max(-1, Math.min(COLS - 1, g.ox + dx)), Math.max(-1, Math.min(ROWS - 1, g.oy + dy)))
         g.pending = isTouch()
       } else return
-      e.preventDefault()
-      e.stopPropagation()
       realAt.current = S.t
       touch()
       after()
-    }
-    addEventListener('keydown', onDown, true)
-    return () => removeEventListener('keydown', onDown, true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.thumbnail])
+      return true
+    },
+  })
 
   /* ───── 시연 · 자동 데모 ───── */
   const palPt = (id: BuildingId) => {

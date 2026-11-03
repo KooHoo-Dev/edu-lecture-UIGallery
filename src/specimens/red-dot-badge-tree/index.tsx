@@ -1,7 +1,8 @@
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { bool, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   KIND_LABEL,
@@ -148,24 +149,33 @@ export default function RedDotBadgeTree(p: SpecimenProps) {
     sync()
   })
 
-  /* ───── 키보드: 1~4 메뉴, ←/→ 탭, Enter 첫 항목 처리 ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.repeat) return
+  /* ───── 키보드: Q/E 메뉴, ←/→ 탭, Enter 첫 항목 처리 ─────
+   * 숫자 1~9 는 갤러리의 이벤트 단축키라 쓰지 않는다. 지금 쓰는 조작 키만 먹고 나머지는 갤러리로 흘려보낸다 */
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail) return
     const c = cfgRef.current
     const def = MENUS.find(m => m.id === S.menu)!
     const ti = def.tabs.findIndex(t => t.id === S.tab)
-    if (e.key >= '1' && e.key <= '4') run((sm, cc) => openMenu(sm, cc, MENUS[Number(e.key) - 1].id))
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
+    let go: (() => void) | null = null
+    if (k === 'q' || k === 'e') {
+      const mi = MENUS.findIndex(m => m.id === S.menu)
+      const next = MENUS[(mi + (k === 'e' ? 1 : MENUS.length - 1)) % MENUS.length]
+      if (next.id !== S.menu) go = () => run((sm, cc) => openMenu(sm, cc, next.id))
+    } else if (k === 'ArrowRight' || k === 'ArrowLeft') {
       const n = def.tabs.length
-      run((sm, cc) => openTab(sm, cc, def.tabs[(ti + (e.key === 'ArrowRight' ? 1 : n - 1)) % n].id))
-    } else if (e.key === 'Enter') {
+      if (n > 1) go = () => run((sm, cc) => openTab(sm, cc, def.tabs[(ti + (k === 'ArrowRight' ? 1 : n - 1)) % n].id))
+    } else if (k === 'Enter') {
       const l = S.items.find(x => x.menu === S.menu && x.tab === S.tab && (x.kind === 'reward' ? !x.done : x.dot))
-      if (l) run(sm => act(sm, c, l.id))
-    } else return
-    e.preventDefault()
-    e.stopPropagation()
-    real()
-  }
+      if (l) go = () => run(sm => act(sm, c, l.id))
+    }
+    if (!go) return
+    if (!e.repeat) {
+      go()
+      real()
+    }
+    return true // 꾹 눌러 반복되는 키도 갤러리로 새지 않게 먹는다
+  })
 
   /* ───── 그리기 ───── */
   const cap = countCap === 'none' ? Infinity : Number(countCap)
@@ -218,7 +228,7 @@ export default function RedDotBadgeTree(p: SpecimenProps) {
       data-paused={!p.playing || undefined}
       style={{ '--ts': Math.max(0.05, p.timeScale) } as CSSProperties}
       tabIndex={p.thumbnail ? -1 : 0}
-      aria-label="레드닷 데모 (클릭 · 터치, 키보드: 1~4 메뉴 · ←/→ 탭 · Enter 첫 항목 처리)"
+      aria-label="레드닷 데모 (클릭 · 터치, 키보드: Q/E 메뉴 · ←/→ 탭 · Enter 첫 항목 처리)"
       onKeyDown={onKeyDown}
       onPointerDownCapture={real}
     >

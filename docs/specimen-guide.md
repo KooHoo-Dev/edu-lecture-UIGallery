@@ -62,11 +62,23 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 | `core/virtualList.ts` | `visibleRange(scroll, viewport, itemSize, count, overscan)` · `itemOffset()` · `createRecycler(recycle)` → `.layout(range)` 항목→셀 배정 · `.stats()` 만든/재사용 셀 수 | 재활용 스크롤 리스트, 배틀패스 트랙 (같은 크기 항목 한 줄) |
 | `core/inputLock.ts` | `createInputLock(ms)` → `.open(now)` · `.blocks(누른 시각)` · `.progress(now)` — **누른 시각**으로 판정하는 입력 잠금 | 뽑기 결과, 보상 받기 (처음 쓴 곳: 레벨업 3택) |
 | `core/input.tsx` (추가) | `BindingGlyph` 임의 입력 하나의 글리프 · `keyLabel(code)` · `bindingLabel()` 읽는 이름 · `bindingFromKeyboard(e)` · `sameBinding()` 충돌 확인 | 키 리바인딩, 스킬 칸 |
+| `core/stageKeys.ts` | **갤러리 단축키 가드**. `stageKeyDown(onKey)` 무대 루트 onKeyDown · `useStageKeys(rootRef, { autoOpen, takeOver, onKey, onKeyUp, modifiers })` window 캡처. `onKey` 가 `true` 를 돌려준 키만 먹는다 | 키를 쓰는 모든 표본 (아래 '키보드' 참고) |
 
 - 게임패드 버튼은 **위치(아래/오른쪽/왼쪽/위)** 로만 표기한다. 특정 콘솔의 기호(A/B/X/Y, ○/×/△/□)·로고 금지.
 - 파라미터 이름은 camelCase, 같은 개념은 같은 이름: `edgeMargin`(px), `fovDeg`, `accentColor`, `skewDeg`, `inputDevice`(auto|keyboard|gamepad|touch), `pulseHz`(≤ 3).
 - 단위가 있는 값은 이름 끝에 단위를 붙인다: 시간 `…Ms`, 각도 `…Deg`, 주파수 `…Hz`, 배율 `…Scale`, 초당 글자 수 `…Cps` (예: `displayMs`, `cooldownMs`, `typeSpeedCps`).
 - 색 설정은 대상을 이름에 넣는다 (`damageColorMap`, `rarityColors`). `colorMode` 처럼 설정·접근성 표본의 색각 보정과 헷갈리는 이름은 쓰지 않는다.
+
+### 키보드 — 갤러리 단축키와 함께 쓰기
+
+갤러리는 Space(재생) · 1~9(이벤트) · J · S · A · H · P · ←/→ · Esc 를 쓴다. 표본은 키를 직접 듣지 말고 `core/stageKeys` 를 쓴다.
+- 키를 먹는 것은 **무대에 포커스가 있고, 그 키가 지금 상태의 조작 키일 때**뿐이다(`onKey` 가 `true`).
+  - 조작 키는 잠깐 할 일이 없어도 먹는다(반복 입력 · 상대 턴 · 목록 가장자리 · 고른 뒤 연타). 같은 Space 가 어떤 때는 카드를 내고 어떤 때는 갤러리를 멈추면 안 된다.
+  - 지금 상태에서 쓰지 않는 키는 흘려보낸다. 예: 닫힌 휠의 WASD, 창이 없을 때의 ←/→, '아무 키' 화면의 숫자 · J.
+- 조합키(Ctrl · Alt · ⌘)와 입력 칸의 키는 가드가 거른다. 새로고침 · 확대 · 복사를 막지 않는다.
+- 자동 데모가 키를 쓰는 상태(대기 · 고스트 · 결과 창)를 열면 `useStageKeys` 의 `autoOpen` · `takeOver` 로 넘겨받는다. 무대 밖에서 온 키는 넘겨받은 뒤 흘려보낸다.
+- 숫자 키 1~9 는 갤러리 이벤트다. 표본 메뉴의 단축키로 쓰지 않는다(메뉴 · 탭 순환은 Q · E 나 ←/→).
+- 확인: 무대를 클릭해 포커스를 두고 `js:` 로 Space · J · 숫자를 보내 갤러리가 반응하는지 본다 (`tools/live.mjs` 의 `key:Space` 는 제대로 못 보낸다).
 
 ### 공통 용어 (해설에서 같은 말로 쓴다)
 
@@ -154,4 +166,5 @@ python tools/check.py                              # (dist 빌드 후) 전체 �
 - [ ] 모든 param·preset 이 눈에 띄게 다르다
 - [ ] 해설 번호가 올바른 부분을 가리킨다
 - [ ] 모바일 폭(390px)에서 깨지지 않는다
+- [ ] 무대에 포커스를 두고 Space · J · 숫자 키를 눌러도, 표본이 그 키를 쓰지 않는 상태라면 갤러리 단축키가 동작한다 (`core/stageKeys`)
 - [ ] 게임명·원작 고유 표현이 코드·화면에 없다

@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { MAX_LEVEL, POOL, RARITY_LABEL, draft, makeBuild, stepOf, valueAt, type Build, type Offer } from './draft'
 import s from './style.module.css'
@@ -225,7 +226,8 @@ export default function UpgradeDraftChoice(p: SpecimenProps) {
   }
 
   /* ───── 입력 ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  // 선택지가 떠 있는 동안 조작 키(←/→ · A/D · Enter · Space · R · B)는 늘 먹는다 — 고른 뒤 연타한 Space 가 갤러리 재생/정지로 가지 않게
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail || !S.offers) return
     const n = S.offers.length
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key // Caps Lock · Shift 여도 같은 키
@@ -237,12 +239,11 @@ export default function UpgradeDraftChoice(p: SpecimenProps) {
     else if (k === 'b') {
       if (S.banishes > 0) S.banishMode = !S.banishMode
     } else return
-    e.preventDefault()
-    e.stopPropagation()
     realAt.current = S.t
     touch()
     sync()
-  }
+    return true
+  })
 
   const handle = (id: string) => {
     if (id === 'level-up') levelUp()

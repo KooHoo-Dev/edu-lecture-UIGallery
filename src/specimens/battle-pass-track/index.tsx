@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { easeOutCubic, formatNumber } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { clamp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { createInputLock } from '../../core/inputLock'
 import { bool, num, str } from '../../core/params'
+import { useStageKeys } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { createRecycler, itemOffset, visibleRange, type IndexRange } from '../../core/virtualList'
 import {
@@ -537,52 +538,46 @@ export default function BattlePassTrack(p: SpecimenProps) {
   }, [p.thumbnail])
 
   /* 무대에 포커스가 있을 때만: ←/→ 칸 · ↑/↓ 줄 · Home/End · Enter 받기(결과 창이면 확인). Space · 숫자 · 글자는 갤러리 단축키로 그대로 */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.ctrlKey || e.metaKey || e.altKey) return
-    if ((e.target as Element).closest?.('button')) return // 무대 안 버튼은 Enter · Space 가 그 버튼을 누른다
-    const k = e.key
-    const f = S.focus
-    const count = S.pass.count
-    if (k === 'Enter') {
-      if (!e.repeat) {
-        if (S.result) confirm(S.t * 1000)
-        else claimOne(f.level, f.track, 'human')
-      }
-    } else if (S.result) return
-    else if (k === 'ArrowLeft' || k === 'ArrowRight') f.level = clamp(f.level + (k === 'ArrowLeft' ? -1 : 1), 1, count)
-    else if (k === 'ArrowUp' || k === 'ArrowDown') f.track = k === 'ArrowUp' ? 'free' : 'prem'
-    else if (k === 'Home') f.level = 1
-    else if (k === 'End') f.level = count
-    else return
-    e.preventDefault()
-    e.stopPropagation()
-    S.kbd = true
-    human()
-    // 포커스 칸이 보이게
-    const c = cfgRef.current
-    const x = (f.level - 1) * c.itemWidth
-    const base = S.anim ? S.anim.to : S.scroll
-    if (x < base) glide(clamp(x - c.itemWidth * 0.5, 0, maxScroll()), 0.2)
-    else if (x + c.itemWidth > base + c.vpW) glide(clamp(x + c.itemWidth * 1.5 - c.vpW, 0, maxScroll()), 0.2)
-    touch()
-    sync()
-  }
-  /* 자동 데모가 연 결과 창에 무대 밖 키가 오면: 사람이 넘겨받은 것 — 창을 닫고 키는 그대로 흘려보낸다 */
-  useEffect(() => {
-    if (p.thumbnail) return
-    const onDown = (e: globalThis.KeyboardEvent) => {
-      const root = rootRef.current
-      const inStage = !!root && e.target instanceof Node && root.contains(e.target)
-      if (inStage || !S.result || S.result.by !== 'auto') return
+  /* 키보드 (core/stageKeys) — 무대에 포커스가 있을 때만 칸 이동 · Enter 받기.
+   * 자동 데모가 연 결과 창에 무대 밖 키가 오면: 사람이 넘겨받은 것 — 창을 닫고 키는 그대로 흘려보낸다 */
+  useStageKeys(rootRef, {
+    enabled: !p.thumbnail,
+    autoOpen: ({ focused }) => !focused && S.result?.by === 'auto',
+    takeOver: () => {
       S.result = null
       S.realT = S.t
       touch()
       sync()
-    }
-    addEventListener('keydown', onDown)
-    return () => removeEventListener('keydown', onDown)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.thumbnail])
+    },
+    onKey: e => {
+      if ((e.target as Element).closest?.('button')) return // 무대 안 버튼은 Enter · Space 가 그 버튼을 누른다
+      const k = e.key
+      const f = S.focus
+      const count = S.pass.count
+      if (k === 'Enter') {
+        if (!e.repeat) {
+          if (S.result) confirm(S.t * 1000)
+          else claimOne(f.level, f.track, 'human')
+        }
+      } else if (S.result) return
+      else if (k === 'ArrowLeft' || k === 'ArrowRight') f.level = clamp(f.level + (k === 'ArrowLeft' ? -1 : 1), 1, count)
+      else if (k === 'ArrowUp' || k === 'ArrowDown') f.track = k === 'ArrowUp' ? 'free' : 'prem'
+      else if (k === 'Home') f.level = 1
+      else if (k === 'End') f.level = count
+      else return
+      S.kbd = true
+      human()
+      // 포커스 칸이 보이게
+      const c = cfgRef.current
+      const x = (f.level - 1) * c.itemWidth
+      const base = S.anim ? S.anim.to : S.scroll
+      if (x < base) glide(clamp(x - c.itemWidth * 0.5, 0, maxScroll()), 0.2)
+      else if (x + c.itemWidth > base + c.vpW) glide(clamp(x + c.itemWidth * 1.5 - c.vpW, 0, maxScroll()), 0.2)
+      touch()
+      sync()
+      return true
+    },
+  })
 
   /* ───── 매 프레임 ───── */
   useGameLoop(p.playing, p.timeScale, dt => {
@@ -865,7 +860,6 @@ export default function BattlePassTrack(p: SpecimenProps) {
       style={{ '--ts': ts, '--w': `${itemWidth}px`, '--vpw': `${vpW}px` } as CSSProperties}
       tabIndex={p.thumbnail ? -1 : 0}
       aria-label="배틀패스 보상 트랙 (끌기 · 휠 스크롤, ←/→ 칸 · ↑/↓ 줄 이동, Enter 받기)"
-      onKeyDown={onKeyDown}
       onPointerDown={() => {
         if (S.result?.by === 'auto') S.result.by = 'human'
       }}

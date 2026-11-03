@@ -4,6 +4,7 @@ import { requestFlash } from '../../core/flash'
 import { clamp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { DPad, KeyCap, MouseGlyph, PadButton, Shoulder, TouchGlyph, useLastInputDevice, type Device } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { Portrait, SceneBackdrop } from './Art'
 import { CHOICE_NODE, CHOICES, DEFAULT_CHOICE, END_NODE, lineAt, LINES, PAUSE_CHARS, PREVIOUS, REPLY_NODE, SPEAKERS, type Line, type SpeakerId } from './script'
@@ -625,7 +626,7 @@ export default function DialogueChoices(p: SpecimenProps) {
   }, [x.log, x.logSeq, x.entries.length])
 
   /* ───── 입력 (무대에 포커스가 있을 때만) ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     const x = st.current!
     const k = e.key
     let used = true
@@ -644,11 +645,8 @@ export default function DialogueChoices(p: SpecimenProps) {
     } else if (k === 'l' || k === 'L') toggleLog()
     else if (k === 'r' || k === 'R') toggleAuto()
     else used = false
-    if (used) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-  }
+    return used // 처리한 키만 먹는다 (core/stageKeys)
+  })
   const onKeyUp = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'f' || e.key === 'F') {
       ffEnd()

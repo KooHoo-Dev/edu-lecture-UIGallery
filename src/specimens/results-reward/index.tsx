@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useReducer, useRef, type CSSProperties } from 'react'
 import { createCountUp, easeOutBack, easeOutCubic, formatNumber, type CountUp } from '../../core/countup'
 import { clamp, useGameLoop, useTrigger } from '../../core/hooks'
 import { ActionGlyph, useLastInputDevice } from '../../core/input'
 import { bool, num, str } from '../../core/params'
 import { Silhouette } from '../../core/silhouettes'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import {
   BANNER_IN,
@@ -569,13 +570,11 @@ export default function ResultsReward(p: SpecimenProps) {
   useLayoutEffect(() => paint())
 
   /* ───────── 입력 ───────── */
-  const onKeyDown = (ev: KeyboardEvent<HTMLDivElement>) => {
-    if (ev.key === 'Enter') {
-      ev.preventDefault()
-      ev.stopPropagation()
-      if (!ev.repeat) press('user') // 누르고 있는 키의 반복 입력은 새 입력이 아니다
-    }
-  }
+  const onKeyDown = stageKeyDown<HTMLDivElement>(ev => {
+    if (ev.key !== 'Enter') return
+    if (!ev.repeat) press('user') // 누르고 있는 키의 반복 입력은 새 입력이 아니다
+    return true
+  })
   const onPointerDown = () => press('user')
 
   const device = useLastInputDevice(p.thumbnail ? 'keyboard' : 'auto')

@@ -6,7 +6,7 @@
 - 작성: 2026-10-10
 - 상태: MVP 13개 공개(2026-10-21) → 1순위 배치 8개 완료(2026-10-24) → 2순위 배치 8개 완료(2026-11-02) → **3순위 후보 대기**
 
-## 진행 현황 (2026-11-02)
+## 진행 현황 (2026-11-03)
 
 | 단계 | 상태 | 결과 |
 |---|---|---|
@@ -21,6 +21,7 @@
 | 7 1순위 배치 8개 | 완료 (2026-10-24) | 팝업 대기열 · 튜토리얼 스포트라이트 · 레드닷 · 가상 조이스틱 · 방사형 휠 · 자막 · 레벨업 3택 · 카드 손패. 표본마다 구현 → 독립 리뷰 → 수정 → 커밋 |
 | 8 정비 | 완료 (2026-11-02) | 상세 페이지 AI 프롬프트 란(Shader 갤러리에서 이식) · 표본별 C# namespace · **Unity 6000.3 실제 컴파일 · 임포트 확인**(C# 버그 2 · UXML 4 수정, `tools/unity-compile.ps1` · check.py UXML 검사) · 주제 태그 '접근성' · 2순위용 공통 부품(가상화 리스트 · 입력 잠금 · BindingGlyph) |
 | 9 2순위 배치 8개 | 완료 (2026-11-02) | 1차: 로딩 화면 · 키 리바인딩 · 턴 순서 타임라인 · 재활용 스크롤 / 2차: 배틀패스 · 뽑기 · 건설 배치 · 리듬 판정. 표본마다 구현 → 독립 리뷰 → 수정 → tsc · `unity-compile.ps1` · Unity 6000.3 에디터 임포트(컴포넌트 연결 · UXML CloneTree) · build · check → 커밋. 전체 29개, Unity C# 195개 함께 컴파일 · 전역 이름 중복 0 |
+| 10 공통화: 단축키 가드 | 완료 (2026-11-03) | `core/stageKeys.ts`(`stageKeyDown` · `useStageKeys`)로 22개 표본의 키 처리 통일 → 독립 리뷰 → 수정. 가이드 3절 '키보드' · 9절 체크리스트, `check.py` 규칙 추가 |
 | 용량 | 82% (gzip 80%) | 원본 4,192 / 5,120 KB · gzip 1,234 / 1,536 KB. 2순위 표본은 92~131 KB(평균 약 110 KB, gzip 33 KB)라 남은 예산으로 **8개 안팎**이 들어간다. 3순위를 다 넣으려면 지연 로드나 예산 재검토가 필요하다 |
 
 ### 공통화 백로그 (표본 구현 중 에이전트들이 보고한 후보)
@@ -43,7 +44,7 @@
 | ~~임의 키 바인딩 글리프(`BindingGlyph`)~~ → `core/input.tsx` 로 반영(2026-11-02). 방향키 묶음 글리프는 남음 | skill-cooldown-prompt(옮김), inventory-grid-tooltip |
 | 희귀도 팔레트 + 표식, 스와이프 스크롤 | inventory-grid-tooltip (상점·제작 표본 추가 시) |
 | ~~입력 잠금(누른 시각 기준)~~ → `core/inputLock.ts` 로 반영(2026-11-02). 입력 버퍼형(dialogue-choices)은 따로 남음 | loading-screen · gacha-reveal-odds · battle-pass-track 이 사용 |
-| **갤러리 단축키 가드**: 무대 포커스 + 사람이 연 상태일 때만 키를 가로채고, 자동 데모가 연 상태는 키가 오면 넘겨받아 닫고 흘려보내는 window 캡처 리스너 (2순위 리뷰에서 가장 자주 나온 버그) | input-rebinding, build-placement-preview, rhythm-timing-feedback, battle-pass-track, gacha-reveal-odds |
+| ~~갤러리 단축키 가드~~ → `core/stageKeys.ts` 로 반영(2026-11-03). 키를 쓰는 22개 표본 모두 옮김 — 조합키(Ctrl+R 새로고침 · Ctrl+확대 등)를 막던 16곳, 쓰지 않는 상태에서 WASD · 숫자 · Space 를 삼키던 곳(방사형 휠 · 레드닷 · 로딩 화면)을 함께 고침. `check.py` 가 직접 keydown 을 듣거나 감싸지 않은 onKeyDown 을 잡는다 | 전체 |
 | 가상 포인터 시연 스크립트(to · down · up · wait 단계) — 자동 데모가 끌기 · 탭을 흉내 | card-hand-targeting, build-placement-preview |
 | 서버 시각(`ServerClock`: 받은 UTC + 단조 시계) | battle-pass-track → 출석 · 에너지 타이머(3순위 time-gated-meta) |
 | 단일 곡 시계(`SongClock`: 기준 시계 하나 + 시작 기준만 다시 잡기 — 정지 · 배속 · 소스 바꾸기) | rhythm-timing-feedback |

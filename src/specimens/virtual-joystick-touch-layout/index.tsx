@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 import { useGameLoop, useTrigger } from '../../core/hooks'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { DEFAULT_LAYOUT, DEVICES, LABEL, centerOf, clamp, safeRect, shape, toPixelLayout, type DeviceId, type ItemId, type LayoutItem, type Rect } from './layout'
 import s from './style.module.css'
@@ -354,20 +355,20 @@ export default function VirtualJoystickTouchLayout(p: SpecimenProps) {
     if (!S.pointers.has(KEY_PID)) down(KEY_PID, h.x, h.y)
     move(KEY_PID, h.x + (dx / len) * r, h.y + (dy / len) * r)
   }
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail || S.editing) return // 편집 중에는 입력을 끈다 (Unity 판도 편집 중 입력 컴포넌트를 끈다)
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
     const dirs = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd']
     if (dirs.includes(k)) {
       S.keys.add(k)
       keyStick()
-    } else if (!e.repeat && (k === ' ' || k === 'q' || k === 'e' || k === 'Shift')) {
+    } else if (k === ' ' || k === 'q' || k === 'e' || k === 'Shift') {
+      if (e.repeat) return true // 길게 눌러도 한 번만 — 반복 키는 먹기만 한다 (Space 가 갤러리 재생/정지로 새지 않게)
       press(k === ' ' ? 'attack' : k === 'q' ? 'skill1' : k === 'e' ? 'skill2' : 'dodge')
     } else return
-    e.preventDefault()
-    e.stopPropagation()
     cancelScript()
-  }
+    return true
+  })
   /** 무대 밖을 누르는 등 포커스를 잃으면 keyup 이 오지 않는다 → 눌린 키를 모두 놓는다 */
   const onBlur = () => {
     if (!S.keys.size) return

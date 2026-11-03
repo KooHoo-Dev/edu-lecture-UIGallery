@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { prefersReducedMotion, requestFlash } from '../../core/flash'
 import { damp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { BindingGlyph, useLastInput } from '../../core/input'
 import { num, str } from '../../core/params'
 import { Silhouette } from '../../core/silhouettes'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { ClockIcon, DropIcon, EmptyPipsIcon, HasteIcon, SkillIcon } from './Icons'
 import {
@@ -169,7 +170,7 @@ export default function SkillCooldownPrompt(p: SpecimenProps) {
     }
     // 캡처 단계 — useLastInput 의 리스너보다 먼저 표시해 둔다
     addEventListener('pointerdown', mark, true)
-    addEventListener('keydown', mark, true)
+    addEventListener('keydown', mark, true) // 입력 장치 표시만 — 키를 먹지 않음
     return () => {
       removeEventListener('pointerdown', mark, true)
       removeEventListener('keydown', mark, true)
@@ -452,20 +453,19 @@ export default function SkillCooldownPrompt(p: SpecimenProps) {
   useLayoutEffect(() => paint())
 
   /* ───── 키보드: 무대에 포커스가 있을 때만 (갤러리 단축키와 겹치지 않는 Q · Shift · E · R) ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.repeat) return
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
     const id: SlotId | null = k === 'q' ? 'primary' : k === 'Shift' ? 'dash' : k === 'e' ? 'utility' : k === 'r' ? 'ult' : null
     if (!id) return
-    e.preventDefault()
-    e.stopPropagation()
+    if (e.repeat) return true // 길게 눌러도 한 번만 쓴다 — 반복 키는 먹기만 한다
     // 이 키 입력은 전역으로 퍼지지 않으므로(useLastInput 이 못 본다) 직접 '키보드'로 표시한다
     if (paramDev === 'auto') {
       setRealDev('keyboard')
       patch(u => (u.override ? { override: null } : {}))
     }
     use(id)
-  }
+    return true
+  })
 
   /* ───── 그리기 ───── */
   const glyphSize = portrait ? 58 : 52

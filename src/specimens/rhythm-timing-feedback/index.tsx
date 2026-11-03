@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { prefersReducedMotion, requestFlash } from '../../core/flash'
 import { clamp, useGameLoop, useTrigger } from '../../core/hooks'
 import { KeyCap } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { BeatSynth, GRADE_SCORE, HIT, SongClock, attachTap, grade, robustMean, jitter, notesBetween, windowsFrames, windowsMs, type Grade, type Note, type Windows } from './model'
 import s from './style.module.css'
@@ -466,17 +467,14 @@ export default function RhythmTimingFeedback(p: SpecimenProps) {
     press(lane, S.clock.posAt(timeStamp) + c.latency, false)
     sync()
   }
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.ctrlKey || e.metaKey || e.altKey) return
-    const tag = (e.target as HTMLElement).tagName
-    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+  // 무대에 포커스가 있을 때만 레인 키를 먹는다(core/stageKeys) — J 가 갤러리 '효과 끄기' 로 가지 않게
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail) return
     const lane = LANE_KEYS[cfgRef.current.lanes].indexOf(e.code)
     if (lane < 0) return // Space · 1~9 · S · A · H 등은 갤러리로 흘려보낸다
-    e.preventDefault()
-    e.stopPropagation() // 무대에 포커스가 있을 때만 J 를 레인으로 쓴다 — 갤러리 '효과 끄기' 로 가지 않게
-    if (e.repeat) return
-    humanPress(lane, e.nativeEvent.timeStamp)
-  }
+    if (!e.repeat) humanPress(lane, e.nativeEvent.timeStamp)
+    return true
+  })
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (p.thumbnail || (e.target as Element).closest('button')) return
     const r = rootRef.current?.getBoundingClientRect()

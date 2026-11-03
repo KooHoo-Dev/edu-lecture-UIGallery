@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useGameLoop, useTrigger } from '../../core/hooks'
 import { createInputLock, type InputLock } from '../../core/inputLock'
 import { ActionGlyph, KeyCap, useLastInputDevice } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { ACTIVATE_S, LOAD_CAP, SCENARIOS, TIPS, isReady, predictReady, realAt, scriptSteps, stageAt, stepDisplay, type Scenario } from './model'
 import s from './style.module.css'
@@ -253,25 +254,27 @@ export default function LoadingScreen(p: SpecimenProps) {
   }
 
   /** kind: 키 · 클릭 · 이벤트 버튼. 도착한 뒤에는 클릭으로만 다시 불러온다 (키는 다음 화면의 것 — 입력 소비) */
-  const press = (kind: 'key' | 'click' | 'event') => {
+  /** 무언가 했으면(안내 문구 · 다시 불러오기 · 활성화) true — 키 핸들러가 이 키를 먹을지 정한다 */
+  const press = (kind: 'key' | 'click' | 'event'): boolean => {
     const S = simRef.current!
     const c = cfgRef.current
     if (S.phase === 'arrived') {
       if (kind === 'click' && !S.arriveLock.blocks(S.t * 1000)) restart(S.sc.id)
       else if (kind !== 'click') S.flash = { text: '이미 도착 — 남은 키 입력은 버린다 (다시 하려면 클릭이나 ‘처음부터’)', bad: false, until: S.t + 2 }
-      return
+      return true
     }
     if (S.phase === 'loading') {
       if (c.juice) S.flash = { text: '아직 불러오는 중 — 키 입력은 준비 완료 뒤에만 받는다', bad: false, until: S.t + 2 }
-      return
+      return c.juice
     }
-    if (S.phase !== 'ready' || !c.wait) return
+    if (S.phase !== 'ready' || !c.wait) return false
     if (c.juice && S.lock.blocks(S.t * 1000)) {
       S.flash = { text: `입력 잠금 ${LOCK_MS / 1000}초 — 로딩 중 연타가 바로 넘기지 않게 막았다`, bad: false, until: S.t + 1.6 }
-      return
+      return true
     }
     S.pressAt = S.t
     activate(S)
+    return true
   }
 
   useTrigger(p.trigger, id => {
@@ -349,25 +352,25 @@ export default function LoadingScreen(p: SpecimenProps) {
   useLayoutEffect(() => paint())
 
   /* ───── 입력 ───── */
-  const RESERVED = new Set(['j', 's', 'a', 'h', 'p', 'escape', 'tab'])
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (p.thumbnail || e.ctrlKey || e.metaKey || e.altKey) return
+  /* '아무 키' 에서 뺀다: 갤러리 단축키(1~9 · J S A H P · Esc · Tab)와 브라우저 키(F1~F12 · 페이지 이동 · 방향키 위아래) · 조합 보조키.
+   * Space 는 키를 기다리는 '준비 완료' 에서만 아무 키로 쓴다 — 그 밖에는 갤러리 재생/정지로 */
+  const NOT_ANY_KEY = /^([0-9]|[jsahp]|escape|tab|f\d{1,2}|page(up|down)|home|end|arrow(up|down|left|right)|shift|control|alt|meta|capslock|numlock|scrolllock|contextmenu|dead|process|unidentified)$/
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
+    if (p.thumbnail) return
     const k = e.key.toLowerCase()
-    if (RESERVED.has(k) || /^[0-9]$/.test(k)) return // 갤러리 단축키는 그대로 둔다
-    if (k === 'arrowleft' || k === 'q') {
-      if (!cfgRef.current.juice) return
-      flipTip(-1)
-    } else if (k === 'arrowright' || k === 'e') {
-      if (!cfgRef.current.juice) return
-      flipTip(1)
-    } else {
-      if (e.repeat) return
-      press('key')
+    if (k === 'arrowleft' || k === 'q' || k === 'arrowright' || k === 'e') {
+      // 팁 넘기기 — 효과를 켰고 아직 도착 전일 때만 (먼저 눌린 키가 갤러리 ←/→ 를 가리지 않게)
+      if (!cfgRef.current.juice || simRef.current!.phase === 'arrived') return
+      flipTip(k === 'arrowleft' || k === 'q' ? -1 : 1)
+      sync(true)
+      return true
     }
-    e.preventDefault()
-    e.stopPropagation()
+    if (NOT_ANY_KEY.test(k) || e.repeat) return // 갤러리 · 브라우저 키는 그대로 흘려보낸다
+    if (k === ' ' && simRef.current!.phase !== 'ready') return
+    if (!press('key')) return
     sync(true)
-  }
+    return true
+  })
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (p.thumbnail || e.button !== 0 || (e.target as Element).closest('button')) return
     press('click')
@@ -432,7 +435,7 @@ export default function LoadingScreen(p: SpecimenProps) {
       data-phase={S.phase}
       style={{ '--ts': ts } as CSSProperties}
       tabIndex={p.thumbnail ? -1 : 0}
-      aria-label="로딩 화면 데모 (←/→ 팁 넘기기, 준비 완료 뒤 아무 키 · 클릭으로 계속)"
+      aria-label="로딩 화면 데모 (←/→ 팁 넘기기, 준비 완료 뒤 아무 키(갤러리 단축키 제외) · 클릭으로 계속)"
       onKeyDown={onKeyDown}
       onPointerDown={onPointerDown}
     >

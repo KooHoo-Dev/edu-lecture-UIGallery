@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../../core/flash'
 import { useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
 import { ActionGlyph, DPad, KeyCap, StartButton, useLastInput, type Device } from '../../core/input'
 import { bool, num, str } from '../../core/params'
+import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
 import { getPanel, siblingsOf, STATUS, type Item } from './data'
 import {
@@ -368,7 +369,7 @@ export default function MainPauseMenu(p: SpecimenProps) {
   })
 
   /* ───── 키보드 · 포인터 (무대에 포커스가 있을 때만) ───── */
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const k = e.key
     const inp: Input | null =
@@ -390,15 +391,12 @@ export default function MainPauseMenu(p: SpecimenProps) {
                       ? 'pageNext'
                       : null
     if (!inp) return
-    // 처리한 키는 갤러리 단축키(←/→ 해설 넘김, Esc 발표 모드 해제)로 번지지 않게 막는다
-    // (그래서 window 의 useLastInput 은 이 키를 못 본다 → real 로 장치를 직접 기록)
-    e.preventDefault()
-    e.stopPropagation()
+    // 처리한 키는 갤러리 단축키(←/→ 해설 넘김, Esc 발표 모드 해제)로 번지지 않게 먹는다 (core/stageKeys)
     real('keyboard')
     // 길게 눌러 생기는 반복 입력은 방향키만 — 확정·뒤로는 한 번 누름에 한 번
-    if (e.repeat && inp !== 'up' && inp !== 'down') return
-    feed(inp, 'keyboard')
-  }
+    if (!e.repeat || inp === 'up' || inp === 'down') feed(inp, 'keyboard')
+    return true
+  })
   const toLogical = (e: { clientX: number; clientY: number }) => {
     const rr = rootRef.current!.getBoundingClientRect()
     const k = rr.width / 1920 || 1
