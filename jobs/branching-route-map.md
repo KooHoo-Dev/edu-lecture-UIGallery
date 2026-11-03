@@ -1,5 +1,5 @@
 ---
-# 3순위 파일럿 (plan 11). tools/workflow/make-jobs.mjs 로 만들었다.
+# 3순위 파일럿 (plan 10). tools/workflow/make-jobs.mjs 로 만들었다.
 model: claude-opus-5-5
 effort: high
 budgetUsd: 15

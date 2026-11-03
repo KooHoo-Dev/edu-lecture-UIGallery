@@ -4,7 +4,7 @@
 > 잘 만든 게임 UI를 분석해 **원리를 해부하고, 새 코드로 다시 만들어** 라이브로 보여 주고, Unity(UGUI · UI Toolkit) 구현법까지 연결한다.
 
 - 작성: 2026-10-10
-- 상태: MVP 13개 공개(2026-10-21) → 1순위 배치 8개 완료(2026-10-24) → 2순위 배치 8개 완료(2026-11-02) → **3순위 후보 대기**
+- 상태: MVP 13개 공개(2026-10-21) → 1순위 배치 8개 완료(2026-10-24) → 2순위 배치 8개 완료(2026-11-02) → 3순위 파일럿 1개를 API 워커로 완료(2026-11-03, 10절) → **3순위 묶음 대기**
 
 ## 진행 현황 (2026-11-03)
 
@@ -22,7 +22,8 @@
 | 8 정비 | 완료 (2026-11-02) | 상세 페이지 AI 프롬프트 란(Shader 갤러리에서 이식) · 표본별 C# namespace · **Unity 6000.3 실제 컴파일 · 임포트 확인**(C# 버그 2 · UXML 4 수정, `tools/unity-compile.ps1` · check.py UXML 검사) · 주제 태그 '접근성' · 2순위용 공통 부품(가상화 리스트 · 입력 잠금 · BindingGlyph) |
 | 9 2순위 배치 8개 | 완료 (2026-11-02) | 1차: 로딩 화면 · 키 리바인딩 · 턴 순서 타임라인 · 재활용 스크롤 / 2차: 배틀패스 · 뽑기 · 건설 배치 · 리듬 판정. 표본마다 구현 → 독립 리뷰 → 수정 → tsc · `unity-compile.ps1` · Unity 6000.3 에디터 임포트(컴포넌트 연결 · UXML CloneTree) · build · check → 커밋. 전체 29개, Unity C# 195개 함께 컴파일 · 전역 이름 중복 0 |
 | 10 공통화: 단축키 가드 | 완료 (2026-11-03) | `core/stageKeys.ts`(`stageKeyDown` · `useStageKeys`)로 22개 표본의 키 처리 통일 → 독립 리뷰 → 수정. 가이드 3절 '키보드' · 9절 체크리스트, `check.py` 규칙 추가 |
-| 용량 | 82% (gzip 80%) | 원본 4,192 / 5,120 KB · gzip 1,234 / 1,536 KB. 2순위 표본은 92~131 KB(평균 약 110 KB, gzip 33 KB)라 남은 예산으로 **8개 안팎**이 들어간다. 3순위를 다 넣으려면 지연 로드나 예산 재검토가 필요하다 |
+| 11 API 워커 도입 · 3순위 파일럿 | 완료 (2026-11-03) | JayDispatch 워커(Opus 5.5, 회사 플랜 크레딧)로 `branching-route-map`(분기 경로 맵) 구현 → 독립 리뷰 → 수정 잡 → 병합. 표본 합계 약 $10.2. 흐름과 결과는 [10절](#10-api-워커로-표본-만들기-2026-11-03) |
+| 용량 | 84% (gzip 82%) | 원본 4,298 / 5,120 KB · gzip 1,266 / 1,536 KB (표본 30개). 분기 경로 맵은 원본 +117 KB · gzip +36 KB. 남은 예산으로 **5~6개**가 들어간다. 3순위를 다 넣으려면 지연 로드나 예산 재검토가 필요하다 |
 
 ### 공통화 백로그 (표본 구현 중 에이전트들이 보고한 후보)
 
@@ -56,6 +57,9 @@
 | `moveTowards(cur, target, maxDelta)` (`damp` 의 선형판) · 실제 vs 표시 비교 그래프 | loading-screen |
 | `Binding` 에 스틱 · 트리거 종류, `unityPath(Binding)` · 표준 Gamepad API 버튼 → Binding | input-rebinding |
 | Unity: 번쩍임 제한기 C# 판(`RequestFlash`) — UGUI · UITK 에 같은 코드 | gacha-reveal-odds |
+| 시드 난수기 mulberry32 + FNV-1a 지문 → `core/random.ts` (C# 판도 같은 연산) | branching-route-map, gacha-reveal-odds(`makeRng`) |
+| `shot.py`: 이벤트 진행 중 · 도착 같은 상태에서도 모든 `data-part` 가 있는지 세는 검사 | branching-route-map 리뷰 |
+| 앱: 세로 9:16 무대에서 해설 번호가 대상보다 위로 끌려 올라가 범례 · 노드를 가린다(`Stage.tsx` `placePins` 확인 필요) | branching-route-map 리뷰 |
 
 전체 검토(`research/review.json`)에서 나온 공통 제안 중 **공통 유틸**(카운트업, 부유 요소 배치, 투영·클램프, 입력 글리프, 실루엣 키트)과 **공통 세계관**은 반영했다 → [specimen-guide.md](specimen-guide.md). 패러다임 커버리지 보강(Meta 독립 표본, 월드 상호작용 프롬프트 등)과 장르 보강(무기 휠, 카드 손패, 킬 피드, 레이싱)은 2단계 백로그 후보.
 
@@ -261,3 +265,50 @@ Dead Space · Metroid Prime Remastered · Persona 5 Royal · NieR:Automata · De
    winget install OpenJS.NodeJS.LTS
    ```
 3. (선택) 1절의 '기본값으로 둔 미정 사항'
+
+---
+
+## 10. API 워커로 표본 만들기 (2026-11-03)
+
+Shader Gallery 에서 쓰던 분업을 옮겼다. 구독 세션은 후보 고르기, 명세, 리뷰, 병합을 맡고, 표본 구현과 리뷰 반영은 JayDispatch 워커(`C:\Users\user\JayTools\JayDispatch`)가 한다. 워커는 Opus 5.5(effort high)이고 프로필 `org`(회사 플랜 크레딧)로 돈다. 회사 크레딧은 11월 19일(UTC)에 만료되고 이월되지 않는다. Shader Gallery 와 교안 갤러리 kit 이 같은 잔액을 쓴다.
+
+### 흐름
+
+1. 명세를 `tools/workflow/specs/<묶음>.mjs` 에 쓰고 `node tools/workflow/make-jobs.mjs <명세>` 로 `jobs/<id>.md` 를 만든다. 등록은 폴더를 glob 하므로 자리표시 항목이 필요 없다.
+2. `dispatch run --parallel N --repo C:/Users/user/UIGallery` 를 실행한다. 명령이 없으면 `node C:/Users/user/JayTools/JayDispatch/bin/dispatch.mjs` 를 쓴다. 워커는 `dispatch/<id>` worktree 에서 일하고, 도구가 verify 를 돌려 통과한 것만 그 브랜치에 커밋한다.
+3. `sh tools/workflow/prepare-review.sh <id> <shot.py 상태...>` 로 `_review/<id>/` 를 만든다. 코드, 화면, 워커 보고가 모인다.
+4. general-purpose 서브에이전트에게 `tools/workflow/review-brief.md` 를 따르게 해 독립 리뷰를 받는다. 지적은 코드와 화면으로 직접 확인한 뒤 받아들인다.
+5. 구현 브랜치를 main 에 병합한다. 메시지는 "표본 병합: <id> (구현, 리뷰 전)".
+6. `tools/workflow/specs/<묶음>-fix.mjs` 에 지적을 적고 `node tools/workflow/make-fix-jobs.mjs <명세>` 다음 `dispatch run` 으로 수정 잡을 돌린다. 끝나면 `dispatch/<id>-fix` 를 병합한다.
+7. 메인에서 `npx tsc --noEmit`, `unity-compile.ps1`(전체), `npm run build`, `python tools/check.py` 를 돌린 뒤 커밋하고 push 한다.
+
+- verify 명령: `node tools/worktree-link.mjs`, `npx tsc --noEmit`, `unity-compile.ps1 -Specimen <id>`, `npm run build`, `python tools/check.py`. Unity 컴파일은 에디터 없이 Roslyn 으로 하므로 잠금이 필요 없다.
+- worktree 에는 `node_modules` 가 없다. `tools/worktree-link.mjs` 가 메인 폴더의 것을 정션으로 잇는다. `live.mjs` 와 `shot.py` 는 이 연결을 알아서 부르고, JayDispatch 는 worktree 를 지울 때 정션만 지운다.
+- 워커에게 웹 도구를 주지 않는다. 근거는 후보 카드의 출처만 쓴다 (agent-contract 리서치 규칙).
+- 워커는 `npm run build` 와 `check.py` 를 직접 돌리지 못한다. 그래도 verify 가 돌리므로 따로 허용하지 않았다.
+
+### 파일럿: branching-route-map (분기 경로 맵)
+
+| 단계 | 비용 (추정) | 시간 |
+|---|---|---|
+| 구현 | $5.84 | 23분 |
+| 리뷰 반영 수정 | $4.32 | 14분 |
+| 합계 | $10.16 | |
+
+- 결과: 웹 4파일(`map.ts` 생성기), UGUI 4파일, UI Toolkit 3파일. 원본 +117 KB, gzip +36 KB.
+- 웹과 C# 생성기는 같은 시드 난수기(mulberry32)와 지문(FNV-1a)을 쓴다.
+  - 구독 세션이 두 판을 실제로 돌려 1,600 가지 설정에서 지문이 같음을 확인했다. 리뷰어는 54만 개 지도로 확인했다.
+  - 지도 5,600개에서 교차, 막다른 노드, 초반 강적, 목표 앞 정비, 회수 규칙 위반은 0이다.
+  - 웹은 Node 의 타입 지우기로 `map.ts` 를 그대로 돌렸다. C# 은 Unity 에 들어 있는 Roslyn 과 .NET 런타임으로 콘솔 하네스를 만들었다.
+- 리뷰가 찾은 필수 결함 6개:
+  - UI Toolkit 에서 `StopPropagation` 만으로는 기본 포커스 이동이 막히지 않는다.
+  - UGUI 에서 키보드로 고른 노드가 보이지 않는다.
+  - 흔들림 때문에 노드가 겹친다.
+  - 저장 JSON 에 지문이 없어 불러오기 검증이 가짜였다.
+  - UGUI 레이어 앵커 때문에 지도가 화면 밖으로 밀린다.
+  - 목표 도착 때 해설 대상이 DOM 에서 빠진다.
+  - 수정 잡 한 번에 모두 반영했다. 같은 UITK 결함이 있던 `dialogue-choices` 는 구독 세션이 고치고 가이드 8 · 9절에 규칙을 넣었다.
+- 확인하지 못한 것:
+  - Unity 에디터 임포트(컴포넌트 연결, UXML CloneTree)와 Play 모드 동작은 확인하지 못했다. `UIGallery-compile` 프로젝트가 에디터에 열려 있어 일괄 실행을 못 했다.
+  - 세로 9:16 의 해설 번호 위치는 앱 쪽 과제로 공통화 백로그에 넣었다.
+- 판단: 표본당 약 $10 이면 남은 크레딧으로 용량 예산(5~6개)을 다 채울 수 있다. 품질은 리뷰 한 번과 수정 잡 한 번으로 기존 표본과 같은 수준에 왔다.

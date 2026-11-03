@@ -1,7 +1,7 @@
 // 3순위 파일럿 (2026-11-03): API 워커로 만드는 첫 UI 표본
 export default [
   {
-    id: 'branching-route-map', pascal: 'BranchingRouteMap', batch: '3순위 파일럿', planSection: '11',
+    id: 'branching-route-map', pascal: 'BranchingRouteMap', batch: '3순위 파일럿', planSection: '10',
     cardSection: '3절 (3순위 후보 풀)',
     samples: ['red-dot-badge-tree', 'card-hand-targeting'],
     meta: "제목 '분기 경로 맵', 그룹 D(메뉴 · 흐름), order 6, 난이도 2. `stage.aspect` 는 'both' (세로 9:16 이 자연스러운 화면이다).",
