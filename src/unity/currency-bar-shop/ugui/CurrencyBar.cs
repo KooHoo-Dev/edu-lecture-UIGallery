@@ -1,7 +1,5 @@
-// 재화 바 — 씬이 바뀌어도 남는 공용 UI (DontDestroyOnLoad). Wallet.Changed 를 구독해 숫자를 바꾼다.
-// - 줄어들면 바로 줄인다. 늘어나면 Fly 로 날아온 첫 아이콘이 칸에 닿은 뒤 카운트업(고정 시간 + 감속 곡선)
-// - 코인 비행: ObjectPool<Image> + 2차 베지어. 아이콘 프리팹은 Raycast Target 을 끄고 앵커 · 피벗을 가운데로
-// - feedback 을 끄면 '나쁜 예': 날아가는 아이콘 · 칸 강조 · +N 없이 숫자만 바뀐다
+// 재화 바 — 씬이 바뀌어도 남는 공용 UI (DontDestroyOnLoad). Wallet.Changed 를 구독해 줄면 바로, 늘면 날아온 아이콘이 닿은 뒤 카운트업.
+// 코인은 ObjectPool<Image> + 2차 베지어 (프리팹은 Raycast Target 끔 · 피벗 가운데). feedback 을 끄면 '나쁜 예': 숫자만 바뀐다.
 using System;
 using System.Collections;
 using TMPro;
@@ -22,7 +20,8 @@ namespace UIGallery.CurrencyBarShop
             [Tooltip("+15,000 처럼 잠시 뜨는 글자")] public TextMeshProUGUI gain;
             [Tooltip("충전 버튼 (크레딧은 비워 둔다)")] public Button plus;
             [NonSerialized] public float shown;
-            [NonSerialized] public int pendingFlights;
+            // gen: 정산할 때마다 늘린다 — 그 전에 떠난 아이콘은 닿아도 숫자를 다시 올리지 않는다
+            [NonSerialized] public int pendingFlights, gen;
             [NonSerialized] public Coroutine counting, gainFade;
         }
 
@@ -33,8 +32,7 @@ namespace UIGallery.CurrencyBarShop
         [SerializeField] Image coinPrefab;
         [Tooltip("Currency 순서: 크레딧 · 결정 · 에너지")] [SerializeField] Sprite[] coinSprites = new Sprite[3];
         [SerializeField] int coinsPerGrant = 8;
-        [SerializeField] float flySeconds = 0.7f;
-        [SerializeField] float countUpSeconds = 0.9f;
+        [SerializeField] float flySeconds = 0.7f, countUpSeconds = 0.9f;
         [SerializeField] bool feedback = true;
 
         /// <summary>+ 버튼 — 상점이 구독한다 (상점이 사라질 때 꼭 해제)</summary>
@@ -54,14 +52,8 @@ namespace UIGallery.CurrencyBarShop
             }
             Instance = this;
             DontDestroyOnLoad(transform.root.gameObject);
-            pool = new ObjectPool<Image>(
-                createFunc: () => Instantiate(coinPrefab, flyLayer),
-                actionOnGet: c => c.gameObject.SetActive(true),
-                actionOnRelease: c => c.gameObject.SetActive(false),
-                actionOnDestroy: c => Destroy(c.gameObject),
-                collectionCheck: true,
-                defaultCapacity: 32,
-                maxSize: 96);
+            // 켜고 끄기는 SetActive 대신 Image.enabled — OnDisable(부모가 꺼지는 중)에 자식 SetActive 를 부르면 오류가 난다
+            pool = new ObjectPool<Image>(() => Instantiate(coinPrefab, flyLayer), c => c.enabled = true, c => c.enabled = false, c => Destroy(c.gameObject), true, 32, 96);
             foreach (Slot s in slots)
             {
                 if (s.plus == null) continue;
@@ -90,7 +82,7 @@ namespace UIGallery.CurrencyBarShop
         {
             if (wallet != null) wallet.Changed -= OnChanged;
             StopAllCoroutines();
-            // 날던 아이콘은 코루틴과 함께 멈춘다 — 화면에 남지 않게 풀로 돌려준다 (다시 켜면 OnEnable 이 숫자를 지갑 값으로 맞춘다)
+            // 날던 아이콘은 코루틴과 함께 멈춘다 — 풀로 돌려준다 (다시 켜면 OnEnable 이 숫자를 지갑 값으로 맞춘다)
             foreach (Image c in flying) pool.Release(c);
             flying.Clear();
         }
@@ -106,25 +98,26 @@ namespace UIGallery.CurrencyBarShop
         {
             Slot s = Find(c);
             if (s == null) return;
-            if (now < old)
+            if (now < old || !feedback)
             {
-                // 쓰는 것은 기다릴 이유가 없다 — 바로 줄이고, 올라가던 중이면 남은 목표로 다시 센다
-                s.shown -= old - now;
-                if (s.counting != null) CountTo(s);
-                else Draw(s);
+                // 쓰는 것은 바로 줄인다. 같은 재화가 날아오거나 오르는 중이면 먼저 정산한다 — 표시값에서 빼면 음수가 보일 수 있다
+                Settle(s, now);
                 if (feedback) ShowGain(s, now - old);
-                return;
-            }
-            if (!feedback)
-            {
-                if (s.counting != null) StopCoroutine(s.counting);
-                s.counting = null;
-                s.shown = now;
-                Draw(s);
                 return;
             }
             if (s.pendingFlights > 0) return;   // 날아오는 아이콘이 닿을 때 올린다
             CountTo(s);                         // 날아오는 것 없이 늘어난 값(시간 회복 등)은 바로
+        }
+
+        /// <summary>날아오거나 오르는 중인 것을 끝내고 표시값 = 지갑 값으로 맞춘다</summary>
+        void Settle(Slot s, int value)
+        {
+            if (s.counting != null) StopCoroutine(s.counting);
+            s.counting = null;
+            s.pendingFlights = 0;
+            s.gen++;
+            s.shown = value;
+            Draw(s);
         }
 
         /// <summary>지갑에 더하기 '전에' 부른다 — 그래야 Changed 가 왔을 때 날아오는 중인 줄 안다</summary>
@@ -132,12 +125,14 @@ namespace UIGallery.CurrencyBarShop
         {
             Slot s = Find(c);
             if (s == null || !feedback) return;
+            // 같은 재화의 앞선 지급이 아직 오는 중이면 먼저 정산 — 이번 +N 과 카운트업이 묻히지 않게
+            if (s.pendingFlights > 0 || s.counting != null) Settle(s, wallet[c]);
             s.pendingFlights++;
             int n = c == Currency.Energy ? Mathf.Max(1, coinsPerGrant / 2) : coinsPerGrant;
-            for (int i = 0; i < n; i++) StartCoroutine(FlyOne(s, amount, fromScreen, delay + i * 0.05f, i));
+            for (int i = 0; i < n; i++) StartCoroutine(FlyOne(s, amount, fromScreen, delay + i * 0.05f, i, s.gen));
         }
 
-        IEnumerator FlyOne(Slot s, int amount, Vector2 fromScreen, float delay, int i)
+        IEnumerator FlyOne(Slot s, int amount, Vector2 fromScreen, float delay, int i, int gen)
         {
             for (float w = 0f; w < delay; w += Time.unscaledDeltaTime) yield return null;
             // Overlay Canvas 라 카메라 인자는 null
@@ -164,7 +159,7 @@ namespace UIGallery.CurrencyBarShop
             flying.Remove(coin);
             pool.Release(coin);
             StartCoroutine(Pulse(s.icon));
-            if (i == 0)
+            if (i == 0 && gen == s.gen)
             {
                 s.pendingFlights--;
                 ShowGain(s, amount);

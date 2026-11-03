@@ -7,7 +7,7 @@ import { createInputLock, type InputLock } from '../../core/inputLock'
 import { num, str } from '../../core/params'
 import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
-import { CUR_NAME, ENERGY_MAX, PRODUCTS, START, fmt, gemToKrw, packFor, product, remain, won, type Cur, type Product } from './data'
+import { CUR_NAME, ENERGY_MAX, PRODUCTS, START, fmt, gemToKrw, packsFor, product, remain, won, type Cur, type Product } from './data'
 import s from './style.module.css'
 
 export { meta } from './meta'
@@ -41,7 +41,7 @@ interface Sim {
   pulse: Record<Cur, number>
   gain: Record<Cur, { text: string; until: number; minus: boolean } | null>
   modal: { id: string; openAt: number; focus: Focus; autoCharge: boolean } | null
-  paying: { id: string; at: number; delay: number; charge: string | null } | null
+  paying: { id: string; at: number; delay: number; charge: ReturnType<typeof packsFor> | null } | null
   coins: Coin[]
   hlUntil: number
   note: { text: string; bad: boolean; until: number } | null
@@ -71,17 +71,15 @@ function initial(openModal: boolean, dark: boolean): Sim {
     pressAt: -1,
     spentKrw: 0,
     log: '모의 상점 — 실제 결제는 일어나지 않는다',
-    autoStep: 0,
+    // 첫 화면의 꾸러미 창이 자동 데모 첫 단계('묶음 상품 열기')를 대신한다 — 꾸러미를 두 번 사지 않게
+    autoStep: openModal ? 1 : 0,
     humanAt: -100,
     version: 0,
   }
 }
 
-/**
- * 재화 바 · 상점 · 구매 확인 · 획득 피드백.
- * 재화 바는 창이 떠도 맨 위에 남는다(같은 데이터를 읽는 공용 UI). 확인 창은 가격 · 구매 후 잔액 · 청약철회를 보여 주고, 확인 버튼은 누른 시각 기준 입력 잠금.
- * 산 재화는 아이콘이 바로 날아가 도착한 뒤에 숫자가 오른다(core/countup). uiMode=dark 는 '하지 말아야 할 예' — 다크패턴 4가지를 표시와 함께 보여 준다.
- */
+/** 재화 바(창이 떠도 맨 위) · 상점 · 구매 확인(누른 시각 기준 입력 잠금) · 날아간 뒤 오르는 숫자.
+ * uiMode=dark 는 '하지 말아야 할 예' — 넣은 다크패턴마다 꼬리표를 단다 */
 export default function CurrencyBarShop(p: SpecimenProps) {
   const juice = p.juice
   const dark = str(p.params, 'uiMode', 'honest') === 'dark'
@@ -138,23 +136,29 @@ export default function CurrencyBarShop(p: SpecimenProps) {
   }
 
   /* ───── 재화 변화 ───── */
-  const retarget = (cur: Cur) => {
-    const c = S.count[cur]
-    if (c) S.count[cur] = createCountUp(S.shown[cur], S.bal[cur], cfgRef.current.countUpMs * (1 - c.progress))
+  /** 이 재화가 날아오거나 오르는 중이면 먼저 정산한다 (표시값 = 실제 잔액). 날던 아이콘은 계속 날지만 숫자를 다시 올리지 않는다 */
+  const settle = (cur: Cur) => {
+    for (const c of S.coins)
+      if (c.cur === cur && c.lead) {
+        S.gain[cur] = { text: `+${fmt(c.lead)}`, until: S.t + 1.8, minus: false }
+        c.lead = 0
+      }
+    delete S.count[cur]
+    S.shown[cur] = S.bal[cur]
   }
   const spend = (cur: Cur, amount: number) => {
+    settle(cur)
     S.bal[cur] -= amount
-    S.shown[cur] -= amount // 쓰는 것은 바로 줄인다 (기다릴 이유가 없다)
-    retarget(cur)
+    S.shown[cur] = S.bal[cur] // 쓰는 것은 바로 줄인다 (기다릴 이유가 없다)
     if (cfgRef.current.juice) S.gain[cur] = { text: `−${fmt(amount)}`, until: S.t + 1.4, minus: true }
   }
   const grant = (cur: Cur, amount: number, from: { x: number; y: number }, order: number) => {
     const c = cfgRef.current
+    settle(cur) // 같은 재화의 앞선 지급이 날아오는 중이면 그것을 먼저 끝내야 이번 +N 과 카운트업이 따로 보인다
     S.bal[cur] += amount
     if (!c.juice) {
       // 나쁜 예: 숫자만 바뀐다 — 무엇이 얼마나 들어왔는지 놓친다
       S.shown[cur] = S.bal[cur]
-      delete S.count[cur]
       return
     }
     const to = center(iconRefs.current[cur])
@@ -195,8 +199,12 @@ export default function CurrencyBarShop(p: SpecimenProps) {
 
   /* ───── 확인 창 ───── */
   const shortOf = (pr: Product) => ('cur' in pr.price ? Math.max(0, pr.price.amount - S.bal.gem) : 0)
+  /** 창을 연 카드 · 버튼 — 창이 닫히면 포커스를 여기로 돌려준다 */
+  const opener = useRef<HTMLElement | null>(null)
   const openModal = (id: string) => {
     if (S.paying) return
+    const a = document.activeElement
+    if (!S.modal) opener.current = a instanceof HTMLElement && a !== rootRef.current && rootRef.current?.contains(a) && !a.closest('[role=dialog]') ? a : null
     S.modal = { id, openAt: S.t, focus: cfgRef.current.dark ? 'buy' : 'cancel', autoCharge: true }
     lock.open(S.t * 1000)
     touch()
@@ -207,6 +215,13 @@ export default function CurrencyBarShop(p: SpecimenProps) {
     if (why) note(why)
     touch()
   }
+  /** 창을 닫고 충전 상품 목록을 강조한다. 포커스는 첫 충전 상품으로 */
+  const toPacks = (why: string) => {
+    if (S.modal) opener.current = rootRef.current?.querySelector<HTMLElement>(`.${s.pack}`) ?? null
+    S.modal = null
+    S.hlUntil = S.t + 3.2
+    note(why)
+  }
 
   /** 주 버튼(구매 · 충전 안내) 누름. at = 누른 시각(초) */
   const pressPrimary = (at: number, source: string) => {
@@ -216,14 +231,10 @@ export default function CurrencyBarShop(p: SpecimenProps) {
     if (lock.blocks(at * 1000)) return note(`${source} — 창이 막 떠서 무시 (입력 잠금 ${c.lockMs}ms)`)
     const pr = product(m.id)
     const short = shortOf(pr)
-    let charge: string | null = null
+    let charge: ReturnType<typeof packsFor> | null = null
     if (short > 0) {
-      if (!c.dark || !m.autoCharge) {
-        S.modal = null
-        S.hlUntil = S.t + 3.2
-        return note(`결정 ${fmt(short)}개 부족 — 충전 상품을 직접 고른 뒤 다시 산다 (자동 결제 없음)`)
-      }
-      charge = packFor(short).id
+      if (!c.dark || !m.autoCharge) return toPacks(`결정 ${fmt(short)}개 부족 — 충전 상품을 직접 고른 뒤 다시 산다 (자동 결제 없음)`)
+      charge = packsFor(short)
     }
     if (source === '연타') note(`⚠ 창이 뜨자마자 연타가 구매를 눌렀다 (뜬 뒤 ${Math.round((at - m.openAt) * 1000)}ms) — 잠금 ${c.lockMs}ms`, true)
     // 원화 결제(또는 몰래 충전)는 스토어 확인을 기다린다. 그동안 버튼을 막아 두 번 결제되지 않게
@@ -236,22 +247,22 @@ export default function CurrencyBarShop(p: SpecimenProps) {
     if (!pay) return
     const pr = product(pay.id)
     const from = center(modalIconRef.current)
-    if (pay.charge) {
-      const pack = product(pay.charge)
-      const krw = 'krw' in pack.price ? pack.price.krw : 0
-      S.bal.gem += pack.gives[0].amount
-      S.shown.gem += pack.gives[0].amount
-      retarget('gem')
-      S.spentKrw += krw
-      note(`⚠ 부족분 '자동 충전' 으로 ${won(krw)} 결제 — 창에는 원화가 한 번도 보이지 않았다`, true)
-    }
-    if ('krw' in pr.price) S.spentKrw += pr.price.krw
-    else spend('gem', pr.price.amount)
-    pr.gives.forEach((g, i) => grant(g.cur, g.amount, from, i))
-    S.log = `${pr.name} 구매 완료${pr.items && 'cur' in pr.price ? ` · ${pr.items} → 보관함` : ''} · 이번 시연의 모의 결제 합계 ${won(S.spentKrw)}`
     S.paying = null
     S.modal = null
     touch()
+    const ch = pay.charge
+    if (ch) {
+      S.bal.gem += ch.gems
+      settle('gem')
+      S.spentKrw += ch.krw
+      note(`⚠ 부족분 '자동 충전' 으로 ${ch.names.join(' + ')} · ${won(ch.krw)} 결제 — 창에는 원화가 한 번도 보이지 않았다`, true)
+    }
+    if ('krw' in pr.price) S.spentKrw += pr.price.krw
+    // 누른 뒤 잔액이 바뀌었으면 빼지도 주지도 않고 멈춘다 (실제 게임은 서버가 이 확인을 한다)
+    else if (S.bal.gem < pr.price.amount) return note(`결정이 모자라 구매 중단 — 아무것도 빼거나 주지 않았다`, true)
+    else spend('gem', pr.price.amount)
+    pr.gives.forEach((g, i) => grant(g.cur, g.amount, from, i))
+    S.log = `${pr.name} 구매 완료${pr.items && 'cur' in pr.price ? ` · ${pr.items} → 보관함` : ''} · 이번 시연의 모의 결제 합계 ${won(S.spentKrw)}`
   }
 
   const reset = () => {
@@ -345,11 +356,11 @@ export default function CurrencyBarShop(p: SpecimenProps) {
     }
     if (S.coins.length) {
       const left: Coin[] = []
+      // 도착은 paint 가 DOM 으로 그린다 — 코인마다 리렌더하지 않는다
       for (const c of S.coins) {
         if (S.t - c.start >= FLY_DUR) arrive(c)
         else left.push(c)
       }
-      if (left.length !== S.coins.length) touch()
       S.coins = left
     }
     for (const cur of CURS) {
@@ -428,6 +439,22 @@ export default function CurrencyBarShop(p: SpecimenProps) {
   const pressedAt = useRef(0)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const buyRef = useRef<HTMLButtonElement>(null)
+  // 창이 열리면 기본 버튼에, 닫히면 창을 연 카드에 포커스 (무대 안에 포커스가 있을 때만 — 조절 패널의 포커스는 건드리지 않는다)
+  const wasOpen = useRef(!!S.modal)
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    const open = !!S.modal
+    const changed = open !== wasOpen.current
+    wasOpen.current = open
+    const a = document.activeElement
+    if (!root || p.thumbnail || !(a instanceof HTMLElement) || !root.contains(a)) return
+    const inModal = !!a.closest('[role=dialog]')
+    // 결제 중에는 창 버튼이 꺼져 포커스가 사라지므로 무대 루트가 잠시 맡는다
+    if (S.paying && inModal) root.focus()
+    if (!changed) return
+    if (S.modal) (S.modal.focus === 'buy' ? buyRef : cancelRef).current?.focus()
+    else if (a === root || inModal) (opener.current?.isConnected ? opener.current : root).focus()
+  })
   const focusTo = (f: Focus) => {
     if (S.modal && S.modal.focus !== f) {
       S.modal.focus = f
@@ -439,7 +466,8 @@ export default function CurrencyBarShop(p: SpecimenProps) {
   const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail || !S.modal) return
     const m = S.modal
-    const onButton = !!(e.target as HTMLElement).closest('button')
+    // 창 안의 버튼에 포커스가 있을 때만 그 버튼이 Enter 를 받는다 (진열 카드에 남은 포커스가 창을 다시 열지 않게)
+    const onButton = !!(e.target as HTMLElement).closest('[role=dialog] button')
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       m.focus = m.focus === 'buy' ? 'cancel' : 'buy'
       // 실제 포커스가 창의 버튼에 있으면 같이 옮긴다 (보이는 선택과 Enter 가 누를 버튼이 같게)
@@ -504,8 +532,8 @@ export default function CurrencyBarShop(p: SpecimenProps) {
             }}
             className={s.slot}
             data-cur={cur}
-            data-part={cur === 'gem' ? 'bar' : cur === 'credit' ? 'fly' : undefined}
-            data-pin="below"
+            data-part={cur === 'energy' ? 'bar' : cur === 'credit' ? 'fly' : undefined}
+            data-pin={cur === 'credit' && p.aspect !== '9:16' ? 'left' : 'below'}
           >
             <span
               className={s.slotIcon}
@@ -533,18 +561,15 @@ export default function CurrencyBarShop(p: SpecimenProps) {
                   if (S.paying) return
                   if (cur === 'energy') openModal('energy')
                   else if (dark) openModal('gem6000')
-                  else {
-                    S.modal = null
-                    S.hlUntil = S.t + 3.2
-                    note('결정 충전 — 오른쪽 충전 상품에서 직접 고른다')
-                  }
+                  else toPacks('결정 충전 — 오른쪽 충전 상품에서 직접 고른다')
+                  touch()
                   sync()
                 }}
               >
                 +
               </button>
             )}
-            {cur === 'gem' && dark && <DarkTag text="+ 가 가장 비싼 상품으로" />}
+            {cur === 'gem' && dark && <DarkTag text="+ 지름길" />}
             <i
               className={s.gain}
               ref={el => {
@@ -558,7 +583,7 @@ export default function CurrencyBarShop(p: SpecimenProps) {
       <div className={s.strip}>
         {dark ? (
           <>
-            <b>하지 말아야 할 예</b> 다크패턴 4가지를 일부러 넣었다 — 가격 숨기기 · 가격 앵커링 · 구매를 기본 선택으로 · 유인 문구
+            <b>하지 말아야 할 예</b> 다크패턴 6가지에 ✕ 꼬리표 — 가격 숨기기 · 앵커링 · 구매 기본 선택 · 거절 버튼 약화 · 유인 문구 · + 지름길
           </>
         ) : (
           <>모의 상점 — 실제 결제 없음 · 가격은 원화 예시 · 결정 1개 ≈ ₩20 (기본 충전 기준)</>
@@ -569,7 +594,7 @@ export default function CurrencyBarShop(p: SpecimenProps) {
       <section className={s.shop}>
         <div className={s.bundles}>
           <h3>
-            묶음 상품 {dark && <DarkTag text="가격 숨기기 · 앵커링" />}
+            묶음 상품 {dark && <DarkTag text="가격 숨기기 · 앵커링(가짜 원래 가격)" />}
           </h3>
           <div className={s.cards}>
             {bundles.map((x, i) => (
@@ -584,10 +609,9 @@ export default function CurrencyBarShop(p: SpecimenProps) {
                   sync()
                 }}
               >
-                <div className={s.tags} data-part={x.id === 'kit' ? 'shelf' : undefined}>
+                <div className={s.tags} data-part={x.id === 'kit' ? 'shelf' : undefined} data-pin={dark ? 'left' : undefined}>
                   {x.was && !dark && <span className={s.sale}>−{Math.round((1 - priceOf(x) / x.was) * 100)}% · 지난주 {fmt(x.was)}</span>}
                   {x.fakeWas && dark && <span className={s.sale}>−{Math.round((1 - priceOf(x) / x.fakeWas) * 100)}%!!</span>}
-                  {dark && i === 0 && <span className={s.hot}>인기 1위</span>}
                   {x.endsInSec && (
                     <span className={s.limit}>
                       <ClockIcon /> 남은 <span data-countdown={x.endsInSec}>{remain(x.endsInSec)}</span>
@@ -637,7 +661,6 @@ export default function CurrencyBarShop(p: SpecimenProps) {
                 <span className={s.packName}>
                   <b>{x.name}</b>
                   {x.items && <small>{x.items}</small>}
-                  {dark && i === 0 && <em>최고 가치!</em>}
                 </span>
                 <span className={s.packPrice}>
                   {dark && x.fakeWas && <s>{won(x.fakeWas)}</s>}
@@ -682,7 +705,7 @@ export default function CurrencyBarShop(p: SpecimenProps) {
         {dark && (
           <p className={s.lure}>
             이 창을 닫으면 다시 살 수 없습니다! <span data-countdown="lure">00:00:59</span>
-            <DarkTag text="유인 문구 · 가짜 타이머" />
+            <DarkTag text="유인 문구(가짜 타이머)" />
           </p>
         )}
         <dl className={s.rows} data-part="price">
@@ -696,7 +719,7 @@ export default function CurrencyBarShop(p: SpecimenProps) {
               <>
                 <CurIcon cur="gem" /> <b>{fmt(priceGem)}</b>
                 {!dark && <small>약 {won(gemToKrw(priceGem))}</small>}
-                {dark && <DarkTag text="실제 가격 숨김" />}
+                {dark && <DarkTag text="가격 숨기기" />}
               </>
             )}
           </dd>
@@ -709,15 +732,28 @@ export default function CurrencyBarShop(p: SpecimenProps) {
               </dd>
             </>
           )}
+          {pr.endsInSec && !dark && (
+            <>
+              <dt>판매 종료</dt>
+              <dd>
+                남은 <span data-countdown={pr.endsInSec}>{remain(pr.endsInSec)}</span>
+              </dd>
+            </>
+          )}
           <dt>청약철회</dt>
-          <dd data-refund={pr.refund.ok ? 'ok' : 'no'}>
-            <span className={s.refundMark}>{pr.refund.ok ? '✓' : '✕'}</span>
-            {pr.refund.text}
+          <dd>
+            {pr.refundCheck ? '가능 여부 · 조건은 약관 참고' : '가능 — 조건 · 방법은 약관 참고'} <small>(예시 문구)</small>
           </dd>
         </dl>
-        {short > 0 && !dark && (
+        {!dark && (short > 0 || (pr.id === 'energy' && S.bal.energy >= ENERGY_MAX)) && (
           <p className={s.shortBox}>
-            결정이 <b>{fmt(short)}개</b> 모자란다. 충전 상품을 직접 고른 뒤 다시 산다 — 이 창에서 결제하지 않는다.
+            {short > 0 ? (
+              <>
+                결정이 <b>{fmt(short)}개</b> 모자란다. 충전 상품을 고른 뒤 다시 산다.
+              </>
+            ) : (
+              `에너지가 이미 ${fmt(S.bal.energy)} / ${ENERGY_MAX} 로 최대치를 넘었다. 지금 사지 않아도 된다.`
+            )}
           </p>
         )}
         {short > 0 && dark && (
@@ -732,26 +768,29 @@ export default function CurrencyBarShop(p: SpecimenProps) {
                 sync()
               }}
             />
-            부족분 자동 충전 (결정 {fmt(packFor(short).gives[0].amount)}) <DarkTag text="구매가 기본 선택" />
+            부족분 자동 충전 (결정 {fmt(packsFor(short).gems)}) <DarkTag text="구매 기본 선택" />
           </label>
         )}
         <div className={s.actions}>
-          <button
-            ref={cancelRef}
-            className={s.cancel}
-            data-focus={m?.focus === 'cancel' || undefined}
-            onFocus={() => focusTo('cancel')}
-            tabIndex={m && !p.thumbnail ? 0 : -1}
-            disabled={!!S.paying}
-            onClick={() => {
-              human()
-              closeModal('취소 — 아무것도 사지 않았다')
-              sync()
-            }}
-          >
-            {dark ? '다음에' : '취소'}
-          </button>
-          <div className={s.buyWrap} data-part="lock">
+          <div className={s.btnWrap}>
+            <button
+              ref={cancelRef}
+              className={s.cancel}
+              data-focus={m?.focus === 'cancel' || undefined}
+              onFocus={() => focusTo('cancel')}
+              tabIndex={m && !p.thumbnail ? 0 : -1}
+              disabled={!!S.paying}
+              onClick={() => {
+                human()
+                closeModal('취소 — 아무것도 사지 않았다')
+                sync()
+              }}
+            >
+              {dark ? '다음에' : '취소'}
+            </button>
+            {dark && <DarkTag text="거절 버튼 약화" />}
+          </div>
+          <div className={s.btnWrap} data-part="lock">
             <button
               ref={buyRef}
               className={s.buy}
@@ -768,7 +807,7 @@ export default function CurrencyBarShop(p: SpecimenProps) {
               <i />
               <span>{lockMs > 0 ? `입력 잠금 ${lockMs}ms` : '입력 잠금 없음'}</span>
             </div>
-            {dark && <DarkTag text="구매가 기본 선택" />}
+            {dark && <DarkTag text="구매 기본 선택" />}
           </div>
         </div>
         <p className={s.keys}>
