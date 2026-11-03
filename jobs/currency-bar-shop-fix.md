@@ -2,7 +2,7 @@
 # 3순위 1차 수정 잡. 독립 리뷰 지적을 반영한다. 구현 결과는 main 에 합쳐 두었다.
 model: claude-opus-5-5
 effort: high
-budgetUsd: 9
+budgetUsd: 6
 verify:
   - node tools/worktree-link.mjs
   - npx tsc --noEmit
@@ -48,7 +48,7 @@ maxRetries: 2
 11. 에너지가 최대치를 넘었는데 충전을 그대로 팔면 정직 UI 는 안내 한 줄을 띄운다.
 12. 글: 정직 확인 창에 한정 기간 종료 시각 줄을 넣거나 "진열과 확인 창이 같은 종료 시각을 센다" 문장을 고친다. timings 의 "ease-out" 과 CSS 를 맞춘다. "비싼 상자 … 먼저 크게"(실제로는 금테만), "820개 부족"(실제 520 · 1,120)을 사실대로. UGUI pitfalls(별도 Canvas, OnEnable/OnDisable 구독)와 hierarchy(`contents` · `buyLabel` 누락), UITK `root.dataSource` → 실제 코드와 맞춘다.
 13. 해설 번호가 설명하는 대상을 가리지 않게 (5번이 "+15,000" 을, 다크 모드 1 · 2번이 꼬리표 · 스탬프를). 코인 도착마다 리렌더하지 않는다.
-14. 용량: UGUI `ShopScreen` 을 확인 창 컴포넌트에 합쳐 4파일로, 파일 머리 주석을 1~2줄로, USS 카드 세부 스타일과 hint 중복을 줄인다. 117KB → 100KB 근처가 목표.
+14. 용량: 이전 시도에서 줄인 만큼으로 끝낸다. 바이트를 세는 데 시간을 쓰지 말고, 끝내기 전에 `node tools/size.mjs <id>` 한 번으로 처음보다 늘지 않았는지만 본다. 남은 필수 · 권장 항목을 먼저 끝낸다.
 
 ## 끝내기 전에
 

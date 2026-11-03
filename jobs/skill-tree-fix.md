@@ -2,7 +2,7 @@
 # 3순위 1차 수정 잡. 독립 리뷰 지적을 반영한다. 구현 결과는 main 에 합쳐 두었다.
 model: claude-opus-5-5
 effort: high
-budgetUsd: 10
+budgetUsd: 6
 verify:
   - node tools/worktree-link.mjs
   - npx tsc --noEmit
@@ -48,7 +48,7 @@ maxRetries: 2
 11. `KeyCap label="Enter" size={30}` 의 글자가 12px 이다. 22px 이상으로 (가독성이 주제인 표본이다).
 12. `prefers-reduced-motion` @media 블록 (회전 고리, 맥동, 흐름, 흔들림).
 13. 조사: "${name} 은 이미 최대 단계" → 받침과 무관한 문장으로 (웹과 C#). 키보드 이동 점수의 수직 가중이 커서 ↑ 가 직계 선행을 건너뛴다. 휠: Ctrl+휠(브라우저 확대)은 가로채지 않는다. `paint()` 가 멈춰 있을 때도 매 프레임 `--ns` 를 쓰고 `offsetWidth` 를 읽는다 → 값이 바뀔 때만.
-14. 용량 116KB → 106KB 근처: Unity 주석 · XML doc 에서 meta steps 를 되풀이하는 부분, UGUI 와 UITK 가 따로 가진 확대 기준점 · EnsureVisible · LOD 계산을 `SkillTreeData.cs` 정적 함수로 공유, meta steps · pitfalls 중복.
+14. 용량: 이전 시도에서 줄인 만큼으로 끝낸다. 바이트를 세는 데 시간을 쓰지 말고, 끝내기 전에 `node tools/size.mjs <id>` 한 번으로 처음보다 늘지 않았는지만 본다. 남은 필수 · 권장 항목을 먼저 끝낸다.
 
 ## 끝내기 전에
 
