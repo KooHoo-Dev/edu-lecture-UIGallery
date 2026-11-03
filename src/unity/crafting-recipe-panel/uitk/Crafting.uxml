@@ -1,0 +1,38 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Crafting.uss" />
+    <!-- 제작 패널. 자원 수량 · 레시피 줄 · 재료 줄 · 대기열 칸은 CraftingUITK.cs 가 만든다 -->
+    <ui:VisualElement name="crafting-root" class="craft-root">
+        <ui:VisualElement class="head">
+            <ui:Label text="제작대" class="title" />
+            <ui:VisualElement name="stock" class="stock" />
+        </ui:VisualElement>
+        <ui:VisualElement class="body">
+            <ui:VisualElement class="panel list-panel">
+                <ui:VisualElement name="tabs" class="tabs">
+                    <ui:Button name="tab-all" text="전체" class="tab" />
+                    <ui:Button name="tab-maint" text="정비" class="tab" />
+                    <ui:Button name="tab-survive" text="생존" class="tab" />
+                    <ui:Button name="tab-gear" text="장비" class="tab" />
+                </ui:VisualElement>
+                <ui:VisualElement class="tools">
+                    <ui:TextField name="search" class="search" />
+                    <ui:Toggle name="craftable-only" label="만들 수 있는 것만" class="filter" />
+                </ui:VisualElement>
+                <ui:ScrollView name="recipe-list" mode="Vertical" class="recipe-list" />
+            </ui:VisualElement>
+            <ui:VisualElement class="panel detail">
+                <ui:Label name="d-name" class="d-name" />
+                <ui:Label name="d-meta" class="d-meta" />
+                <ui:Label text="필요 재료" class="d-sub" />
+                <ui:VisualElement name="ingredients" class="ingredients" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="craft" text="제작" class="craft" />
+                <ui:Label name="reason" class="reason" />
+            </ui:VisualElement>
+            <ui:VisualElement class="panel queue-panel">
+                <ui:Label text="제작 대기열" class="q-title" />
+                <ui:VisualElement name="queue" class="queue" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
