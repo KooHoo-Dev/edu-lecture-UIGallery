@@ -1,0 +1,79 @@
+/* 출석판 + 탐사 연료 (UI Toolkit). Panel Settings: Scale With Screen Size 1920×1080.
+   상태는 수식 클래스로만 바꾼다: 칸 = slot--claimed · slot--today · slot--next · slot--future (+ slot--big, slot--pulse),
+   화면 = tg--over · tg--full · tg--sync. USS 에 gradient · box-shadow 가 없으니 테두리 색과 두께로 구분한다. */
+
+.tg { flex-grow: 1; padding: 28px 60px; background-color: rgb(15, 23, 36); color: rgb(234, 242, 251); font-size: 24px; }
+.tg__top { flex-direction: row; align-items: center; height: 100px; }
+.tg__title { font-size: 38px; -unity-font-style: bold; flex-grow: 1; }
+.tg__clock { font-size: 26px; color: rgb(143, 165, 189); }
+.tg__panels { flex-direction: row; flex-grow: 1; }
+
+.panel { padding: 26px 30px; border-radius: 24px; background-color: rgb(19, 29, 45); border-width: 2px; border-color: rgb(45, 69, 97); }
+.panel--cal { width: 1080px; margin-right: 30px; }
+.panel--fuel { flex-grow: 1; }
+.panel__title { font-size: 34px; -unity-font-style: bold; flex-grow: 1; }
+.row { flex-direction: row; align-items: center; margin-bottom: 14px; }
+.chip { padding: 6px 16px; border-radius: 12px; background-color: rgba(143, 165, 189, 0.15); font-size: 22px; }
+
+.reset__label { font-size: 24px; margin-right: 18px; }
+.reset__time { font-size: 48px; color: rgb(94, 230, 201); }
+.broke { display: none; padding: 6px 14px; border-radius: 10px; background-color: rgba(255, 107, 91, 0.2); color: rgb(255, 179, 168); font-size: 22px; margin-bottom: 8px; }
+.broke--show { display: flex; }
+
+/* flex-wrap 그리드: 4열 (243 + 좌우 6) × 4 = 1020px = 패널 안쪽 폭. 7일차는 두 칸 폭 */
+.days { flex-direction: row; flex-wrap: wrap; flex-grow: 1; }
+.slot {
+    width: 243px; height: 216px; margin: 0 6px 12px 6px; padding: 36px 8px 10px 8px;
+    border-radius: 18px; border-width: 2px; border-color: rgb(45, 69, 97); background-color: rgb(26, 40, 60);
+    align-items: center; justify-content: center;
+    transition-property: scale, border-color; transition-duration: 0.3s;
+}
+.slot--big { width: 498px; border-width: 3px; border-color: rgb(255, 207, 90); background-color: rgb(48, 42, 22); }
+.slot__day { position: absolute; left: 14px; top: 8px; font-size: 22px; color: rgb(143, 165, 189); }
+.slot__tag { position: absolute; right: 10px; top: 6px; padding: 2px 12px; border-radius: 10px; font-size: 22px; background-color: rgba(143, 165, 189, 0.15); }
+.slot__name { font-size: 24px; }
+.slot__count { font-size: 30px; -unity-font-style: bold; }
+.slot__stamp {
+    display: none; position: absolute; width: 132px; height: 132px; border-radius: 66px; border-width: 5px;
+    border-color: rgb(94, 230, 201); color: rgb(94, 230, 201); -unity-text-align: middle-center; font-size: 24px;
+    -unity-font-style: bold; rotate: -12deg; background-color: rgba(10, 16, 25, 0.6);
+}
+.slot__missed { display: none; position: absolute; left: -10px; bottom: 10px; padding: 2px 10px; border-radius: 8px; background-color: rgb(168, 67, 58); font-size: 22px; }
+.slot__missed--show { display: flex; }
+
+.slot--claimed { background-color: rgb(21, 33, 49); }
+.slot--claimed .slot__name, .slot--claimed .slot__count { opacity: 0.4; }
+.slot--claimed .slot__stamp { display: flex; }
+.slot--today { border-width: 4px; border-color: rgb(255, 207, 90); background-color: rgb(43, 42, 23); }
+.slot--today .slot__tag { background-color: rgb(255, 207, 90); color: rgb(26, 20, 5); -unity-font-style: bold; }
+.slot--pulse { scale: 1.04 1.04; border-color: rgb(255, 232, 160); }
+.slot--next { border-color: rgb(94, 230, 201); }
+.slot--next .slot__tag { color: rgb(94, 230, 201); }
+.slot--future { opacity: 0.66; }
+
+/* 버튼: 키보드 · 패드 포커스는 흰 테두리로 (기본 포커스 표시가 거의 보이지 않는다) */
+.btn { height: 80px; border-radius: 18px; border-width: 4px; border-color: rgba(0, 0, 0, 0); font-size: 30px; -unity-font-style: bold; margin: 8px 0 0 0; }
+.btn:focus { border-color: rgb(255, 255, 255); }
+.btn:hover { scale: 1.02 1.02; }
+.btn:disabled { background-color: rgb(36, 51, 70); color: rgb(143, 165, 189); -unity-font-style: normal; opacity: 1; }
+.btn--claim { background-color: rgb(240, 180, 58); color: rgb(26, 20, 5); }
+.btn--enter { background-color: rgb(255, 159, 67); color: rgb(32, 16, 5); margin-top: auto; }
+
+.meter { align-items: flex-end; }
+.meter__value { font-size: 104px; -unity-font-style: bold; }
+.meter__max { font-size: 44px; color: rgb(143, 165, 189); margin: 0 12px 14px 8px; }
+.meter__over { display: none; padding: 4px 14px; border-radius: 10px; background-color: rgb(255, 207, 90); color: rgb(26, 20, 5); font-size: 28px; margin-bottom: 20px; }
+.bar { height: 36px; border-radius: 10px; background-color: rgb(11, 19, 30); border-width: 2px; border-color: rgb(45, 69, 97); overflow: hidden; margin-bottom: 14px; }
+.bar__fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background-color: rgb(255, 159, 67); transition-property: width; transition-duration: 0.3s; }
+.timer { flex-grow: 1; flex-basis: 0; padding: 10px 18px; border-radius: 14px; background-color: rgb(26, 40, 60); margin-right: 14px; }
+.timer__label { font-size: 22px; color: rgb(143, 165, 189); }
+.timer__value { font-size: 40px; }
+.over-msg { display: none; padding: 10px 16px; border-radius: 12px; background-color: rgba(255, 207, 90, 0.15); color: rgb(255, 207, 90); font-size: 22px; white-space: normal; }
+.notify { font-size: 22px; color: rgb(143, 165, 189); margin-top: 10px; }
+
+.tg--over .meter__value { color: rgb(255, 207, 90); }
+.tg--over .meter__over { display: flex; }
+.tg--over .over-msg { display: flex; }
+.tg--over .bar__fill { background-color: rgb(255, 207, 90); }
+.tg--over .timer__value, .tg--full .timer__value, .tg--sync .timer__value { color: rgb(143, 165, 189); }
+.tg--full .meter__value { color: rgb(94, 230, 201); }
