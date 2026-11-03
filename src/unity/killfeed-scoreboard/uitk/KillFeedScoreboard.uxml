@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 킬 피드 + 스코어보드. 피드 줄은 C# 가 만들어 #feed 에 absolute 로 넣는다. 보드 행은 ListView 가 가상화한다 -->
+    <Style src="KillFeedScoreboard.uss" />
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement name="feed" class="feed" picking-mode="Ignore" />
+        <ui:VisualElement name="board" class="board" picking-mode="Ignore">
+            <ui:VisualElement class="board__head">
+                <ui:VisualElement class="team-block">
+                    <ui:VisualElement class="team-block__title">
+                        <ui:VisualElement class="mark team-orbit" />
+                        <ui:Label text="궤도 분대 · 우리 팀" class="team-block__name team-orbit" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="to-win">
+                        <ui:Label text="승리까지" class="to-win__label" />
+                        <ui:Label name="orbit-to-win" text="30" class="to-win__value team-orbit" />
+                        <ui:Label name="orbit-score" text="20 / 50" class="team-block__score" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="팀 제압전" class="board__mode" />
+                <ui:VisualElement class="team-block">
+                    <ui:VisualElement class="team-block__title">
+                        <ui:VisualElement class="mark team-surface" />
+                        <ui:Label text="지표 분대" class="team-block__name team-surface" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="to-win">
+                        <ui:Label text="승리까지" class="to-win__label" />
+                        <ui:Label name="surface-to-win" text="31" class="to-win__value team-surface" />
+                        <ui:Label name="surface-score" text="19 / 50" class="team-block__score" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="table-head">
+                <ui:Label text="이름" class="table-head__name" />
+                <ui:Label name="head-takedowns" text="제압" class="table-head__cell" />
+                <ui:Label text="지원" class="table-head__cell" />
+                <ui:Label text="이탈" class="table-head__cell" />
+                <ui:Label name="head-score" text="점수" class="table-head__cell" />
+                <ui:Label text="핑" class="table-head__cell" />
+            </ui:VisualElement>
+            <ui:ListView name="orbit-list" class="team-list" />
+            <ui:ListView name="surface-list" class="team-list" />
+            <ui:Label name="board-foot" text="정렬: 점수" class="board__foot" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

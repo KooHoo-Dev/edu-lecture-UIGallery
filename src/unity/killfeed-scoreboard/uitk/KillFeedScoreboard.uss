@@ -1,0 +1,297 @@
+/* 킬 피드 + 스코어보드 (UI Toolkit). 들고 나는 연출은 transition — C# 는 수식 클래스만 붙였다 뗀다.
+   팀은 색 + 모양: .mark.team-orbit 캡슐, .mark.team-surface 테두리로 만든 삼각형 */
+.hud {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    color: rgb(234, 242, 251);
+}
+.team-orbit {
+    color: rgb(90, 209, 255);
+}
+.team-surface {
+    color: rgb(255, 106, 92);
+}
+.mark {
+    flex-shrink: 0;
+}
+.mark.team-orbit {
+    width: 12px;
+    height: 22px;
+    border-radius: 6px;
+    background-color: rgb(90, 209, 255);
+}
+.mark.team-surface {
+    width: 0;
+    height: 0;
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-bottom-width: 22px;
+    border-left-color: rgba(0, 0, 0, 0);
+    border-right-color: rgba(0, 0, 0, 0);
+    border-bottom-color: rgb(255, 106, 92);
+}
+
+/* ───── 킬 피드 ───── */
+.feed {
+    position: absolute;
+    right: 28px;
+    top: 64px;
+    width: 660px;
+    height: 600px;
+}
+.feed-row {
+    position: absolute;
+    right: 0;
+    width: 660px;
+    height: 50px;
+    padding: 0 8px;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 8px;
+    background-color: rgba(11, 19, 29, 0.82);
+    translate: 80px 0;
+    opacity: 0;
+    transition-property: translate, top, opacity;
+    transition-duration: 0.18s, 0.16s, 0.45s;
+    transition-timing-function: ease-out-cubic, ease-out, linear;
+}
+/* 들어온 상태 — 한 프레임 뒤에 붙인다 */
+.feed-row--in {
+    translate: 0 0;
+    opacity: 1;
+}
+/* 수명이 다해 흐려짐 (0.45초) · 최대 줄 수에 밀려 빨리 빠짐 (0.22초) */
+.feed-row--out {
+    opacity: 0;
+}
+.feed-row--pushed {
+    transition-duration: 0.18s, 0.16s, 0.22s;
+}
+.feed-row__me {
+    width: 36px;
+    font-size: 22px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    border-radius: 6px;
+}
+.feed-row__atk {
+    width: 196px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+.feed-row__wpn {
+    width: 128px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+.feed-row__icon {
+    width: 64px;
+    height: 28px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+.feed-row__prec {
+    width: 22px;
+    height: 22px;
+    margin-left: 4px;
+    border-radius: 11px;
+    border-width: 3px;
+    border-color: rgb(255, 207, 90);
+}
+.feed-row__vic {
+    width: 214px;
+    flex-direction: row;
+    align-items: center;
+}
+.feed-row__name {
+    font-size: 26px;
+    -unity-font-style: bold;
+    margin: 0 8px;
+}
+.feed-row__extra {
+    font-size: 22px;
+    -unity-font-style: bold;
+    padding: 0 6px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.18);
+}
+.feed-row__multi {
+    width: 50px;
+    font-size: 24px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgb(16, 20, 28);
+    background-color: rgb(255, 207, 90);
+    border-radius: 6px;
+    scale: 1 1;
+    transition: scale 0.26s ease-out;
+}
+.feed-row__multi--pop {
+    scale: 1.7 1.7;
+    transition-duration: 0s;
+}
+/* 내가 제압한 줄: 밝은 바탕 + 진한 팀 색 */
+.feed-row--mine-attacker {
+    background-color: rgba(238, 244, 251, 0.95);
+}
+.feed-row--mine-attacker .feed-row__me {
+    background-color: rgb(16, 20, 28);
+    color: rgb(255, 255, 255);
+}
+.feed-row--mine-attacker .feed-row__name.team-orbit {
+    color: rgb(8, 102, 143);
+}
+.feed-row--mine-attacker .feed-row__name.team-surface {
+    color: rgb(180, 42, 31);
+}
+.feed-row--mine-attacker .feed-row__icon {
+    -unity-background-image-tint-color: rgb(16, 20, 28);
+}
+/* 내가 이탈한 줄: 어두운 붉은 바탕 + 테두리 */
+.feed-row--mine-victim {
+    background-color: rgba(61, 20, 24, 0.94);
+    border-width: 3px;
+    border-color: rgb(255, 106, 92);
+}
+.feed-row--mine-victim .feed-row__me {
+    background-color: rgb(255, 106, 92);
+    color: rgb(16, 20, 28);
+}
+
+/* ───── 스코어보드 ───── */
+.board {
+    position: absolute;
+    left: 110px;
+    top: 92px;
+    width: 1080px;
+    padding: 14px 24px 12px 24px;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(7, 13, 21, 0.95);
+    opacity: 0;
+    translate: 0 12px;
+    transition-property: opacity, translate;
+    transition-duration: 0.12s, 0.12s;
+    transition-timing-function: linear, ease-out;
+}
+.board--open {
+    opacity: 1;
+    translate: 0 0;
+}
+.board__head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 10px;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.team-block__title {
+    flex-direction: row;
+    align-items: center;
+}
+.team-block__name {
+    font-size: 26px;
+    -unity-font-style: bold;
+    margin-left: 10px;
+}
+.to-win {
+    flex-direction: row;
+    align-items: flex-end;
+}
+.to-win__label {
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+/* 모드에 가장 중요한 숫자 = 가장 크게 */
+.to-win__value {
+    font-size: 84px;
+    -unity-font-style: bold;
+    margin: 0 16px 0 10px;
+}
+.team-block__score {
+    font-size: 24px;
+    color: rgb(159, 180, 201);
+    margin-bottom: 12px;
+}
+.board__mode {
+    font-size: 24px;
+    color: rgb(159, 180, 201);
+    margin-bottom: 24px;
+}
+.table-head {
+    flex-direction: row;
+    height: 36px;
+    align-items: center;
+    border-bottom-width: 2px;
+    border-color: rgba(255, 255, 255, 0.12);
+    margin-top: 8px;
+}
+.table-head__name {
+    flex-grow: 1;
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+}
+.table-head__cell {
+    width: 110px;
+    font-size: 22px;
+    -unity-text-align: middle-right;
+    color: rgb(159, 180, 201);
+}
+.table-head__cell--sort {
+    color: rgb(255, 255, 255);
+    -unity-font-style: bold;
+    border-bottom-width: 3px;
+    border-color: rgb(255, 207, 90);
+}
+/* fixedItemHeight 40 × 6행 */
+.team-list {
+    height: 240px;
+    margin-top: 6px;
+}
+.score-row {
+    height: 40px;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 0 0 8px;
+}
+.score-row--me {
+    background-color: rgba(255, 207, 90, 0.17);
+    border-left-width: 5px;
+    border-color: rgb(255, 207, 90);
+}
+.score-row__name {
+    flex-grow: 1;
+    font-size: 24px;
+    margin-left: 10px;
+}
+.score-row__me {
+    font-size: 22px;
+    -unity-font-style: bold;
+    padding: 0 8px;
+    margin-right: 12px;
+    border-radius: 6px;
+    color: rgb(16, 20, 28);
+    background-color: rgb(255, 207, 90);
+}
+.score-row__cell {
+    width: 110px;
+    font-size: 24px;
+    -unity-text-align: middle-right;
+}
+.score-row__cell--sort {
+    -unity-font-style: bold;
+}
+.score-row__cell--warn {
+    color: rgb(255, 179, 90);
+}
+.board__foot {
+    font-size: 22px;
+    color: rgb(159, 180, 201);
+    margin-top: 8px;
+}
