@@ -1,0 +1,32 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- 맥락 용어집 + 중첩 툴팁. 툴팁은 C# 가 만들어 tooltip-layer 에 absolute 로 넣는다 (tip, 수식 클래스 in · locked · echo) -->
+    <Style src="LoreGlossary.uss" />
+    <ui:VisualElement name="root" class="lore">
+        <ui:VisualElement class="scene-head" picking-mode="Ignore">
+            <ui:Label name="scene-title" class="scene-title" enable-rich-text="true" />
+        </ui:VisualElement>
+        <ui:VisualElement name="dialogue" class="dialogue">
+            <!-- 대사 글. 리치 텍스트 link 태그에 링크 포인터 이벤트를 단다. 포커스를 받아 방향키로 키워드를 고른다 -->
+            <ui:Label name="dialogue-text" class="dialogue__text" enable-rich-text="true" focusable="true" />
+            <ui:Label class="hint" text="←→ 키워드 · ↓ 고정하고 안으로 · ↑ 바깥으로 · G 를 누르고 있으면 용어집" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="tooltip-layer" class="tooltip-layer" picking-mode="Ignore" />
+        <!-- 용어집: 닫힘은 visibility 로 끈다 (상속되어 안의 버튼도 포인터를 받지 않는다) -->
+        <ui:VisualElement name="glossary" class="glossary">
+            <ui:VisualElement class="glossary__dim" picking-mode="Ignore" />
+            <ui:VisualElement class="glossary__panel">
+                <ui:VisualElement class="glossary__head">
+                    <ui:Label name="glossary-title" class="glossary__title" />
+                    <ui:Label name="glossary-count" class="glossary__count" />
+                </ui:VisualElement>
+                <ui:VisualElement class="glossary__body">
+                    <ui:ScrollView name="glossary-list" class="glossary__list" />
+                    <ui:VisualElement class="glossary__detail">
+                        <ui:Label name="detail-title" class="detail__title" enable-rich-text="true" />
+                        <ui:Label name="detail-body" class="detail__body" enable-rich-text="true" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
