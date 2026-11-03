@@ -1,6 +1,5 @@
-// 진열 카드 하나 — 이름 · 받는 것 · 가격(원화 환산 또는 100개당 가격) · 할인(실제 판매가 대비) · 한정 기간 남은 시간.
-// Button.transition = None 으로 두고 선택 표시(테두리)를 ISelectHandler · IDeselectHandler 로 직접 그린다 — 안 그리면 패드 · 키보드로 고른 카드가 보이지 않는다.
-// 마우스를 올리면 그 카드를 선택해 마우스와 패드가 같은 표시 하나를 쓴다.
+// 진열 카드 — 이름 · 받는 것 · 가격(원화 환산 또는 100개당) · 할인(실제 판매가 대비) · 남은 시간.
+// transition = None 이라 선택 테두리를 ISelectHandler · IDeselectHandler 로 직접 그린다. 마우스를 올리면 선택해 패드와 같은 표시를 쓴다.
 using System;
 using TMPro;
 using UnityEngine;

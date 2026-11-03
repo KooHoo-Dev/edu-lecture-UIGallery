@@ -1,6 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- 재화 바 · 상점 · 구매 확인 (UI Toolkit 판). 공용 UIDocument 하나에 두고 DontDestroyOnLoad 로 남긴다.
-         상점이 아닌 씬에서는 #shop 만 숨기고 바는 그대로. 진열 카드와 날아가는 아이콘은 CurrencyShopUITK.cs 가 만든다 -->
+    <!-- 재화 바 · 상점 · 구매 확인. 진열 카드와 날아가는 아이콘은 CurrencyShopUITK.cs 가 만든다 -->
     <Style src="CurrencyShop.uss" />
     <ui:VisualElement name="app" class="app" picking-mode="Ignore">
         <ui:VisualElement name="shop" class="shop">
@@ -42,7 +41,8 @@
                         <ui:Label name="refund" class="row__value" />
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Label name="short" class="short" />
+                <!-- 안내 한 줄: 부족 · 이미 최대치인 에너지 · 결제가 멈춘 이유 -->
+                <ui:Label name="notice" class="notice" />
                 <ui:VisualElement class="actions">
                     <ui:Button name="cancel" class="btn btn--cancel" text="취소" />
                     <ui:VisualElement class="buy-wrap">

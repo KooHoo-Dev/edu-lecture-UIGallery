@@ -16,10 +16,10 @@ export interface Product {
   was?: number
   gives: { cur: Cur; amount: number }[]
   items?: string
-  /** 한정 판매 남은 시간(초) — 진열과 확인 창이 같은 값을 읽는다 */
+  /** 한정 판매 남은 시간(초) — 진열과 확인 창이 같은 값을 센다 */
   endsInSec?: number
-  /** 청약철회 안내 */
-  refund: { ok: boolean; text: string }
+  /** 청약철회 가능 여부를 단정하지 않고 약관으로 안내하는 상품 (바로 쓰이는 에너지) */
+  refundCheck?: boolean
   /** 다크패턴 진열에서만 보이는 상품 (가격 앵커) */
   anchorOnly?: boolean
   /** 다크패턴 진열의 가짜 '원래 가격' */
@@ -27,6 +27,14 @@ export interface Product {
   /** 상점 진열에 놓지 않는 상품 (재화 바의 + 버튼으로만 연다) */
   hidden?: boolean
 }
+
+const gems = (n: number, krw: number, extra?: Partial<Product>): Product => ({
+  id: `gem${n}`,
+  name: `궤도 결정 ${n.toLocaleString('ko-KR')}`,
+  price: { krw },
+  gives: [{ cur: 'gem', amount: n }],
+  ...extra,
+})
 
 export const PRODUCTS: Product[] = [
   {
@@ -41,15 +49,8 @@ export const PRODUCTS: Product[] = [
     ],
     items: '수리 키트 ×5',
     endsInSec: 2 * 86400 + 13 * 3600 + 20 * 60,
-    refund: { ok: true, text: '받은 물품을 쓰기 전이면 청약철회 가능' },
   },
-  {
-    id: 'credits',
-    name: '크레딧 묶음',
-    price: { cur: 'gem', amount: 120 },
-    gives: [{ cur: 'credit', amount: 12000 }],
-    refund: { ok: true, text: '크레딧을 쓰기 전이면 청약철회 가능' },
-  },
+  { id: 'credits', name: '크레딧 묶음', price: { cur: 'gem', amount: 120 }, gives: [{ cur: 'credit', amount: 12000 }] },
   {
     id: 'crate',
     name: '탐사 보급 상자',
@@ -59,49 +60,12 @@ export const PRODUCTS: Product[] = [
       { cur: 'energy', amount: 120 },
     ],
     items: '냉각 셀 ×10',
-    refund: { ok: true, text: '받은 물품을 쓰기 전이면 청약철회 가능' },
   },
-  {
-    id: 'energy',
-    name: '에너지 충전',
-    price: { cur: 'gem', amount: 50 },
-    gives: [{ cur: 'energy', amount: 60 }],
-    refund: { ok: false, text: '받는 즉시 에너지에 더해져 청약철회 불가 — 구매 전에 알림' },
-    hidden: true,
-  },
-  {
-    id: 'gem60',
-    name: '궤도 결정 60',
-    price: { krw: 1200 },
-    gives: [{ cur: 'gem', amount: 60 }],
-    refund: { ok: true, text: '결정을 쓰기 전이면 청약철회 가능' },
-  },
-  {
-    id: 'gem330',
-    name: '궤도 결정 330',
-    price: { krw: 5900 },
-    gives: [{ cur: 'gem', amount: 330 }],
-    items: '기본 300 + 보너스 30',
-    refund: { ok: true, text: '결정을 쓰기 전이면 청약철회 가능' },
-  },
-  {
-    id: 'gem1100',
-    name: '궤도 결정 1,100',
-    price: { krw: 19000 },
-    fakeWas: 39000,
-    gives: [{ cur: 'gem', amount: 1100 }],
-    items: '기본 1,000 + 보너스 100',
-    refund: { ok: true, text: '결정을 쓰기 전이면 청약철회 가능' },
-  },
-  {
-    id: 'gem6000',
-    name: '궤도 결정 6,000',
-    price: { krw: 99000 },
-    fakeWas: 199000,
-    gives: [{ cur: 'gem', amount: 6000 }],
-    refund: { ok: true, text: '결정을 쓰기 전이면 청약철회 가능' },
-    anchorOnly: true,
-  },
+  { id: 'energy', name: '에너지 충전', price: { cur: 'gem', amount: 50 }, gives: [{ cur: 'energy', amount: 60 }], refundCheck: true, hidden: true },
+  gems(60, 1200),
+  gems(330, 5900, { items: '기본 300 + 보너스 30' }),
+  gems(1100, 19000, { fakeWas: 39000, items: '기본 1,000 + 보너스 100' }),
+  gems(6000, 99000, { fakeWas: 199000, anchorOnly: true }),
 ]
 
 export const product = (id: string) => PRODUCTS.find(p => p.id === id) ?? PRODUCTS[0]
@@ -118,14 +82,20 @@ export const gemToKrw = (gems: number) => Math.round((gems * KRW_PER_GEM) / 100)
 export function remain(sec: number) {
   const s = Math.max(0, Math.floor(sec))
   const d = Math.floor(s / 86400)
-  const hh = String(Math.floor((s % 86400) / 3600)).padStart(2, '0')
-  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
-  const ss = String(s % 60).padStart(2, '0')
-  return `${d > 0 ? `${d}일 ` : ''}${hh}:${mm}:${ss}`
+  const t = [(s % 86400) / 3600, (s % 3600) / 60, s % 60].map(n => String(Math.floor(n)).padStart(2, '0')).join(':')
+  return d > 0 ? `${d}일 ${t}` : t
 }
 
-/** 부족분을 채우는 가장 작은 충전 상품 (다크패턴의 '자동 충전' 이 몰래 고르는 것) */
-export function packFor(short: number) {
+/** 다크패턴의 '자동 충전' 이 몰래 고르는 충전 묶음. 합이 부족분을 넘을 때까지 고른다
+ * (남은 부족분을 채우는 가장 작은 묶음, 없으면 가장 큰 묶음을 하나 더) */
+export function packsFor(short: number) {
   const packs = PRODUCTS.filter(p => 'krw' in p.price && !p.anchorOnly)
-  return packs.find(p => p.gives[0].amount >= short) ?? packs[packs.length - 1]
+  const out = { names: [] as string[], gems: 0, krw: 0 }
+  while (out.gems < short) {
+    const p = packs.find(x => x.gives[0].amount >= short - out.gems) ?? packs[packs.length - 1]
+    out.names.push(p.name)
+    out.gems += p.gives[0].amount
+    out.krw += 'krw' in p.price ? p.price.krw : 0
+  }
+  return out
 }
