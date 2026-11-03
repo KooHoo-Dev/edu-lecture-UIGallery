@@ -1,0 +1,85 @@
+// 3순위 1차 묶음 (2026-11-03): 파일럿(branching-route-map) 뒤 5개. 남은 용량 예산 5~6개 안에서 고른 것
+const common = [
+  '**용량.** 남은 예산으로 표본 5~6개가 들어간다. 이 표본의 증분은 100KB 안팎을 목표로 한다 (`node tools/size.mjs <id>` 로 잰다). Unity 원문도 HTML 에 들어가므로 Unity 파일은 UGUI 4개, UI Toolkit 3개 안팎으로 둔다.',
+  '**Unity 탐색.** UI Toolkit 에서 `NavigationMoveEvent` 를 직접 처리하면 `StopPropagation()` 과 함께 `focusController?.IgnoreEvent(e)` 를 부른다. UGUI 에서 `transition = None` 이면 선택 표시를 `ISelectHandler` 로 직접 그린다 (가이드 8절).',
+]
+
+export default [
+  {
+    id: 'skill-tree', pascal: 'SkillTree', batch: '3순위 1차', planSection: '10', cardSection: '3절 (3순위 후보 풀)',
+    samples: ['branching-route-map', 'inventory-grid-tooltip'],
+    meta: "제목 '스킬트리 · 성장 노드', 그룹 E, order 7, 난이도 3.",
+    items: [
+      '**무엇을 보여 주나.** 노드 그래프 스킬트리. 노드 상태는 잠김 · 습득 가능 · 습득 · 최대 네 가지이고, 색만이 아니라 모양 · 테두리 · 아이콘 · 글자(예: 2/3)로 함께 구분한다. 선행 조건 연결선, 포인트 소비와 초기화(환불), 습득 가능한 노드 강조, 노드 툴팁(효과, 다음 단계 수치, 필요한 선행)을 보여 준다.',
+      '**팬 · 줌.** 끌어서 이동, 휠 · 버튼으로 확대 축소. 확대 단계에 따라 노드 글자를 줄이지 않고 표시할 정보를 바꾼다 (멀면 아이콘과 상태만, 가까우면 이름과 수치). 너무 작아 읽히지 않는 글자가 생기지 않게 하는 것이 이 표본의 핵심 원리다. 카드의 출처(Diablo IV 스킬트리 피드백에 대한 공식 답변)로 확인한 범위에서만 그 사례를 해설한다.',
+      '**데이터.** 트리를 표(TSV 처럼 한 줄에 노드 하나: id, 이름, 최대 단계, 선행 id 들, 비용, 위치)로 정의하고, 선행 조건 검사와 환불 계산을 화면과 분리한 순수 함수로 둔다. Unity 판은 같은 표를 `TextAsset`(TSV) 또는 ScriptableObject 로 읽는 방법을 보여 준다. 수업에서 엑셀로 트리를 짜서 붙여 넣는 흐름과 이어진다.',
+      '**세계관.** 공통 세계관(외곽 탐사대). 예: 하린의 탐사 기술, 도윤의 정비 기술, 세라의 통신 기술 세 갈래. 아이콘은 SVG 로 직접 그린다.',
+      '**효과 끄기 후보.** 색만으로 상태를 구분해 잠김과 습득 가능을 헷갈리는 모습, 또는 확대를 줄이면 글자가 그대로 작아져 읽을 수 없는 모습. 화면에서 분명한 것을 고른다.',
+      '**Unity.** UGUI: 연결선은 두 노드를 잇도록 회전 · 늘린 Image(분기 경로 맵과 같은 방식)나 직접 만든 `Graphic`(UILineRenderer), 팬 · 줌은 `ScrollRect` 와 Content 의 `localScale`. UI Toolkit: `generateVisualContent` + `Painter2D` 로 선, `transform.scale` 로 줌. 같은 namespace 의 데이터 클래스를 UGUI 폴더에 둔다.',
+      '**`inspiredBy`.** 카드의 Path of Exile, Diablo IV, Ghost of Tsushima 중 출처로 확인한 것만 가이드 6절 형식으로 넣는다 (화면 세부는 미확인으로). 확인한 근거가 없으면 `borrowed: []`.',
+      ...common,
+    ],
+  },
+  {
+    id: 'killfeed-scoreboard', pascal: 'KillfeedScoreboard', batch: '3순위 1차', planSection: '10', cardSection: '3절 (3순위 후보 풀)',
+    samples: ['quest-tracker-toasts', 'turn-order-timeline'],
+    meta: "제목 '킬 피드 + 스코어보드', 그룹 C, order 4, 난이도 2.",
+    items: [
+      '**무엇을 보여 주나.** 팀 대전의 오른쪽 위 피드: 한 줄에 "가해자 [무기 아이콘] 피해자" 와 팀 색, 정밀 타격 표시. 최대 줄 수를 넘거나 시간이 지나면 오래된 줄부터 사라지고, 내가 관련된 줄은 강조한다. 누르고 있는 동안만 뜨는 팀별 스코어보드(제압 · 지원 · 이탈 · 점수 · 핑), 정렬 기준, 모드에 중요한 숫자(승리까지 남은 점수)를 가장 크게.',
+      '**차별점.** `quest-tracker-toasts` 의 알림 큐와 비슷하다. 이 표본은 짧은 시간에 몰려 오는 이벤트를 훑어 읽게 하는 설계(고정 열 정렬, 아이콘, 내 줄 강조, 몰릴 때 합치기 · 속도 조절)와 누르고 있는 동안만 보이는 표에 집중한다. `related` 로 잇는다.',
+      '**세계관과 표현.** 공통 세계관(외곽 탐사대)의 모의 훈련 두 팀. 피 · 사망 표현 대신 "제압", "이탈" 같은 말을 쓴다. 무기 아이콘은 SVG 로 직접 그린다. 팀은 색과 함께 모양(예: 팀 표식 도형)으로도 구분한다.',
+      '**키.** 웹에서 Tab 을 가로채지 않는다 (키보드 갇힘). 화면의 "누르고 있기" 버튼과 갤러리 단축키가 아닌 키 하나로 보여 준다 (가이드 3절 키보드). 실제 게임이 Tab 을 쓰는 이유와 Unity Input System 의 Hold 상호작용 설정은 해설과 Unity 탭에 적는다.',
+      '**조절 값 후보.** 최대 줄 수, 유지 시간, 이벤트 빈도(몰아치기 포함), 플레이어 수, 정렬 기준.',
+      '**효과 끄기 후보.** 줄 수 제한 없이 쌓여 화면을 덮거나, 내 줄 강조 · 정렬 없이 글자만 길게 이어져 훑어 읽을 수 없는 피드.',
+      '**Unity.** UGUI: 줄 오브젝트 풀링, `CanvasGroup.alpha` 페이드, 스코어보드 행 재사용. 아이콘은 Image 로 둔다 (TMP Sprite Asset 은 비트맵이 필요하니 방법만 설명한다). UI Toolkit: 행 재사용은 `ListView` 가상화, 페이드는 USS transition. 네트워크 이벤트를 UI 이벤트로 바꾸는 층(가짜 이벤트 소스)을 따로 둔다.',
+      '**`inspiredBy`.** 카드의 게임 중 출처로 확인한 것만. 카드 출처는 모드 · 커뮤니티 글이라 근거가 약하다. 확인되지 않으면 `borrowed: []` 로 장르 관례로만 다룬다.',
+      ...common,
+    ],
+  },
+  {
+    id: 'crafting-recipe-panel', pascal: 'CraftingRecipePanel', batch: '3순위 1차', planSection: '10', cardSection: '3절 (3순위 후보 풀)',
+    samples: ['inventory-grid-tooltip', 'red-dot-badge-tree'],
+    meta: "제목 '제작 패널', 그룹 E, order 8, 난이도 2.",
+    items: [
+      '**무엇을 보여 주나.** 생존 · 크래프팅의 제작 창. 레시피 목록(탭 분류, 검색, "만들 수 있는 것만" 필터), 고른 레시피의 재료를 "보유/필요"(3/5)로 보여 주고 모자란 재료는 색과 함께 아이콘 · 글자로 표시한다. 만들 수 있는 레시피만 강조, 제작 대기열과 진행 바, 취소하면 재료 환불, 새로 해금된 레시피 배지.',
+      '**선택 복원.** 창을 닫았다 다시 열면 탭 · 선택 · 스크롤 위치가 그대로다. 이벤트 버튼으로 "닫았다 열기" 를 보여 주고, 효과 끄기에서는 매번 첫 탭 첫 줄로 돌아가게 하는 것이 좋은 후보다.',
+      '**데이터.** 레시피(재료 목록, 결과, 시간)와 인벤토리 수량 조회를 나누고, 수량이 바뀌면 레시피 상태 전체를 다시 계산한다 (이벤트 기반). `inventory-grid-tooltip` 의 슬롯 · 툴팁 표현과 어울리게 하되 코드는 이 표본 안에 둔다.',
+      '**키.** 숫자 키 1~9 는 갤러리 이벤트라 쓰지 않는다 (가이드 3절). 핫바를 넣는다면 클릭과 Q · E 로 고르고, Unity 판의 숫자 키 액션은 해설로만. 핫바가 범위를 키우면 빼도 된다.',
+      '**세계관.** 공통 세계관의 자원(수리 키트, 냉각 셀, 회로 조각, 산소 캔). 아이콘은 SVG.',
+      '**Unity.** 레시피는 ScriptableObject, 제작 대기열은 코루틴이나 타이머 + `Image.fillAmount`, 취소 환불. UI Toolkit 은 runtime data binding 이나 직접 갱신 중 하나를 고르고 이유를 적는다. 상태 저장(탭 · 선택 · 스크롤)은 `OnDisable` / `OnEnable` 에서.',
+      '**`inspiredBy`.** 카드의 Valheim, Don\'t Starve Together, 7 Days to Die 중 출처(7 Days to Die 위키의 제작 창 문서 등)로 확인한 것만. 화면 세부는 미확인으로.',
+      ...common,
+    ],
+  },
+  {
+    id: 'time-gated-meta', pascal: 'TimeGatedMeta', batch: '3순위 1차', planSection: '10', cardSection: '3절 (3순위 후보 풀, 카드는 `daily-login-calendar` 와 `energy-refill-timer` 두 장)',
+    samples: ['battle-pass-track', 'popup-queue-stack'],
+    meta: "제목 '출석 캘린더 + 에너지 회복 타이머', 그룹 E, order 10, 난이도 2. `stage.aspect` 는 'both' (모바일 화면이 기본).",
+    items: [
+      '**무엇을 보여 주나.** 시간으로 잠긴 메타 화면 두 개를 한 표본에: (1) 7일 출석판(오늘 칸 강조, 받기, 수령 도장, 놓친 날, 7일차 큰 보상, 다음 초기화까지 카운트다운, 연속 · 누적 규칙 전환), (2) 에너지(37/60, 다음 1 회복까지와 가득 찰 때까지 두 타이머, 최대치 초과 상태와 그동안 회복 정지, 부족하면 입장 버튼 비활성과 남은 시간). 탭이나 나란히 배치 중 화면에 맞는 쪽을 고른다.',
+      '**시간 로직이 핵심.** 현재값은 "마지막 회복 시각 + 경과 시간" 으로 계산한다. 매초 1씩 더하는 방식은 앱을 껐다 켜면 틀린다. 하루 경계는 서버 시각 기준 초기화 시각(예: 오전 5시)이다. 조절 값이나 이벤트로 "앱 끄고 n시간 뒤 켜기"(오프라인 경과), "기기 시계 바꾸기", 시간 배속을 보여 준다. `battle-pass-track` 의 서버 시각(받은 UTC + 단조 시계) 방식을 이 표본 안에 다시 쓰고, 공통화 요청으로 적는다.',
+      '**효과 끄기 후보.** 매초 증가 방식이라 오프라인 경과 뒤 에너지가 그대로이거나, 기기 시계를 바꾸면 출석이 다시 열리는 모습.',
+      '**설계 판단을 해설에.** 연속 출석(놓치면 초기화)과 누적 출석(놓쳐도 진행)의 차이와 손실 회피, 접속 직후 팝업 순서(`popup-queue-stack` 과 `related`).',
+      '**Unity.** `DateTime.UtcNow` · `TimeSpan` 포맷, `OnApplicationPause` / `OnApplicationFocus` 로 복귀 때 다시 계산, 서버 시각으로 시계 조작 막기(서버 호출은 가짜 함수로), 가득 참 로컬 알림은 연결 지점만 설명. UGUI 는 `GridLayoutGroup`, UI Toolkit 은 flex-wrap 그리드 + USS 상태 클래스.',
+      '**세계관.** 공통 세계관의 보급(산소 캔, 냉각 셀, 크레딧 등). 에너지는 "탐사 연료" 처럼 세계관 이름으로.',
+      '**`inspiredBy`.** 두 카드의 게임 중 출처로 확인한 것만. 카드 출처는 Unity 문서와 블로그 위주라 확인되지 않으면 `borrowed: []` 로 장르 관례로만 다룬다.',
+      ...common,
+    ],
+  },
+  {
+    id: 'currency-bar-shop', pascal: 'CurrencyBarShop', batch: '3순위 1차', planSection: '10', cardSection: '3절 (3순위 후보 풀, 카드 id 는 `currency-bar-shop-purchase`)',
+    samples: ['gacha-reveal-odds', 'results-reward'],
+    meta: "제목 '재화 바 · 상점 · 구매 확인', 그룹 E, order 9, 난이도 2. `stage.aspect` 는 'both'.",
+    items: [
+      '**무엇을 보여 주나.** 한 흐름: 화면 위에 늘 있는 재화 바(일반 재화 · 유료 재화 · 에너지와 충전 + 버튼) → 상점 진열(묶음 상품, 할인, 한정 기간) → 구매 확인 창(가격, 구매 후 잔액, 청약철회 가능 여부, 재화가 모자라면 충전 안내) → 얻은 재화가 재화 바로 날아가며 숫자가 오르는 피드백(`core/countup.ts`).',
+      '**정직한 UI 와 다크패턴 비교.** select 조절 값으로 "정직한 UI / 다크패턴" 을 둔다. 다크패턴 쪽은 재화 단위로 실제 가격 가리기, 비싼 묶음을 먼저 보여 주는 가격 앵커링, 구매를 기본 선택으로 두기, "이 창을 닫으면 다시 살 수 없습니다" 같은 유인 문구 중 몇 가지를 보여 주고, 화면에 "하지 말아야 할 예" 라고 분명히 표시한다. 법적 사례는 카드 출처(게임메카 · 뉴시스 기사)로 확인한 범위에서만, 법률 조언처럼 쓰지 않는다.',
+      '**효과 끄기 후보.** 확인 창에 구매 후 잔액과 실제 가격이 없거나, 획득 피드백 없이 숫자만 바뀌어 무엇을 얻었는지 놓치는 모습. 다크패턴 비교와 겹치지 않게 고른다.',
+      '**구매 안전.** 확인 버튼은 입력 잠금(`core/inputLock.ts`, 누른 시각 기준)으로 창이 막 뜬 직후 연타를 막는다. 실제 결제는 없는 모의 화면이고 Unity IAP 는 연결 지점만 설명한다.',
+      '**세계관.** 공통 세계관의 크레딧(일반 재화)과 세계관 이름의 유료 재화. 가격 표기는 원화 예시로 둔다.',
+      '**Unity.** 재화 바는 씬이 바뀌어도 남는 공용 UI(UGUI `DontDestroyOnLoad` 또는 공용 UIDocument)와 데이터 변경 이벤트. UGUI 코인 비행은 오브젝트 풀 + 베지어 경로, UI Toolkit 은 transition 과 바인딩.',
+      '**`related`.** `gacha-reveal-odds`(확률 표시), `battle-pass-track`(받기 상태), `results-reward`(카운트업) 중 실제로 이어지는 것.',
+      '**`inspiredBy`.** 카드의 게임 중 출처로 확인한 것만. 확인되지 않으면 `borrowed: []`.',
+      ...common,
+    ],
+  },
+]
