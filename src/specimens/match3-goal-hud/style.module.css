@@ -101,7 +101,7 @@
   border-color: var(--warn);
   animation: movesPulse calc(0.415s / var(--ts)) ease-in-out infinite alternate;
 }
-/* 2수 이하: 0.25초 왕복 = 2Hz (2Hz 를 넘기지 않는다) */
+/* 2수 이하: 편도 0.25초(alternate) → 한 주기 0.5초 = 2Hz (2Hz 를 넘기지 않는다) */
 .moves[data-critical] {
   animation-duration: calc(0.25s / var(--ts));
 }
@@ -109,7 +109,7 @@
   color: #ffd2b0;
   opacity: 1;
 }
-/* 0.415초 왕복 = 약 1.2Hz */
+/* 편도 0.415초(alternate) → 한 주기 0.83초 = 약 1.2Hz */
 @keyframes movesPulse {
   from {
     transform: scale(1);
@@ -637,7 +637,7 @@
 .booster[data-hint] {
   animation: shopHint calc(0.4s / var(--ts)) ease-in-out 6 alternate;
 }
-/* 0.4초 왕복 = 1.25Hz */
+/* 편도 0.4초 × 6(alternate) → 한 주기 0.8초 = 1.25Hz, 세 번 */
 @keyframes shopHint {
   from {
     box-shadow: 0 0 0 0 #ffcc4d00;

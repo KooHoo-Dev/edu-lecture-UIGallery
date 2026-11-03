@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { formatNumber } from '../../core/countup'
 import { prefersReducedMotion } from '../../core/flash'
 import { damp, useAutoplay, useGameLoop, useTrigger } from '../../core/hooks'
+import { createInputLock } from '../../core/inputLock'
 import { bool, num, str } from '../../core/params'
 import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
@@ -235,6 +236,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
   const movesNumRef = useRef<HTMLElement>(null)
   const movesLabelRef = useRef<HTMLSpanElement>(null)
   const pipRefs = useRef<(HTMLElement | null)[]>([])
+  const goalsRef = useRef<HTMLDivElement>(null)
   const goalRefs = useRef<(HTMLDivElement | null)[]>([])
   const goalIconRefs = useRef<(HTMLSpanElement | null)[]>([])
   const goalNumRefs = useRef<(HTMLElement | null)[]>([])
@@ -276,8 +278,12 @@ export default function Match3GoalHud(p: SpecimenProps) {
     S.landed = S.collected.slice()
   }
 
+  /** 결과 창 입력 잠금 — 누른 시각(e.timeStamp)으로 판정하니 시계도 performance.now */
+  const [retryLock] = useState(() => createInputLock(300))
+  const retryDownAt = useRef(0)
   const setResult = (win: boolean, early: boolean) => {
     S.result = { win, at: S.t, early, regret: false }
+    retryLock.open(performance.now())
     touch()
   }
 
@@ -291,10 +297,10 @@ export default function Match3GoalHud(p: SpecimenProps) {
       }
       return
     }
-    if (S.phase !== 'idle') return
-    if (allDone()) {
-      if (!S.flyers.length) setResult(true, false)
-    } else if (S.movesLeft <= 0) setResult(false, false)
+    // 성공 · 실패 모두 — 실패만 먼저 내면 창 위로 아이콘이 날고 "남은 목표" 와 HUD 숫자가 어긋난다
+    if (S.phase !== 'idle' || S.flyers.length) return
+    if (allDone()) setResult(true, false)
+    else if (S.movesLeft <= 0) setResult(false, false)
   }
 
   /** 블록을 깬다: 실제값은 지금, 표시값은 아이콘이 도착할 때 */
@@ -309,6 +315,9 @@ export default function Match3GoalHud(p: SpecimenProps) {
     }
     S.score += idx.length * POINTS * S.chain
     const b = boardRect()
+    const gp = goalsRef.current
+    const panelTop = center(gp).y - (gp?.offsetHeight ?? 0) / 2
+    const wide = p.aspect === '16:9'
     const reduced = prefersReducedMotion()
     let order = 0
     for (let g = 0; g < 3; g++) {
@@ -336,8 +345,9 @@ export default function Match3GoalHud(p: SpecimenProps) {
           dur: c.flyMs / 1000,
           x0: fx,
           y0: fy,
-          cx: (fx + to.x) / 2 + side,
-          cy: Math.min(fy, to.y) - 140,
+          // 16:9 는 목표가 보드 옆에 가로로 늘어선다 — 조절점을 목표 패널 위로 올려 위에서 내려앉게 (다른 목표 아이콘을 가로지르지 않게)
+          cx: wide ? to.x + side / 2 : (fx + to.x) / 2 + side,
+          cy: wide ? Math.min(fy, panelTop) - 160 - Math.max(0, fy - panelTop) / 2 : Math.min(fy, to.y) - 140,
           x1: to.x,
           y1: to.y,
         })
@@ -406,6 +416,9 @@ export default function Match3GoalHud(p: SpecimenProps) {
     }
   }
 
+  /** 목표를 다 채우고 비행을 기다리는 동안은 이동 · 부스터를 쓰지 않는다 */
+  const waitNote = () => (note('목표 완료 — 날아오는 아이콘이 도착하면 판정'), false)
+
   /** 묶음 누르기 (이동 −1) */
   const tap = (i: number) => {
     const c = cfgRef.current
@@ -415,6 +428,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
       return false
     }
     if (S.movesLeft <= 0) return false
+    if (allDone()) return waitNote()
     const g = groupAt(S.types, i)
     if (g.length < 2) {
       S.shake = { i, until: S.t + 0.3 }
@@ -440,6 +454,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
       note('연쇄 처리 중 — 부스터는 연쇄가 끝난 뒤')
       return
     }
+    if (allDone()) return void waitNote()
     S.boosters[k]--
     const r = Math.floor(S.cursor / COLS)
     const c = S.cursor % COLS
@@ -545,7 +560,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
       if (!p.thumbnail && S.t - S.humanAt < MANUAL_PAUSE) return
       if (S.result) {
         if (S.t - S.result.at > 2.6) restart('자동 데모 — 새 판')
-      } else if (S.phase === 'idle') {
+      } else if (S.phase === 'idle' && !allDone()) {
         const step = S.autoStep++ % 7
         if (step === 5 && S.boosters.some(b => b > 0)) {
           S.cursor = bestGroup()[0] ?? S.cursor
@@ -700,7 +715,10 @@ export default function Match3GoalHud(p: SpecimenProps) {
     if (p.thumbnail) return
     const onButton = !!(e.target as HTMLElement).closest('button')
     if (S.result) {
-      if (e.key !== 'Enter' || onButton) return
+      if (e.key !== 'Enter') return
+      // 입력 잠금: 창이 막 열렸을 때 누른 Enter · 자동 반복은 먹기만 한다 (먹으면 다시 하기 버튼의 click 도 나지 않는다)
+      if (e.repeat || retryLock.blocks(e.timeStamp)) return true
+      if (onButton) return
       human()
       restart()
     } else if (ARROWS[e.key]) {
@@ -732,8 +750,8 @@ export default function Match3GoalHud(p: SpecimenProps) {
       : '스테이지 실패'
     : S.phase !== 'idle'
       ? `연쇄 ×${Math.max(1, S.chain)} 처리 중${S.movesLeft === 0 ? ' — 이동 0, 판정은 연쇄가 끝난 뒤' : ''}`
-      : allDone() && S.flyers.length
-        ? '목표 완료 — 마지막 아이콘이 도착하면 판정'
+      : S.flyers.length && (allDone() || S.movesLeft <= 0)
+        ? `${allDone() ? '목표 완료' : '이동 0'} — 마지막 아이콘이 도착하면 판정`
         : deferFail
           ? '판정: 마지막 연쇄 · 비행이 끝난 뒤'
           : '⚠ 판정: 이동 0 즉시 (나쁜 규칙)'
@@ -773,7 +791,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
             ))}
           </div>
         </div>
-        <div className={s.goals} data-part="goals" data-pin={p.aspect === '9:16' ? 'left' : 'right'}>
+        <div ref={goalsRef} className={s.goals} data-part="goals" data-pin={p.aspect === '9:16' ? 'left' : 'right'}>
           <div className={s.goalsHead}>
             <span>정비 구역 07 · 회수 목표</span>
             <small>도착하면 −1 · 비행 {flyMs > 0 && juice ? `${(flyMs / 1000).toFixed(2)}초` : '없음'}</small>
@@ -787,6 +805,7 @@ export default function Match3GoalHud(p: SpecimenProps) {
                 }}
                 className={s.goal}
                 data-g={g}
+                data-part={g === 0 ? 'fly' : undefined}
               >
                 <span
                   ref={el => {
@@ -859,7 +878,6 @@ export default function Match3GoalHud(p: SpecimenProps) {
       <div
         ref={boardRef}
         className={s.board}
-        data-part="fly"
         onPointerDown={e => {
           if (p.thumbnail) return
           const i = cellAt(e)
@@ -921,7 +939,10 @@ export default function Match3GoalHud(p: SpecimenProps) {
           <button
             ref={retryRef}
             tabIndex={r && !p.thumbnail ? 0 : -1}
-            onClick={() => {
+            onPointerDown={e => (retryDownAt.current = e.timeStamp)}
+            onClick={e => {
+              // 마우스 · 터치는 누른 시각, Enter · Space 로 난 click(detail 0)은 그 시각
+              if (retryLock.blocks(e.detail ? retryDownAt.current : e.timeStamp)) return
               human()
               restart('다시 하기 — 새 보드')
               sync()

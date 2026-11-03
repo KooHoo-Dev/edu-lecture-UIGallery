@@ -2,7 +2,9 @@
 //  - 자동 구성: Bind 에서 레벨 정의를 읽어 목표 칸 · 별 마커(left = 임계값 / 최대 점수 %) · 부스터 버튼을 만든다
 //  - 비행: 월드 → 패널은 RuntimePanelUtils.CameraTransformWorldToPanel, 도착점은 아이콘의 worldBound. 풀에서 꺼낸 요소를 매 프레임 style.translate 로 베지어를 따라 옮긴다
 //  - 안전 영역: Screen.safeArea(원점 왼쪽 아래 · 픽셀)를 y 를 뒤집어 RuntimePanelUtils.ScreenToPanel 로 바꾼 뒤 #safe 의 padding 에 넣는다
-//  - 결과 창: display 로 켜고 16ms 뒤 보이기 클래스 + 다시 하기 Focus(). 닫으면 열기 전 포커스로
+//  - 결과 창: display 로 켜고 16ms 뒤 보이기 클래스 + 다시 하기 Focus(). 닫으면 열기 전 포커스로.
+//    연 시각을 적어 두고 retryLockSeconds 안에 누른 다시 하기는 버린다 (입력 잠금). 꺼졌다 켜지면 난 결과를 다시 연다
+//  - 비행의 출발 · 도착점은 매 프레임 다시 읽는다 (새 칸의 레이아웃 · 회전 · 안전 영역 변경 뒤에도 맞게)
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -20,6 +22,7 @@ namespace UIGallery.Match3GoalHud
         [SerializeField] float flySeconds = 0.65f;
         [Tooltip("호의 높이 (패널 단위)")] [SerializeField] float arcHeight = 140f;
         [Tooltip("끄면 '나쁜 예': 날아가는 아이콘 · 도착 강조 · 이동 경고 없이 숫자만 바뀐다")] [SerializeField] bool feedback = true;
+        [Tooltip("결과 창이 뜬 뒤 이 시간 안에 누른 다시 하기는 버린다 (입력 잠금)")] [SerializeField] float retryLockSeconds = 0.3f;
 
         class GoalView
         {
@@ -39,8 +42,9 @@ namespace UIGallery.Match3GoalHud
         {
             public VisualElement el;
             public GoalView goal;
-            public Vector2 p0, p1, p2;
-            public float start;
+            public Vector3 fromWorld;
+            public Vector2 p0, p2;
+            public float side, start;
         }
 
         public event Action<int> BoosterPressed;
@@ -57,6 +61,7 @@ namespace UIGallery.Match3GoalHud
         ObjectPool<VisualElement> pool;
         float shownScore;
         Focusable opener;
+        float resultOpenedAt, retryPressedAt = -1f;
         Vector4 lastPadding = new(-1f, -1f, -1f, -1f);
 
         public int FlyingCount => flights.Count;
@@ -80,6 +85,7 @@ namespace UIGallery.Match3GoalHud
             resultDetail = root.Q<Label>("result-detail");
             retry = root.Q<Button>("retry");
             retry.clicked += OnRetry;
+            retry.RegisterCallback<PointerDownEvent>(OnRetryDown, TrickleDown.TrickleDown);
             if (boardCamera == null) boardCamera = Camera.main;
             // UIDocument 를 다시 켜면 요소가 새로 만들어진다 — 풀도 새로
             pool = new ObjectPool<VisualElement>(CreateFlyer, f => flyLayer.Add(f), f => f.RemoveFromHierarchy(), null, true, 24, 96);
@@ -89,13 +95,19 @@ namespace UIGallery.Match3GoalHud
                 state.Changed += Redraw;
                 Build();
                 Redraw();
+                // 꺼질 때 결과 창을 닫았다 — 결과가 이미 났으면 다시 연다 (보드는 같은 결과를 두 번 알리지 않는다)
+                if (state.Result != StageResult.None) ShowResult(state.Result);
             }
         }
 
         void OnDisable()
         {
             if (state != null) state.Changed -= Redraw;
-            if (retry != null) retry.clicked -= OnRetry;
+            if (retry != null)
+            {
+                retry.clicked -= OnRetry;
+                retry.UnregisterCallback<PointerDownEvent>(OnRetryDown, TrickleDown.TrickleDown);
+            }
             // 날던 것은 버리고 표시값 = 실제값. 열린 결과 창 · 맥동 크기를 되돌린다
             foreach (Flight f in flights) f.el.RemoveFromHierarchy();
             flights.Clear();
@@ -107,7 +119,17 @@ namespace UIGallery.Match3GoalHud
             moves.style.scale = StyleKeyword.Null;
         }
 
-        void OnRetry() => RetryPressed?.Invoke();
+        // 포인터는 누른 순간을 적어 둔다 (clicked 는 뗄 때 온다)
+        void OnRetryDown(PointerDownEvent _) => retryPressedAt = Time.unscaledTime;
+
+        void OnRetry()
+        {
+            // 입력 잠금: 창을 연 시각과 누른 시각을 비교한다. 키보드 · 패드 Submit 은 누른 프레임에 바로 오니 지금 시각
+            float pressedAt = retryPressedAt >= 0f ? retryPressedAt : Time.unscaledTime;
+            retryPressedAt = -1f;
+            if (pressedAt - resultOpenedAt < retryLockSeconds) return;
+            RetryPressed?.Invoke();
+        }
 
         /* ───── 자동 구성 ───── */
         public void Bind(StageState s)
@@ -223,16 +245,24 @@ namespace UIGallery.Match3GoalHud
                 DrawGoal(v);
                 return;
             }
-            Vector2 p0 = flyLayer.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, worldPos, boardCamera));
-            Vector2 p2 = flyLayer.WorldToLocal(v.icon.worldBound.center);
-            // 조절점: 가운데에서 옆으로 흩고 위로(패널은 y 가 아래로 증가) 올린다
+            // 조절점을 옆으로 흩는 양 — 여러 개가 겹쳐도 길이 갈린다
             float side = (flights.Count % 2 == 0 ? -1f : 1f) * (60f + flights.Count * 37 % 120);
-            Vector2 p1 = new((p0.x + p2.x) * 0.5f + side, Mathf.Min(p0.y, p2.y) - arcHeight);
-            VisualElement el = pool.Get();
-            el.style.backgroundImage = new StyleBackground(v.ledger.def.icon);
-            el.style.translate = new Translate(p0.x, p0.y);
-            el.style.scale = new Scale(Vector2.zero);   // 지연 동안 숨김
-            flights.Add(new Flight { el = el, goal = v, p0 = p0, p1 = p1, p2 = p2, start = Time.unscaledTime + delay });
+            var f = new Flight { el = pool.Get(), goal = v, fromWorld = worldPos, side = side, start = Time.unscaledTime + delay };
+            Track(f);
+            f.el.style.backgroundImage = new StyleBackground(v.ledger.def.icon);
+            f.el.style.translate = new Translate(f.p0.x, f.p0.y);
+            f.el.style.scale = new Scale(Vector2.zero);   // 지연 동안 숨김
+            flights.Add(f);
+        }
+
+        /// <summary>출발 · 도착점을 다시 읽는다 (매 프레임). 막 만든 목표 칸은 레이아웃 전이라 worldBound 가 NaN 일 수 있다 — 그때는 전 값을 둔다.
+        /// 회전 · 안전 영역 변경 뒤에도 칸과 보드의 지금 자리로 간다</summary>
+        void Track(Flight f)
+        {
+            Vector2 p0 = flyLayer.WorldToLocal(RuntimePanelUtils.CameraTransformWorldToPanel(root.panel, f.fromWorld, boardCamera));
+            Vector2 p2 = flyLayer.WorldToLocal(f.goal.icon.worldBound.center);
+            if (!float.IsNaN(p0.x) && !float.IsNaN(p0.y)) f.p0 = p0;
+            if (!float.IsNaN(p2.x) && !float.IsNaN(p2.y)) f.p2 = p2;
         }
 
         void Arrive(GoalView v)
@@ -284,9 +314,12 @@ namespace UIGallery.Match3GoalHud
                     Arrive(f.goal);
                     continue;
                 }
+                if (root.panel != null) Track(f);
+                // 조절점: 가운데에서 옆으로 흩고 위로(패널은 y 가 아래로 증가) 올린다
+                Vector2 p1 = new((f.p0.x + f.p2.x) * 0.5f + f.side, Mathf.Min(f.p0.y, f.p2.y) - arcHeight);
                 float e = k * k * (3f - 2f * k);
                 float u = 1f - e;
-                Vector2 p = u * u * f.p0 + 2f * u * e * f.p1 + e * e * f.p2;
+                Vector2 p = u * u * f.p0 + 2f * u * e * p1 + e * e * f.p2;
                 f.el.style.translate = new Translate(p.x, p.y);
                 f.el.style.scale = new Scale(Vector2.one * (1.25f - 0.45f * e));
             }
@@ -350,6 +383,8 @@ namespace UIGallery.Match3GoalHud
             if (result.ClassListContains("result--open")) return;
             opener = root.focusController?.focusedElement;
             result.AddToClassList("result--open");
+            resultOpenedAt = Time.unscaledTime;   // 입력 잠금 시작
+            retryPressedAt = -1f;
             // 막 display 를 켠 요소는 스타일 계산 전이다 — 16ms 뒤에 보이기 클래스(transition)와 포커스
             result.schedule.Execute(() =>
             {

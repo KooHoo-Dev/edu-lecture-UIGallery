@@ -70,21 +70,20 @@ export const meta: SpecimenMeta = {
       title: '목표는 색 + 모양 + 남은 개수',
       body: '냉각 셀은 파란 **육각형**, 회로 조각은 초록 **사각 칩**, 산소 캔은 주황 **캡슐** — 보드의 블록과 같은 그림이다. 목표가 아닌 수리 키트(분홍 **십자**)는 HUD 에 없다. 남은 개수가 0 이 되면 숫자 자리에 체크가 서고 칸이 밝아진다.',
       principle: '가독성',
-      pin: 'below',
     },
     {
       n: 3,
       part: 'fly',
       title: '깨진 자리에서 날아가 도착할 때 준다',
-      body: '목표 블록이 깨지면 **그 칸에서** 아이콘이 목표로 날아가고(2차 베지어, 블록마다 35ms 간격), **도착할 때** 개수가 하나 준다. 정산 규칙: 실제값은 깨진 순간 줄고 판정은 실제값으로 한다. 표시값은 도착마다 하나씩 실제값을 따라가며 **실제값보다 작아지지 않는다**. 남은 개수보다 많이 깨지면 남은 만큼만 날린다(음수 없음). 다시 시작하거나 효과를 끄면 날던 것을 버리고 표시값 = 실제값. "정산 보기" 프리셋으로 확인한다.',
+      body: '목표 블록이 깨지면 **그 칸에서** 아이콘이 이 목표 칸으로 날아오고(2차 베지어, 블록마다 35ms 간격), **도착할 때** 개수가 하나 준다. 정산 규칙: 실제값은 깨진 순간 줄고 판정은 실제값으로 한다. 표시값은 도착마다 하나씩 실제값을 따라가며 **실제값보다 작아지지 않는다**. 남은 개수보다 많이 깨지면 남은 만큼만 날린다(음수 없음). 다시 시작하거나 효과를 끄면 날던 것을 버리고 표시값 = 실제값. "정산 보기" 프리셋으로 확인한다.',
       principle: '즉각 피드백',
-      pin: 'inside',
+      pin: 'below',
     },
     {
       n: 4,
       part: 'stars',
       title: '별 마커 = 임계값 / 최대 점수',
-      body: '별 세 개를 등간격이 아니라 **임계값 / 최대 점수 × 바 너비** 자리에 세운다. 1,000점이면 바의 20%. 바가 마커를 지나면 별이 켜지고 살짝 커진다. "별 임계값" 을 바꾸면 마커가 실제 점수 자리로 옮겨 간다 — 등간격으로 두면 "별 하나 남았다" 는 짐작이 틀린다.',
+      body: '별 세 개를 등간격이 아니라 **임계값 / 최대 점수 × 바 너비** 자리에 세운다. 1,000점이면 바의 20%. 바가 마커를 지나면 별이 켜지며 1.45배로 커졌다 돌아온다(0.4초). "별 임계값" 을 바꾸면 마커가 실제 점수 자리로 옮겨 간다 — 등간격으로 두면 "별 하나 남았다" 는 짐작이 틀린다.',
       principle: '시각 위계',
     },
     {
@@ -108,15 +107,17 @@ export const meta: SpecimenMeta = {
     { event: '블록 깨짐 (작아지며 사라짐)', ms: 220, easing: 'ease-in', note: '권장값' },
     { event: '빈자리 채우기 (낙하)', ms: 280, easing: 'ease-in (t²)', note: '권장값. 끝나면 가로 · 세로 3개 줄을 찾아 연쇄' },
     { event: '목표 아이콘 비행', ms: 650, easing: 'smoothstep · 2차 베지어', note: '권장값. 블록마다 35ms 간격, 도착할 때 개수 −1' },
-    { event: '목표 도착 강조', ms: 200, easing: '감쇠 (크기 1.2 → 1)', note: '권장값' },
+    { event: '목표 도착 강조', ms: 200, easing: '감쇠 (크기 1.22 → 1)', note: '권장값' },
     { event: '이동 경고 맥동', ms: 830, easing: 'ease-in-out 왕복', note: '1.2Hz, 2수 이하 500ms(2Hz). 2Hz 를 넘기지 않는다' },
-    { event: '결과 판정', ms: 0, easing: '—', note: '시간이 아니라 조건: 마지막 연쇄가 끝나고 마지막 아이콘이 도착한 뒤' },
+    { event: '결과 판정', ms: 0, easing: '—', note: '시간이 아니라 조건: 마지막 연쇄가 끝나고 마지막 아이콘이 도착한 뒤 (성공 · 실패 모두)' },
+    { event: '결과 창 입력 잠금', ms: 300, easing: '—', note: '권장값. 창이 뜬 뒤 이 안에 누른 확정 입력 · Enter 자동 반복은 버린다 (누른 시각으로 판정)' },
   ],
   unity: {
     ugui: {
-      hierarchy: `Main Camera (보드를 찍는 월드 카메라)
+      hierarchy: `Main Camera (보드를 찍는 월드 카메라 · URP Base — Stack 에 UI Camera)
+UI Camera (URP Overlay 카메라 · Culling Mask UI)
 Board (Match3HudDemo.cs — 시험용 보드: 7×7 칸 자리 · 키 입력)
-Canvas_HUD (Screen Space - Camera · UI Camera · Canvas Scaler 1080×1920, Match 0.5)
+Canvas_HUD (Screen Space - Camera · Render Camera = UI Camera · Canvas Scaler 1080×1920, Match 0.5)
 ├─ TopBand (Image — 노치 뒤까지 칠하는 윗줄 띠라 SafeArea 밖)
 └─ SafeArea (GoalHud.cs 가 Screen.safeArea 로 앵커를 맞춘다)
    ├─ Moves (Image · Pulse > Count TMP · Label TMP)
@@ -132,13 +133,14 @@ LevelDefinition.cs — LevelDefinition(ScriptableObject) · GoalLedger(정산) �
         'Canvas 를 **Screen Space - Camera** 로 두고 Canvas Scaler 를 `Scale With Screen Size`, 1080×1920, Match 0.5 로. `SafeArea` RectTransform 을 GoalHud 에 연결하면 `Screen.safeArea` 를 화면 크기로 나눠 앵커에 넣는다(노치 · 홈 표시줄). 화면 끝까지 칠할 띠만 SafeArea 밖에 두고, 화면 전체 배경은 두지 않는다(보드가 보여야 한다).',
         '별 마커는 `anchorMin.x = anchorMax.x = 임계값 / maxScore` 로 세운다 — 바 너비가 바뀌어도 같은 비율 자리. 픽셀로 계산하려면 `bar.rect.width × 비율`.',
         '깨진 블록: 보드가 `state.Find(type).Collect(n)` 으로 **실제값을 먼저** 줄이고, 돌려받은 개수만큼 `hud.Fly(type, 칸의 월드 위치, 지연)` 을 부른다. GoalFlyer 가 `RectTransformUtility.WorldToScreenPoint(보드 카메라, 월드)` → `ScreenPointToLocalPointInRectangle(FlyLayer, 화면, Canvas 카메라)` 로 바꿔 베지어로 날리고, 도착하면 `GoalLedger.Land()` 로 표시값을 하나 줄인다.',
-        '판정은 보드가 매 프레임 `state.Judge(hud.FlyingCount)` 로: 연쇄 중(`Settled == false`)이거나 날아오는 것이 있으면 결과를 내지 않는다. 결과 창이 열리면 `SetSelectedGameObject(RetryButton)`, 닫으면 전에 고른 것으로 돌려준다.',
+        '판정은 보드가 매 프레임 `state.Judge(hud.FlyingCount)` 로: 연쇄 중(`Settled == false`)이거나 날아오는 것이 있으면 성공도 실패도 내지 않는다. 결과 창이 열리면 `SetSelectedGameObject(RetryButton)`, 닫으면 전에 고른 것으로 돌려준다. 창을 연 시각을 적어 두고 0.3초 안에 누른 다시 하기는 버린다(입력 잠금 — 마지막 연쇄 중 연타한 Submit 이 바로 다시 시작하지 않게).',
       ],
       pitfalls: [
         'Canvas 가 Screen Space - Camera 인데 `ScreenPointToLocalPointInRectangle` 에 카메라를 `null` 로 넘기면 아이콘이 엉뚱한 곳에서 출발한다. Overlay 일 때만 `null`, 아니면 `canvas.worldCamera`. 월드 → 화면은 **보드 카메라**로 (UI 카메라와 다를 수 있다).',
         '날던 아이콘을 코루틴으로 돌리면 HUD 가 꺼질 때 멈춘 채 남는다. GoalFlyer 는 `Update` 한 곳에서 목록을 돌리고, `OnDisable` 에서 아이콘을 풀로 돌려주며 남은 것을 도착 처리한다(표시값이 실제값보다 큰 채로 남지 않게).',
         '0개 부스터를 `interactable = false` 로 끄면 선택돼 있던 버튼에서 선택이 빠져 패드로 못 움직인다. 끄지 말고 "충전" 상태로 바꿔 상점으로 안내한다.',
-        '경고 맥동은 `Time.unscaledTime` 으로 — 결과 창에서 `Time.timeScale = 0` 이어도 멈추지 않게. 빈도는 2Hz 를 넘기지 않는다.',
+        '경고 맥동 · 비행은 `Time.unscaledTime` 으로 돌린다 — 배속 · 슬로모션으로 `Time.timeScale` 을 바꿔도 맥동이 2Hz 를 넘지 않고, 판정이 기다리는 비행이 늘어지지 않는다. (결과 창이 뜨면 경고는 꺼지니 결과 창의 timeScale 과는 상관없다.)',
+        '다시 시작할 때 옛 목표 칸을 지우기만 하면 남은 비행이 도착하며 지워진 TMP 를 건드린다(MissingReferenceException). `Bind` 에서 `GoalFlyer.CancelAll()` 로 콜백 없이 풀에 돌려주고, 도착점은 매 프레임 목표 아이콘에서 다시 읽는다(새 칸은 레이아웃 전이고, 회전 · 안전 영역이 바뀌면 자리가 옮겨 간다).',
       ],
     },
     uitk: {
@@ -156,8 +158,8 @@ Match3HudUITK.cs (레벨 정의 · 정산 · 판정은 UGUI 폴더 LevelDefiniti
       steps: [
         '**Panel Settings** 를 `Scale With Screen Size`, 1080×1920, Match 0.5 로. 안전 영역은 `Screen.safeArea` 를 `RuntimePanelUtils.ScreenToPanel` 로 패널 좌표로 바꿔 `#safe` 의 padding 에 넣는다. 화면 좌표는 원점이 **왼쪽 아래**, 패널은 **왼쪽 위**라 y 를 `Screen.height − y` 로 뒤집는다.',
         '목표 칸 · 별 마커 · 부스터 버튼은 `Bind(state)` 에서 레벨 정의를 읽어 만든다. 별 마커는 `style.left = Length.Percent(임계값 / maxScore × 100)` + USS `translate: -50% 0`.',
-        '날아가는 아이콘의 출발점은 `RuntimePanelUtils.CameraTransformWorldToPanel(panel, 월드 위치, 보드 카메라)`, 도착점은 `flyLayer.WorldToLocal(아이콘.worldBound.center)`. 위치는 매 프레임 `style.translate` 로 베지어를 따라 옮긴다.',
-        '결과 창은 `display` 로 켜고, 다음 프레임(`StartingIn(16)`)에 보이기 클래스를 붙여 USS transition 을 돌리며 다시 하기 버튼에 `Focus()`. 닫으면 열기 전 포커스로 돌려준다.',
+        '날아가는 아이콘의 출발점은 `RuntimePanelUtils.CameraTransformWorldToPanel(panel, 월드 위치, 보드 카메라)`, 도착점은 `flyLayer.WorldToLocal(아이콘.worldBound.center)`. 두 점을 매 프레임 다시 읽어(새 칸의 레이아웃 · 회전 뒤에도 맞게) `style.translate` 로 베지어를 따라 옮긴다.',
+        '결과 창은 `display` 로 켜고, 다음 프레임(`StartingIn(16)`)에 보이기 클래스를 붙여 USS transition 을 돌리며 다시 하기 버튼에 `Focus()`. 닫으면 열기 전 포커스로 돌려준다. 연 시각을 적어 두고, 다시 하기를 누른 시각(포인터는 `PointerDownEvent`)이 0.3초 안이면 버린다(입력 잠금).',
       ],
       pitfalls: [
         '`pickingMode` 는 자식에게 상속되지 않는다. 숨은 결과 창을 opacity 0 으로만 두면 아래 부스터 클릭을 막는다 — `display: none` 으로 끈다.',

@@ -199,8 +199,13 @@
     background-color: rgb(15, 24, 48);
     color: rgb(234, 240, 250);
 }
+/* 테마의 .unity-button:hover · :active 가 더 구체적이라 배경을 회색으로 덮는다 — 배경도 직접 준다 */
 .booster:hover {
     border-color: rgb(94, 230, 201);
+    background-color: rgb(24, 38, 70);
+}
+.booster:active {
+    background-color: rgb(10, 16, 34);
 }
 /* 키보드 · 패드로 고른 버튼이 보이게 */
 .booster:focus {
@@ -334,6 +339,12 @@
     color: rgb(8, 32, 28);
     font-size: 30px;
     -unity-font-style: bold;
+}
+.result__retry:hover {
+    background-color: rgb(134, 240, 216);
+}
+.result__retry:active {
+    background-color: rgb(64, 196, 168);
 }
 .result__retry:focus {
     border-color: rgb(255, 255, 255);
