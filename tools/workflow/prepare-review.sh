@@ -2,12 +2,15 @@
 # 잡 브랜치(dispatch/<id>) 하나의 표본을 리뷰 폴더 _review/<id>/ 로 모으고 화면을 찍는다.
 #   sh tools/workflow/prepare-review.sh <표본 id> [shot.py 상태 ...]
 #   예: sh tools/workflow/prepare-review.sh branching-route-map default juice0 event:advance preset:dense mobile
-# 상태를 주지 않으면 default juice0 mobile. 리뷰어에게는 tools/workflow/review-brief.md 와 이 폴더를 준다.
+# 상태를 주지 않으면 meta.ts 의 이벤트 · 프리셋으로 정한다 (shot-states.mjs). 리뷰어에게는 tools/workflow/review-brief.md 와 이 폴더를 준다.
 set -e
 ID=$1
 shift
-[ $# -gt 0 ] || set -- default juice0 mobile
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
+if [ $# -eq 0 ]; then
+  git -C "$REPO" show "dispatch/$ID:src/specimens/$ID/meta.ts" > "${TMPDIR:-/tmp}/uig-meta-$ID.ts"
+  set -- $(node "$REPO/tools/workflow/shot-states.mjs" "${TMPDIR:-/tmp}/uig-meta-$ID.ts")
+fi
 OUT="$REPO/_review/$ID"
 WT="$(cygpath -m "${TMPDIR:-/tmp}")/uig-rv-$ID"
 rm -rf "$OUT"
