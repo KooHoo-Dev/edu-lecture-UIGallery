@@ -85,6 +85,8 @@ interface Sim {
   view: View
   saved: View | null
   filter: boolean
+  /** 필터를 켠 채 제작한 레시피 — 재료가 모자라져도 선택을 바꿀 때까지 ✕ 줄로 남긴다 */
+  keep: RecipeId | null
   win: Win
   winT: number
   opens: number
@@ -122,6 +124,7 @@ function createSim(scale: number, filter: boolean): Sim {
     view: { tab: 'all', sel: { all: 'jammer' }, search: '', scrollTop: 0 },
     saved: null,
     filter,
+    keep: null,
     win: 'open',
     winT: 0,
     opens: 0,
@@ -188,8 +191,7 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
   useEffect(() => {
     if (S.filter !== craftableOnly) {
       S.filter = craftableOnly
-      S.pendingScroll = 'ensure'
-      bump()
+      viewChanged()
     }
   }, [craftableOnly])
 
@@ -228,8 +230,9 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
   const visibleOf = (v: View) => {
     const st = statusShown()
     const q = v.search.trim()
-    return RECIPES.filter(r => S.unlocked.has(r.id) && (v.tab === 'all' || r.tab === v.tab) && (!q || r.name.includes(q)) && (!S.filter || st[r.id].craftable))
+    return RECIPES.filter(r => S.unlocked.has(r.id) && (v.tab === 'all' || r.tab === v.tab) && (!q || r.name.includes(q)) && (!S.filter || st[r.id].craftable || r.id === S.keep))
   }
+  /** 고른 레시피가 필터 · 검색에 가려지면 표시만 첫 줄로 대체한다 (v.sel 은 덮어쓰지 않는다) */
   const selectedOf = (v: View, list = visibleOf(v)): RecipeId | null => {
     const want = v.sel[v.tab]
     return want && list.some(r => r.id === want) ? want : (list[0]?.id ?? null)
@@ -237,6 +240,7 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
 
   const select = (id: RecipeId) => {
     S.view.sel[S.view.tab] = id
+    if (id !== S.keep) S.keep = null
     if (cfgRef.current.showBadges && cfgRef.current.badgeClear === 'on-select') S.fresh.delete(id)
     S.pendingScroll = 'ensure'
     bump()
@@ -247,10 +251,15 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
     const i = list.findIndex(r => r.id === selectedOf(S.view, list))
     select(list[clamp(i + d, 0, list.length - 1)].id)
   }
-  const setTab = (tab: TabId) => {
-    S.view.tab = tab
+  /** 탭 · 필터 · 검색이 바뀌면 남겨 둔 ✕ 줄을 놓는다 */
+  const viewChanged = () => {
+    S.keep = null
     S.pendingScroll = 'ensure'
     bump()
+  }
+  const setTab = (tab: TabId) => {
+    S.view.tab = tab
+    viewChanged()
   }
   const cycleTab = (d: number) => {
     const i = TABS.findIndex(t => t.id === S.view.tab)
@@ -258,18 +267,18 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
   }
   const toggleFilter = () => {
     S.filter = !S.filter
-    S.pendingScroll = 'ensure'
-    bump()
+    viewChanged()
   }
   const setSearch = (q: string) => {
     S.view.search = q
-    S.pendingScroll = 'ensure'
-    bump()
+    viewChanged()
   }
 
   /* ───── 제작 · 취소 · 완성 ───── */
   const craft = (id = selectedOf(S.view)) => {
     if (!id) return
+    // 건 레시피를 선택으로 굳히고 남긴다 — 필터 때문에 줄이 빠져 다음 Enter 가 다른 레시피를 거는 일이 없게
+    S.view.sel[S.view.tab] = S.keep = id
     const c = cfgRef.current
     const r = RECIPE[id]
     if (S.queue.length >= c.queueSize) {
@@ -350,12 +359,15 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
     const saved = S.saved
     if (c.restore && saved) {
       S.view = saved
-      const sel = selectedOf(saved)
+      // 안내는 대체 표시가 아니라 실제로 되살린 값을 말한다
+      const want = saved.sel[saved.tab]
       const tab = TABS.find(t => t.id === saved.tab)!.label
-      S.note = { seq: S.opens + 1, kind: 'restore', text: `복원: ${tab} 탭 · ${sel ? RECIPE[sel].name : '선택 없음'} · 스크롤 ${Math.round(saved.scrollTop / PITCH)}줄 아래` }
+      const sel = want ? RECIPE[want].name + (selectedOf(saved) !== want ? ' (지금은 가려짐)' : '') : '고른 것 없음'
+      S.note = { seq: S.opens + 1, kind: 'restore', text: `복원: ${tab} 탭 · ${sel}${saved.search ? ` · 검색 "${saved.search}"` : ''} · 스크롤 ${Math.round(saved.scrollTop / PITCH)}줄 아래` }
       S.pendingScroll = 'restore'
     } else {
       S.view = firstView()
+      S.keep = null
       S.note = { seq: S.opens + 1, kind: 'reset', text: '처음으로: 전체 탭 · 첫 줄 — 보던 레시피를 다시 찾아야 한다' }
       S.pendingScroll = 'ensure'
     }
@@ -406,7 +418,8 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
       else if (a === 'search') setSearch('셀')
       else if (a === 'search-clear') setSearch('')
       else if (a === 'select-new') {
-        const id = RECIPES.find(r => S.fresh.has(r.id) && S.unlocked.has(r.id))?.id
+        // 방금 해금한 레시피로 간다
+        const id = [...UNLOCK_ORDER].reverse().find(x => S.unlocked.has(x))
         if (id) {
           S.view.tab = RECIPE[id].tab
           select(id)
@@ -450,22 +463,39 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
     sync()
   })
 
+  const craftRef = useRef<HTMLButtonElement>(null)
+  const slotsRef = useRef<HTMLDivElement>(null)
+  const played = useRef({ shake: 0, became: 0 })
   useLayoutEffect(() => {
     const el = listRef.current
-    if (el && S.pendingScroll && S.win === 'open') {
+    const open = el && S.win === 'open'
+    const list = visibleOf(S.view)
+    if (open && S.pendingScroll) {
       if (S.pendingScroll === 'restore') el.scrollTop = S.view.scrollTop
-      else {
-        const list = visibleOf(S.view)
-        const i = list.findIndex(r => r.id === selectedOf(S.view, list))
-        if (i >= 0) {
-          const top = i * PITCH
-          if (top < el.scrollTop) el.scrollTop = top
-          // 아래로 따라갈 때는 줄 단위로 맞춰 맨 위 줄이 반쯤 잘리지 않게 한다
-          else if (top + ROW > el.scrollTop + el.clientHeight) el.scrollTop = Math.ceil((top + ROW - el.clientHeight) / PITCH) * PITCH
-        }
+      // 되살린 선택이 스크롤 밖이면 보이게 옮긴다
+      const i = list.findIndex(r => r.id === selectedOf(S.view, list))
+      if (i >= 0) {
+        const top = i * PITCH
+        if (top < el.scrollTop) el.scrollTop = top
+        // 아래로 따라갈 때는 줄 단위로 맞춰 맨 위 줄이 반쯤 잘리지 않게 한다
+        else if (top + ROW > el.scrollTop + el.clientHeight) el.scrollTop = Math.ceil((top + ROW - el.clientHeight) / PITCH) * PITCH
       }
       S.view.scrollTop = el.scrollTop
       S.pendingScroll = null
+    }
+    // 흔들림 · 강조는 Web Animations 로 한 번만 재생한다. key 로 다시 마운트하면 포커스가 빠지고, 탭을 바꾸거나 다시 열 때 또 재생된다
+    const ms = (n: number) => n / Math.max(0.05, p.timeScale)
+    const pl = played.current
+    if (pl.shake !== S.shake.seq) {
+      pl.shake = S.shake.seq
+      if (motion) (S.shake.at === 'craft' ? craftRef : slotsRef).current?.animate({ translate: ['0', '-6px', '6px', '-6px', '6px', '0'] }, ms(300))
+    }
+    if (pl.became !== S.becameSeq) {
+      pl.became = S.becameSeq
+      const glow = '0 0 0 4px rgba(95,227,154,'
+      if (motion && open)
+        for (const id of S.became)
+          el.children[list.findIndex(r => r.id === id)]?.animate({ boxShadow: [glow + '.9)', glow + '.9)', glow + '0)'], offset: [0, 0.3, 1] }, ms(1100))
     }
     paint()
   })
@@ -495,21 +525,20 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
   const live = recipe ? S.status[recipe.id] : null
   const full = S.queue.length >= queueSize
   const ready = !!live?.craftable && !full
-  const tabFresh = (tab: TabId) => (showBadges ? RECIPES.filter(r => S.fresh.has(r.id) && S.unlocked.has(r.id) && (tab === 'all' || r.tab === tab)).length : 0)
+  // 보이는 줄만 센다 — 필터 · 검색에 가려진 레시피의 배지는 고를 수 없어 지울 방법이 없다
+  const tabFresh = (tab: TabId) => (showBadges ? visibleOf({ ...S.view, tab }).filter(r => S.fresh.has(r.id)).length : 0)
   const okCount = list.filter(r => st[r.id].craftable).length
   const totalInTab = RECIPES.filter(r => S.unlocked.has(r.id) && (S.view.tab === 'all' || r.tab === S.view.tab)).length
   const glyph = 34
 
   const rows = list.map(r => {
     const rs = st[r.id]
-    const flash = juice && motion && S.became.includes(r.id)
     return (
       <div
-        key={flash ? `${r.id}-${S.becameSeq}` : r.id}
+        key={r.id}
         className={s.row}
         data-sel={r.id === sel || undefined}
         data-ok={(juice && rs.craftable) || undefined}
-        data-flash={flash || undefined}
         onClick={() => select(r.id)}
         onDoubleClick={() => craft(r.id)}
       >
@@ -697,7 +726,7 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
 
         {/* ───── 고른 레시피 ───── */}
         <section className={s.detail}>
-          {recipe ? (
+          {recipe && (
             <>
               <div className={s.dHead}>
                 <span className={s.dIconBox}>
@@ -711,39 +740,48 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
                 </div>
               </div>
               <p className={s.dDesc}>{recipe.desc}</p>
-              <h3 className={s.dSub}>필요 재료</h3>
-              <div className={s.ings} data-part="ingredients">
-                {recipe.needs.map(k => {
-                  const have = S.inv[k.id] ?? 0
-                  const short = have < k.n
-                  return (
-                    <div key={k.id} className={s.ing} data-short={short || undefined} data-style={shortage}>
-                      <Icon id={k.id} className={s.ingIcon} />
-                      <span className={s.ingName}>{itemName(k.id)}</span>
-                      {shortage === 'icon-text' && (
-                        <span className={s.ingBar}>
-                          <i style={{ width: `${Math.min(1, have / k.n) * 100}%` }} />
-                        </span>
-                      )}
-                      <span className={s.ingNum}>
-                        {shortage === 'need-only' ? (
-                          `×${k.n}`
-                        ) : (
-                          <>
-                            <b>{have}</b> / {k.n}
-                          </>
-                        )}
+            </>
+          )}
+          <h3 className={s.dSub}>필요 재료</h3>
+          {/* 해설 1번 대상 — 고른 레시피가 없어도 늘 그린다 */}
+          <div className={s.ings} data-part="ingredients">
+            {recipe ? (
+              recipe.needs.map(k => {
+                const have = S.inv[k.id] ?? 0
+                const short = have < k.n
+                return (
+                  <div key={k.id} className={s.ing} data-short={short || undefined} data-style={shortage}>
+                    <Icon id={k.id} className={s.ingIcon} />
+                    <span className={s.ingName}>{itemName(k.id)}</span>
+                    {shortage === 'icon-text' && (
+                      <span className={s.ingBar}>
+                        <i style={{ width: `${Math.min(1, have / k.n) * 100}%` }} />
                       </span>
-                      {shortage === 'icon-text' && (
-                        <span className={s.ingTag} data-ok={!short || undefined}>
-                          {short ? <ShortMark className={s.mark} /> : <OkMark className={s.mark} />}
-                          {short ? `${k.n - have}개 부족` : '충분'}
-                        </span>
+                    )}
+                    <span className={s.ingNum}>
+                      {shortage === 'need-only' ? (
+                        `×${k.n}`
+                      ) : (
+                        <>
+                          <b>{have}</b> / {k.n}
+                        </>
                       )}
-                    </div>
-                  )
-                })}
-              </div>
+                    </span>
+                    {shortage === 'icon-text' && (
+                      <span className={s.ingTag} data-ok={!short || undefined}>
+                        {short ? <ShortMark className={s.mark} /> : <OkMark className={s.mark} />}
+                        {short ? `${k.n - have}개 부족` : '충분'}
+                      </span>
+                    )}
+                  </div>
+                )
+              })
+            ) : (
+              <p className={s.empty}>레시피를 고르면 재료와 제작 시간이 여기에 나온다</p>
+            )}
+          </div>
+          {recipe && (
+            <>
               <div className={s.result}>
                 <span className={s.resultLabel}>제작하면</span>
                 <Icon id={recipe.id} className={s.resultIcon} />
@@ -753,15 +791,7 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
                 {juice && <small>재료는 걸 때 빠지고, 취소하면 그대로 돌려받는다</small>}
               </div>
               <div className={s.craftArea}>
-                <button
-                  key={S.shake.at === 'craft' ? S.shake.seq : 0}
-                  type="button"
-                  tabIndex={-1}
-                  className={s.craft}
-                  data-ready={(juice && ready) || undefined}
-                  data-shake={(motion && S.shake.at === 'craft' && S.shake.seq > 0) || undefined}
-                  onClick={() => craft()}
-                >
+                <button ref={craftRef} type="button" tabIndex={-1} className={s.craft} data-ready={(juice && ready) || undefined} onClick={() => craft()}>
                   제작
                   {device === 'gamepad' ? <PadButton face="bottom" size={36} /> : device === 'touch' ? null : <KeyCap label="Enter" size={36} />}
                 </button>
@@ -773,8 +803,6 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
                 )}
               </div>
             </>
-          ) : (
-            <p className={s.empty}>레시피를 고르면 재료와 제작 시간이 여기에 나온다</p>
           )}
         </section>
 
@@ -786,12 +814,7 @@ export default function CraftingRecipePanel(p: SpecimenProps) {
               {S.queue.length}/{queueSize}
             </b>
           </h3>
-          <div
-            key={S.shake.at === 'queue' ? S.shake.seq : 0}
-            className={s.slots}
-            data-part="queue"
-            data-shake={(motion && S.shake.at === 'queue' && S.shake.seq > 0) || undefined}
-          >
+          <div ref={slotsRef} className={s.slots} data-part="queue">
             {slots}
           </div>
           <ol className={s.log}>

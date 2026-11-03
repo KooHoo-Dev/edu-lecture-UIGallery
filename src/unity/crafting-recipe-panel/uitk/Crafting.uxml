@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="Crafting.uss" />
-    <!-- 제작 패널. 자원 수량 · 레시피 줄 · 재료 줄 · 대기열 칸은 CraftingUITK.cs 가 만든다 -->
+    <!-- 자원 · 레시피 줄 · 재료 줄 · 대기열 칸은 CraftingUITK.cs 가 만든다 -->
     <ui:VisualElement name="crafting-root" class="craft-root">
         <ui:VisualElement class="head">
             <ui:Label text="제작대" class="title" />

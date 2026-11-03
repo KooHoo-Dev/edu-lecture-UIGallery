@@ -5,15 +5,14 @@ using UnityEngine.UI;
 
 namespace UIGallery.CraftingRecipePanel
 {
-    // 레시피 목록 한 줄. Selectable 이지만 transition = None 이라 선택 표시(SelectFrame)를
-    // OnSelect / OnDeselect 에서 직접 그린다 — 안 그리면 키보드 · 패드로 고른 줄이 보이지 않는다.
-    // 클릭 · 패드 · 키보드 선택은 모두 Owner.Select(this) 하나로 모인다.
+    // 레시피 목록 한 줄. transition = None 이라 선택 표시(SelectFrame)를 직접 그린다: 켜고 끄기는 창이
+    // 고른 레시피 기준으로, OnSelect / OnDeselect 는 진하기만 — 포커스가 버튼으로 가도 고른 줄이 남는다.
     public class RecipeRowView : Selectable, ISubmitHandler, IPointerClickHandler
     {
         [SerializeField] Image icon;
         [SerializeField] TMP_Text nameLabel;
-        [SerializeField] TMP_Text stateLabel;   // "✓ ×2 가능" / "✕ 1종 부족" — 색 + 기호 + 글자
-        [SerializeField] Image okBar;           // 만들 수 있는 줄의 왼쪽 띠
+        [SerializeField] TMP_Text stateLabel;   // "✓ ×2 가능" / "✕ 1종 부족"
+        [SerializeField] Image okBar;           // 왼쪽 초록 띠
         [SerializeField] Image selectFrame;
         [SerializeField] GameObject newBadge;
         [SerializeField] CanvasGroup content;   // 못 만드는 줄의 아이콘 · 이름을 흐리게
@@ -48,14 +47,14 @@ namespace UIGallery.CraftingRecipePanel
         public override void OnSelect(BaseEventData e)
         {
             base.OnSelect(e);
-            selectFrame.enabled = true;
+            selectFrame.canvasRenderer.SetAlpha(1f);
             Owner.Select(this);
         }
 
         public override void OnDeselect(BaseEventData e)
         {
             base.OnDeselect(e);
-            selectFrame.enabled = false;
+            selectFrame.canvasRenderer.SetAlpha(0.5f);   // 지우지 않고 흐리게
         }
 
         public void OnSubmit(BaseEventData e) => Owner.Craft();

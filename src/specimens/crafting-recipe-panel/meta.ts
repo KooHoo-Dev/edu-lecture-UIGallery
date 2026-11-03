@@ -21,7 +21,7 @@ export const meta: SpecimenMeta = {
   difficulty: 2,
   stage: { aspect: '16:9', backdrop: 'none' },
   params: [
-    { key: 'stockScale', label: '보유 재료량', type: 'range', min: 0, max: 3, step: 0.25, default: 1, unit: '배', hint: '시작 자원 수량에 곱한다. 바꾸면 새 판으로 인벤토리를 다시 채우고 대기열을 비운다. 많을수록 "만들 수 있음" 줄이 늘어난다' },
+    { key: 'stockScale', label: '보유 재료량', type: 'range', min: 0, max: 3, step: 0.25, default: 1, unit: '배', hint: '시작 자원 수량에 곱한다. 바꾸면 인벤토리를 다시 채우고 대기열을 비운다' },
     { key: 'craftTimeScale', label: '제작 시간', type: 'range', min: 0.25, max: 3, step: 0.25, default: 1, unit: '배', hint: '레시피 기본 시간에 곱한다. 목록 · 상세 · 대기열의 시간과 진행 바 속도가 함께 바뀐다' },
     { key: 'queueSize', label: '대기열 길이', type: 'range', min: 1, max: 5, step: 1, default: 3, unit: '칸', hint: '한 번에 걸어 둘 수 있는 제작 수. 가득 차면 제작 버튼이 이유를 알려 준다' },
     {
@@ -34,7 +34,7 @@ export const meta: SpecimenMeta = {
         { value: 'color-only', label: '보유/필요 + 색만' },
         { value: 'need-only', label: '필요량만 (×5)' },
       ],
-      hint: '색만 쓰면 색각 이상이나 흑백 화면에서 3/5 와 5/5 의 차이가 숫자 비교로만 남는다. 필요량만 보이면 보유량은 플레이어가 인벤토리를 열어 세어야 한다',
+      hint: '색만 쓰면 색각 이상이나 흑백 화면에서 숫자 비교로만 구분된다. 필요량만 보이면 보유량을 직접 세어야 한다',
     },
     { key: 'craftableOnly', label: '만들 수 있는 것만 보기', type: 'toggle', default: false, hint: '목록에서 지금 재료로 만들 수 없는 레시피를 숨긴다. 화면의 버튼(F)으로도 켜고 끈다' },
     {
@@ -47,7 +47,7 @@ export const meta: SpecimenMeta = {
         { value: 'on-open', label: '창을 다시 열면 모두 사라짐' },
         { value: 'off', label: '배지 없음' },
       ],
-      hint: '배지는 레시피 줄과 그 레시피가 든 탭에 함께 붙는다. "창을 열면 모두 사라짐" 은 확인하지 않은 레시피의 표시까지 지운다 — "새 레시피 해금" 후 "창 닫았다 열기" 로 비교한다',
+      hint: '"창을 다시 열면 모두 사라짐" 은 확인하지 않은 레시피의 배지까지 지운다. "새 레시피 해금" 후 "창 닫았다 열기" 로 비교한다',
     },
     { key: 'restoreSelection', label: '닫았다 열 때 선택 복원', type: 'toggle', default: true, hint: '끄면 창을 열 때마다 전체 탭 · 첫 줄 · 맨 위로 돌아간다. "창 닫았다 열기" 로 비교한다' },
   ],
@@ -55,7 +55,7 @@ export const meta: SpecimenMeta = {
     {
       id: 'survival-standard',
       name: '생존 크래프팅 기본',
-      look: '자원이 빠듯해 절반쯤만 만들 수 있다. 모자란 재료는 ✕ 와 "n개 부족"으로, 대기열은 3칸',
+      look: '자원이 빠듯해 처음 열린 레시피 9개 중 6개만 만들 수 있다. 모자란 재료는 ✕ 와 "n개 부족"으로, 대기열은 3칸',
       values: { stockScale: 1, craftTimeScale: 1, queueSize: 3, shortageStyle: 'icon-text', craftableOnly: false, newBadgeClear: 'on-select', restoreSelection: true },
     },
     {
@@ -90,7 +90,7 @@ export const meta: SpecimenMeta = {
       n: 2,
       part: 'recipe-list',
       title: '만들 수 있는 것을 먼저 보이게',
-      body: '만들 수 있는 줄은 밝은 바탕 · 왼쪽 초록 띠 · "✓ ×2 가능", 못 만드는 줄은 아이콘과 이름을 흐리게 하고 "✕ 1종 부족" 으로 표시한다. 상태가 바뀌어도 **줄 순서는 바꾸지 않는다**. 순서가 바뀌면 고르던 줄이 다른 자리로 옮겨 간다. "재료 획득" 으로 드론 교란기가 가능해지면 그 줄만 잠깐 빛난다. 새로 해금된 레시피에는 "새" 배지가 줄과 탭에 함께 붙는다.',
+      body: '만들 수 있는 줄은 밝은 바탕 · 왼쪽 초록 띠 · "✓ ×2 가능", 못 만드는 줄은 아이콘과 이름을 흐리게 하고 "✕ 1종 부족" 으로 표시한다. 상태가 바뀌어도 **줄 순서는 바꾸지 않는다** (고르던 줄이 자리를 옮기지 않게). 처음 "재료 획득" 때 통신 중계기 · 드론 교란기 · 탐사 바이저 **세 줄이 한 번만** 빛난다. "만들 수 있는 것만" 을 켠 채 제작해 재료가 모자라져도 **방금 건 줄은 ✕ 로 남긴다**. 줄이 빠져 선택이 넘어가면 Enter 한 번에 다른 것을 만든다. 새로 해금된 레시피에는 "새" 배지가 줄과 탭에 함께 붙는다.',
       principle: '인지 부하',
       pin: 'inside',
     },
@@ -98,7 +98,7 @@ export const meta: SpecimenMeta = {
       n: 3,
       part: 'stock',
       title: '레시피와 수량을 나누고, 바뀌면 전부 다시 계산',
-      body: '레시피는 "무엇을 몇 개" 라는 고정 데이터, 인벤토리는 "지금 몇 개" 라는 바뀌는 데이터다. 상태(가능 · 부족)는 저장하지 않고 **인벤토리의 바뀜 이벤트**가 올 때마다 레시피 12개를 모두 다시 계산한다. 제작 · 취소 · 완성 · 획득이 모두 같은 길을 지나므로 목록 · 상세 · 버튼이 어긋나지 않는다. 효과를 끄면 창을 열 때 한 번만 계산해서, 재료를 얻어도 목록은 계속 "불가" 로 남는다.',
+      body: '레시피는 "무엇을 몇 개" 라는 고정 데이터, 인벤토리는 "지금 몇 개" 라는 바뀌는 데이터다. 상태(가능 · 부족)는 저장하지 않고 **인벤토리의 바뀜 이벤트**가 올 때마다 레시피 12개를 모두 다시 계산한다. 제작 · 취소 · 완성 · 획득이 모두 같은 길을 지나므로 목록 · 상세 · 버튼이 어긋나지 않는다.',
       principle: '일관성',
       pin: 'left',
     },
@@ -106,14 +106,15 @@ export const meta: SpecimenMeta = {
       n: 4,
       part: 'queue',
       title: '대기열은 진행 · 남은 시간 · 취소를 함께 보여 준다',
-      body: '맨 앞 칸만 진행 바가 차고 나머지는 "대기" 로 순서를 보여 준다. 재료는 **걸 때 바로 빼고**, 취소하면 쓴 만큼 돌려주며 "회로 조각 +5" 처럼 무엇이 돌아왔는지 알린다. 위의 보유 수량도 +5 로 튄다. 가득 찼을 때 제작을 누르면 버튼이 흔들리지 않고 대기열이 흔들려 원인을 짚는다. 창을 닫아도 제작은 계속된다.',
+      body: '맨 앞 칸만 진행 바가 차고 나머지는 "대기" 로 순서를 보여 준다. 재료는 **걸 때 바로 빼고**(완성 때 빼면 기다리는 동안 다른 데 써 버린다), 취소하면 쓴 만큼 돌려주며 "회로 조각 +5" 처럼 무엇이 돌아왔는지 알린다. 위의 보유 수량도 +5 로 튄다. 가득 찼을 때 제작을 누르면 버튼이 흔들리지 않고 대기열이 흔들려 원인을 짚는다. 창을 닫아도 제작은 계속된다.',
       principle: '즉각 피드백',
+      pin: 'right',
     },
     {
       n: 5,
       part: 'tabs',
       title: '다시 열면 보던 자리 그대로',
-      body: '제작 창은 재료 하나 넣고 닫았다 다시 여는 일이 잦다. 열 때마다 첫 탭 · 첫 줄로 돌아가면 같은 레시피를 매번 다시 찾아야 한다. 닫을 때(`OnDisable`) **탭 · 탭별 선택 · 스크롤 위치**를 저장하고 열 때(`OnEnable`) 되살린다. 탭은 Q · E 로 넘긴다. 숫자 키는 갤러리 이벤트 키라 쓰지 않는다. "창 닫았다 열기" 를 눌러 보고, "닫았다 열 때 선택 복원" 을 꺼서 비교한다.',
+      body: '제작 창은 재료 하나 넣고 닫았다 다시 여는 일이 잦다. 열 때마다 첫 탭 · 첫 줄로 돌아가면 같은 레시피를 매번 다시 찾아야 한다. 닫을 때(`OnDisable`) **탭 · 탭별 선택 · 스크롤 위치**를 저장하고 열 때(`OnEnable`) 되살린다. "창 닫았다 열기" 를 눌러 보고, "닫았다 열 때 선택 복원" 을 꺼서 비교한다.',
       principle: '인지 부하',
     },
   ],
@@ -121,13 +122,13 @@ export const meta: SpecimenMeta = {
     { title: '필요량만 보여 준다', body: '"×5" 만 있으면 지금 몇 개 있는지는 플레이어가 인벤토리를 열어 세어야 한다. 보유/필요를 함께 쓰고, 모자란 개수까지 글자로 알려 준다.' },
     { title: '모자람을 빨간색으로만 표시한다', body: '색각 이상 플레이어나 흑백 화면에서는 3/5 와 5/5 가 같은 색으로 보인다. ✕ 표식 · "n개 부족" 글자 · 막대 길이를 함께 쓴다.' },
     { title: '레시피 상태를 창을 열 때 한 번만 계산한다', body: '창을 연 채 재료를 얻거나 쓰면 목록과 실제가 어긋난다. 상태를 따로 저장하지 말고 인벤토리 변경 이벤트에서 전부 다시 계산한다 (레시피 수백 개 정도면 충분히 싸다).' },
-    { title: '취소하면 재료가 말없이 돌아온다', body: '환불됐는지 알려면 수량을 세어 봐야 한다. 돌아온 재료와 개수를 기록과 보유 수량 변화로 보여 준다. 재료를 완성 때 빼면 기다리는 동안 다른 데 써 버려 완성 순간 모자랄 수 있으니 걸 때 뺀다.' },
+    { title: '취소하면 재료가 말없이 돌아온다', body: '환불됐는지 알려면 수량을 세어 봐야 한다. 돌아온 재료와 개수를 기록과 보유 수량 변화로 보여 준다.' },
     { title: '창을 열 때마다 처음으로 돌아간다', body: '뷰를 새로 만들면서 선택 · 스크롤을 기본값으로 두면 생긴다. UI Toolkit 은 `UIDocument` 를 켤 때마다 트리를 다시 만들므로 저장 · 복원을 직접 해야 한다.' },
   ],
   juiceOff:
     '모자란 재료가 **"×5" 필요량만** 나와 보유량을 알 수 없고, 목록 상태는 **창을 열 때 한 번만 계산**해 재료를 얻어도 "불가" 로 남는다. 만들 수 있는 줄의 강조 · 새 레시피 배지 · 진행 바 · 남은 시간이 없고, 제작이 막혀도 이유를 말하지 않는다. 취소하면 재료는 돌아오지만 아무 표시가 없다. 창을 닫았다 열면 **매번 전체 탭 첫 줄 · 맨 위**로 돌아간다.',
   timings: [
-    { event: '창 닫힘 (페이드 + 0.97 축소)', ms: 220, easing: 'ease-out', note: '권장값. 다시 열 때도 같은 시간으로 나타난다' },
+    { event: '창 닫힘 (페이드 + 0.97 축소)', ms: 220, easing: 'ease-out', note: '권장값. 열 때도 같은 시간' },
     { event: '"만들 수 있음" 으로 바뀐 줄 강조', ms: 1100, easing: 'ease-out', note: '권장값. 한 번만, 모션 줄이기면 생략' },
     { event: '보유 수량 증감 표시 (+3 / −3)', ms: 900, easing: 'ease-out', note: '권장값' },
     { event: '막힌 제작 흔들림', ms: 300, easing: 'ease-out', note: '권장값. 좌우 6px 이하, 원인 쪽(버튼 또는 대기열)만' },
@@ -136,7 +137,7 @@ export const meta: SpecimenMeta = {
   ],
   unity: {
     ugui: {
-      hierarchy: `CraftingStation (CraftingStation.cs · CraftingDemo.cs · 늘 켜져 있음 — 인벤토리 · 대기열 · 코루틴 · 아이템 이름/아이콘 표)
+      hierarchy: `CraftingStation (CraftingStation.cs · CraftingDemo.cs · 늘 켜져 있음)
 Canvas (Screen Space - Overlay · CanvasScaler 1920×1080 · GraphicRaycaster)
 └─ CraftingWindow (CraftingPanel.cs · 껐다 켜는 창 — OnDisable 저장 / OnEnable 복원)
    ├─ Stock (HorizontalLayoutGroup) └─ StockLabel_× 4 (TMP_Text)
@@ -146,31 +147,35 @@ Canvas (Screen Space - Overlay · CanvasScaler 1920×1080 · GraphicRaycaster)
    │  └─ RecipeScroll (ScrollRect · Vertical) └─ Viewport (RectMask2D) └─ Content (VerticalLayoutGroup + ContentSizeFitter)
    │     └─ RecipeRow (프리팹 × N, RecipeRowView.cs · transition None)
    │        ├─ Background (Image) · SelectFrame (Image) · OkBar (Image)
-   │        ├─ Icon (Image) · Name (TMP_Text) · State (TMP_Text "✓ ×2 가능" / "✕ 1종 부족")
+   │        ├─ Content (CanvasGroup — 못 만드는 줄을 흐리게) └─ Icon (Image) · Name (TMP_Text)
+   │        ├─ State (TMP_Text "✓ ×2 가능" / "✕ 1종 부족")
    │        └─ NewBadge (GameObject)
    ├─ Detail
    │  ├─ DetailIcon (Image) · DetailName · DetailMeta (TMP_Text)
-   │  ├─ Ingredients (VerticalLayoutGroup) └─ IngredientRow × 3 (Image Icon · TMP Name · TMP Count "3 / 5" · TMP Tag "✕ 2개 부족")
+   │  ├─ Ingredients (VerticalLayoutGroup) └─ IngredientRow × 3
+   │  │  (Image Icon · TMP Name · Image Bar — Filled · Horizontal · TMP Count "3 / 5" · TMP Tag "✕ 2개 부족")
    │  └─ CraftButton (Button) · Reason (TMP_Text)
    └─ Queue (VerticalLayoutGroup)
-      └─ QueueSlot × 5 (Image Fill — Type Filled · Horizontal · TMP Name · TMP Time · Button Cancel)
+      └─ QueueSlot × 5 (Image Icon · Image Fill — Filled · Horizontal · TMP Name · TMP Time · Button Cancel)
 EventSystem (InputSystemUIInputModule)
 Assets: Recipe.asset × N (ScriptableObject)`,
       steps: [
         '`Recipe` (ScriptableObject) 에 표시 이름 · 탭 · 아이콘 · 제작 시간 · 재료 목록(`Ingredient { itemId, count }`) · 결과 아이템 id 를 넣는다. 레시피는 **고정 데이터**라 수량 상태를 넣지 않는다.',
         '`Inventory` 는 일반 C# 클래스다. `Add` · `TryTake` 가 수량을 바꾼 뒤 `Changed` 이벤트를 한 번 부른다. `Recipe.Evaluate(inventory)` 는 **조회만** 해서 `RecipeStatus`(가능 여부 · 최대 개수 · 모자란 재료 목록)를 돌려준다.',
-        '`CraftingStation` 을 늘 켜져 있는 오브젝트에 붙인다. 인벤토리(시작 수량) · 레시피 목록 · 아이템 이름/아이콘 표(`ItemInfo`)와 대기열을 갖고, 코루틴이 맨 앞 작업의 `elapsed` 를 올린다. 창(`CraftingWindow`)을 꺼도 제작은 계속된다.',
-        '`CraftingPanel.OnEnable` 에서 `station.Inventory.Changed += RecomputeAll` 로 구독하고, `RecomputeAll` 은 모든 줄의 `RecipeRowView.Bind(status)` 와 상세 패널을 다시 채운다. `OnDisable` 에서 꼭 구독을 푼다.',
-        '저장 · 복원: `OnDisable` 에서 탭 · 탭별 선택 · `ScrollRect.verticalNormalizedPosition` 을 필드에 저장하고, `OnEnable` 에서 되살린다. 스크롤은 레이아웃이 끝난 뒤 적용해야 하므로 `Canvas.ForceUpdateCanvases()` 다음에 넣는다.',
-        '`RecipeRowView` 는 `Selectable` 을 상속하고 `transition = None` 으로 둔다. 그래서 `OnSelect` · `OnDeselect` 에서 SelectFrame 을 **직접** 켜고 끈다. 그래야 키보드 · 패드로 고른 줄이 보인다.',
+        '`CraftingStation` 을 늘 켜져 있는 오브젝트에 붙인다. 인벤토리(시작 수량) · 레시피 목록 · 아이템 이름/아이콘 표(`ItemInfo`)와 대기열을 갖고, 코루틴이 맨 앞 작업의 `elapsed` 를 올린다. 창(`CraftingWindow`)을 꺼도 제작은 계속된다. `[DefaultExecutionOrder(-50)]` 로 창보다 먼저 초기화한다.',
+        '`CraftingPanel.OnEnable` 에서 `station.Inventory.Changed += OnInventoryChanged` 로 구독한다 (`Changed` 는 이유를 넘기는 `Action<string>` 이라 `void OnInventoryChanged(string reason) => RecomputeAll();`). `RecomputeAll` 은 모든 줄의 `Bind(status)` 와 상세 패널을 다시 채운다. `OnDisable` 에서 꼭 구독을 푼다.',
+        '저장 · 복원: 탭 · 탭별 선택은 필드에 남고, 스크롤은 `OnDisable` 에서 저장해 `OnEnable` 의 **한 프레임 뒤**에 넣은 다음 고른 줄이 보이게 옮긴다. 고른 레시피가 필터 · 검색에 가려져도 선택 값은 덮어쓰지 않고 표시만 첫 줄로 대체한다.',
+        '`RecipeRowView` 는 `Selectable` 을 상속하고 `transition = None` 이다. SelectFrame 은 창이 고른 레시피 기준으로 **직접** 켜고, `OnSelect` · `OnDeselect` 는 진하기만 바꾼다 (포커스가 제작 버튼으로 가도 고른 줄이 남는다). 창이 `SetSelectedGameObject` 로 준 선택은 선택 값 · "새" 배지를 바꾸지 않는다.',
         '대기열 칸은 `Image.type = Filled` 로 두고 `CraftingPanel.Update` 에서 `fill.fillAmount = job.Progress` 를 넣는다. 취소 버튼은 `station.Cancel(index)` → 재료 환불 → `Changed` → 목록이 다시 계산된다.',
         '`CraftingDemo` 를 CraftingStation 에 붙이고 창 GameObject 를 연결하면 G 재료 획득 · U 새 레시피 해금 · R 창 닫았다 열기로 시험할 수 있다 (UI Toolkit 창에도 그대로 쓴다).',
-        '탭 넘김은 Q · E (패드 L · R 어깨 버튼). 핫바를 붙인다면 Input System 에 숫자 키 액션(`<Keyboard>/1` …)을 따로 만들 수 있지만, 이 갤러리 웹판은 숫자 키가 이벤트 단축키라 쓰지 않았다.',
+        '탭 넘김은 Q · E (패드 L · R). 숫자 키는 웹판의 이벤트 단축키라 쓰지 않았다. 핫바를 붙인다면 숫자 키 액션(`<Keyboard>/1` …)을 따로 만든다.',
       ],
       pitfalls: [
         '`OnEnable` 에서 구독하고 `OnDisable` 에서 풀지 않으면, 창을 열 때마다 구독이 쌓이고 꺼진 창의 줄까지 갱신하려다 `MissingReferenceException` 이 난다.',
-        '`verticalNormalizedPosition` 을 `OnEnable` 첫 줄에서 바로 넣으면 ContentSizeFitter 가 아직 크기를 정하지 않아 무시된다. `Canvas.ForceUpdateCanvases()` 다음에 넣거나 한 프레임 뒤에 넣는다.',
+        '`verticalNormalizedPosition` 을 `OnEnable` 에서 바로 넣으면 ContentSizeFitter 가 크기를 정하기 전이라 무시된다. 한 프레임 뒤에 넣는다.',
         '`Selectable.transition = None` 인데 `OnSelect` 에서 표시를 그리지 않으면 키보드 · 패드로 고른 줄이 화면에 보이지 않는다.',
+        '"만들 수 있는 것만" 을 켠 채 제작해 재료가 모자라지면 줄이 빠지고 선택이 첫 줄로 넘어가 Submit 한 번에 다른 레시피가 걸린다. 건 레시피는 선택을 바꿀 때까지 ✕ 줄로 남긴다.',
+        '`enabled = false` 로는 코루틴이 멈추지 않는다. `OnDisable` 에서 `StopCoroutine` 하고 변수를 비우지 않으면 다시 켤 때 둘이 되어 2배속이 된다.',
         'ScriptableObject 레시피에 런타임 상태(수량 · 가능 여부)를 쓰면 에디터 플레이 모드가 끝나도 에셋에 남는다. 상태는 런타임 객체에만 둔다.',
       ],
     },
@@ -180,24 +185,24 @@ UIDocument (Panel Settings: Scale With Screen Size 1920×1080) + CraftingUITK.cs
 └─ Crafting.uxml
    └─ #crafting-root (.craft-root)
       ├─ .head > Label.title · #stock (.stock)  ← C# 가 자원 Label 4개 생성
-      ├─ .list-panel
-      │  ├─ #tabs (.tabs) > Button.tab × 4 (#tab-all · #tab-maint · #tab-survive · #tab-gear)
-      │  ├─ .tools > TextField #search · Toggle #craftable-only
-      │  └─ ScrollView #recipe-list (Vertical)  ← C# 가 .row 생성 (focusable)
-      ├─ .detail > Label #d-name · Label #d-meta · #ingredients (← C# 가 .ing 생성) · Button #craft · Label #reason
-      └─ .queue-panel > #queue  ← C# 가 .job 생성 (.job__fill 폭 % · Button.job__cancel)
-(Recipe · Inventory · CraftingStation 은 ugui 폴더의 것을 함께 쓴다)`,
+      └─ .body (가로 배치)
+         ├─ .list-panel
+         │  ├─ #tabs (.tabs) > Button.tab × 4 (#tab-all · #tab-maint · #tab-survive · #tab-gear)
+         │  ├─ .tools > TextField #search · Toggle #craftable-only
+         │  └─ ScrollView #recipe-list (Vertical)  ← C# 가 .row 생성 (focusable)
+         ├─ .detail > Label #d-name · Label #d-meta · #ingredients (← C# 가 .ing 생성) · Button #craft · Label #reason
+         └─ .queue-panel > #queue  ← C# 가 .job 생성 (.job__fill 폭 % · Button.job__cancel)`,
       steps: [
         '**Panel Settings** 를 `Scale With Screen Size`, 1920×1080 으로. UI Toolkit 만 쓰는 화면이면 EventSystem 은 필요 없다.',
-        '갱신 방식은 **직접 갱신**을 골랐다. 인벤토리 `Changed` 한 곳에서 `RecomputeAll()` 이 줄 클래스(`.row--ok`)와 글자를 바꾼다. runtime data binding 은 레시피마다 상태 객체(`INotifyBindablePropertyChanged`)와 "3 / 5" · 클래스 토글용 변환기가 필요하다. "수량이 바뀌면 전부 다시 계산" 하는 구조에서는 바인딩이 대신해 주는 일이 적고, 수업에서 흐름을 따라가기도 직접 갱신이 쉽다.',
-        '줄은 `focusable = true` 인 `VisualElement` 로 만들고 `FocusInEvent` 에서 선택한다. 위아래 이동은 `NavigationMoveEvent` 를 직접 처리하고 `StopPropagation()` 과 함께 `focusController?.IgnoreEvent(evt)` 를 부른다.',
-        '`UIDocument` 는 켤 때마다 트리를 새로 만든다. `OnDisable` 에서 탭 · 탭별 선택 · `ScrollView.scrollOffset` 을 필드에 저장하고, `OnEnable` 에서 다시 만든 뒤 `GeometryChangedEvent` 로 레이아웃이 끝나면 `scrollOffset` 을 되살린다.',
+        '갱신은 **직접 갱신**을 골랐다. `Changed` 한 곳에서 `RecomputeAll()` 이 줄 클래스(`.row--ok`)와 글자를 바꾼다. runtime data binding 은 레시피마다 상태 객체(`INotifyBindablePropertyChanged`)와 "3 / 5" 변환기가 필요한데, "전부 다시 계산" 하는 구조에서는 대신해 주는 일이 적고 흐름을 따라가기도 직접 갱신이 쉽다.',
+        '줄은 `focusable = true` 인 `VisualElement` 로 만들고 `FocusInEvent` 에서 선택한다. 위아래 이동은 `NavigationMoveEvent` 로 직접 처리한다.',
+        '`UIDocument` 는 켤 때마다 트리를 새로 만든다. 탭 · 탭별 선택 · 검색어 · 필터 · `scrollOffset` 을 필드에 저장하고, `OnEnable` 뒤 `GeometryChangedEvent` 에서 `scrollOffset` 을 넣고 고른 줄로 `ScrollTo` 한다. 이때 주는 포커스는 "새" 배지를 지우지 않는다.',
         '대기열 진행은 `Update` 에서 `.job__fill` 의 `style.width = Length.Percent(진행 × 100)` 으로 칠한다 (UI Toolkit 에는 Filled 이미지가 없다).',
       ],
       pitfalls: [
         '`scrollOffset` 을 `OnEnable` 에서 바로 넣으면 내용 크기가 0 이라 0 으로 잘린다. `GeometryChangedEvent` 에서 한 번만 넣고 콜백을 해제한다.',
-        '`NavigationMoveEvent` 를 처리하고 `StopPropagation()` 만 부르면 Unity 6.3 은 기본 포커스 이동을 한 번 더 해서 한 칸씩 건너뛴다. `focusController?.IgnoreEvent(evt)` 를 함께 부른다.',
-        '`TextField` 에 포커스가 있는 동안에는 Q · E 가 글자로 들어가야 한다. 탭 단축키는 검색창 포커스가 아닐 때만 처리한다.',
+        '`NavigationMoveEvent` 를 처리하고 `StopPropagation()` 만 부르면 6.3 은 기본 이동을 한 번 더 해 한 칸씩 건너뛴다. `focusController?.IgnoreEvent(evt)` 를 함께 부른다.',
+        '검색창에 포커스가 있으면 Q · E · Backspace 는 글자다. `focusedElement` 는 TextField 자신이고 `Contains` 는 자기 자신을 포함하지 않으므로 `f == search || search.Contains(f)` 로 거른다. 안 그러면 Backspace 가 제작을 취소한다.',
         '한글과 ✓ ✕ 기호가 든 Text Core **FontAsset** 을 지정하지 않으면 글자가 네모로 깨진다.',
       ],
     },
@@ -208,7 +213,7 @@ UIDocument (Panel Settings: Scale With Screen Size 1920×1080) + CraftingUITK.cs
       credit: '© The Fun Pimps',
       borrowed: [],
       learned:
-        '조사 카드가 근거로 든 커뮤니티 위키의 "Crafting Window" 문서가 이 게임의 제작 창을 다룬다는 것까지만 확인했다. 그래서 **레시피 목록 + 재료 확인 + 제작 대기열** 을 한 창에 두는 생존 장르 관례의 대표 사례로만 들었다. 실제 화면의 배치 · 색 · 문구는 미확인이라 빌린 시각 축은 없다.',
+        '커뮤니티 위키의 "Crafting Window" 문서로 제작 창이 따로 있다는 것까지만 확인했다. **레시피 목록 + 재료 확인 + 제작 대기열** 을 한 창에 두는 생존 장르의 흔한 방식의 예로만 들었고, 실제 화면은 미확인이라 빌린 시각 축은 없다.',
       link: 'https://7daystodie.wiki.gg/wiki/Crafting_Window',
     },
     {
@@ -216,15 +221,16 @@ UIDocument (Panel Settings: Scale With Screen Size 1920×1080) + CraftingUITK.cs
       credit: '© Klei Entertainment',
       borrowed: [],
       learned:
-        '조사 카드가 근거로 든 것은 개발사 포럼의 이용자 제안 글(제작 메뉴 UI 아이디어)이다. 공식 설계 자료가 아니므로 "새로 해금된 레시피 표시" 같은 요구가 플레이어 쪽에서 나온다는 참고로만 썼다. 원작 화면 묘사는 미확인이다.',
+        '개발사 포럼에 플레이어가 올린 제안 글(제작 메뉴 UI 아이디어)을 참고했다. 공식 설계 자료가 아니라서 "새로 배운 레시피 표시" 같은 요구가 플레이어에게서 나온다는 참고로만 썼다. 원작 화면은 미확인이다.',
       link: 'https://kleiforums.com/forums/topic/164742-crafting-menu-ui-idea/',
     },
   ],
   original:
-    '세 칸 배치, 레시피 12개와 재료 · 시간, SVG 아이콘, 보유/필요 + ✕ 표식 + "n개 부족" + 줄무늬 막대, 초록 띠와 "새로 가능" 강조, 탭까지 붙는 "새" 배지, 재계산 횟수 줄, 환불 기록, 원인 쪽만 흔드는 막힘 피드백, 복원 안내 띠, 세계관 문구는 모두 새로 만들었다.',
+    '세 칸 배치, 레시피 12개와 재료, SVG 아이콘, 부족 표시와 줄무늬 막대, 강조 · 배지, 재계산 줄, 환불 기록, 흔들림, 복원 안내, 세계관 문구는 모두 새로 만들었다.',
   references: [
     { label: '7 Days to Die 위키 — Crafting Window', url: 'https://7daystodie.wiki.gg/wiki/Crafting_Window' },
     { label: 'Klei 포럼 — 이용자 제안: Crafting menu UI idea', url: 'https://kleiforums.com/forums/topic/164742-crafting-menu-ui-idea/' },
+    { label: 'Funcom 포럼 — 이용자 제안: 제작 메뉴 위치 · 탭 기억', url: 'https://forums.funcom.com/t/crafting-menu-sticky-menu-position-tabs/90062' },
     { label: 'Roblox Creator Docs — UI/UX design', url: 'https://create.roblox.com/docs/production/game-design/ui-ux-design' },
     { label: 'Game Accessibility Guidelines — 색만으로 정보를 전달하지 않기', url: 'https://gameaccessibilityguidelines.com/ensure-no-essential-information-is-conveyed-by-a-colour-alone/' },
     { label: 'uGUI 2.0 — Image.fillAmount', url: 'https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/UnityEngine.UI.Image.html' },
