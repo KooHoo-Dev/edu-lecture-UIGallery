@@ -41,6 +41,10 @@ namespace UIGallery.SkillTree
                 if (pad.leftShoulder.wasPressedThisFrame) view.ZoomBy(0.8f);
                 touched |= pad.wasUpdatedThisFrame && (pad.buttonSouth.isPressed || pad.leftStick.ReadValue().sqrMagnitude > 0.25f);
             }
+            // 마우스 누름 · 휠 · 터치도 — 안 그러면 끄는 중인 지도를 자동 데모가 당긴다
+            Mouse m = Mouse.current;
+            touched |= m != null && (m.leftButton.isPressed || m.rightButton.isPressed || m.scroll.ReadValue().y != 0f);
+            touched |= Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed;
             if (touched) timer = -4f;   // 사람이 만지면 자동 데모를 잠시 쉰다
 
             if (!autoplay) return;

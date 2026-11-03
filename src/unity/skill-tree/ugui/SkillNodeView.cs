@@ -1,7 +1,5 @@
-// 스킬트리 노드 하나 (Button + Image + TextMeshPro). 상태를 색만이 아니라 모양(원 · 육각) · 테두리(점선 · 고리 · 이중선) ·
-// 표식(자물쇠 · ＋ · 반원 · 별) · 글자(1/3)로 함께 그린다. 판정은 SkillProgress 가 하고 이 컴포넌트는 그리기만 한다.
-// 글자 묶음(Labels)과 표식은 확대 배율의 역수로 크기를 되돌려, 트리를 확대 · 축소해도 화면에서 같은 크기로 읽힌다.
-// transition = None 이라 선택 표시는 ISelectHandler · IDeselectHandler 로 FocusRing 을 직접 켠다.
+// 스킬트리 노드 하나 (Button + Image + TMP). 상태를 모양 · 테두리 · 표식 · 글자(1/3)로 함께 그린다. 판정은 SkillProgress.
+// 글자 묶음 · 표식은 확대 배율의 역수로 되돌려 화면 크기를 지킨다. transition = None 이라 FocusRing 을 직접 켠다.
 using System;
 using TMPro;
 using UnityEngine;
@@ -35,14 +33,15 @@ namespace UIGallery.SkillTree
         public SkillNode Node { get; private set; }
         Color branchColor;
         bool pulse;
-        Action<SkillNodeView> onFocus;
+        Action<SkillNodeView> onFocus, onHover;
 
-        public void Bind(SkillNode node, Sprite iconSprite, Color color, Action<SkillNodeView> click, Action<SkillNodeView> focus)
+        public void Bind(SkillNode node, Sprite iconSprite, Color color, Action<SkillNodeView> click, Action<SkillNodeView> focus, Action<SkillNodeView> hover)
         {
             Button = GetComponent<Button>();
             Node = node;
             branchColor = color;
             onFocus = focus;
+            onHover = hover;
             icon.sprite = iconSprite;
             nameText.text = node.name;
             // 모든 노드를 고를 수 있게 둔다 (잠긴 노드도 툴팁으로 이유를 봐야 한다). 습득 판정은 누른 뒤 SkillProgress 가
@@ -52,7 +51,6 @@ namespace UIGallery.SkillTree
             SetFocusRing(false);
         }
 
-        /* 키보드 · 패드 선택(EventSystem.SetSelectedGameObject)과 마우스 올림이 같은 툴팁으로 모인다 */
         public void OnSelect(BaseEventData e)
         {
             SetFocusRing(true);
@@ -60,7 +58,12 @@ namespace UIGallery.SkillTree
         }
 
         public void OnDeselect(BaseEventData e) => SetFocusRing(false);
-        public void OnPointerEnter(PointerEventData e) => onFocus?.Invoke(this);
+
+        // 마우스 올림은 선택 · 툴팁만 옮기고 지도는 옮기지 않는 경로로 (끄는 중에는 무시)
+        public void OnPointerEnter(PointerEventData e)
+        {
+            if (!e.dragging) onHover?.Invoke(this);
+        }
 
         void SetFocusRing(bool on)
         {
@@ -89,16 +92,13 @@ namespace UIGallery.SkillTree
             pulseRing.raycastTarget = false;
         }
 
-        /// <summary>
-        /// 확대 배율과 정보 단계(0 멀리 · 1 중간 · 2 가까이)를 반영한다.
-        /// keepTextSize 면 Labels · 표식에 1/배율 을 곱해 화면 크기를 지키고, 대신 단계별로 보여 줄 것을 줄인다
-        /// </summary>
+        /// <summary>level: TreeMath.Level. keepTextSize 를 끄면 나쁜 예 (늘 다 그리고 함께 작아진다)</summary>
         public void ApplyZoom(float zoom, int level, bool keepTextSize)
         {
             Vector3 inv = Vector3.one * (keepTextSize ? 1f / zoom : 1f);
             labels.localScale = inv;
             badge.rectTransform.localScale = inv;
-            int shown = keepTextSize ? level : 2;   // 나쁜 예: 늘 다 그리고 함께 작아진다
+            int shown = keepTextSize ? level : 2;
             labels.gameObject.SetActive(shown > 0);
             nameText.gameObject.SetActive(shown == 2);
             nextText.gameObject.SetActive(shown == 2);
