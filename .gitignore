@@ -5,3 +5,6 @@ dist/
 # 연구용 캡처·메모는 절대 커밋하지 않는다 (docs/plan.md 3절)
 _research/
 _shots/
+
+# 리뷰 폴더 (tools/workflow/prepare-review.sh)
+_review/

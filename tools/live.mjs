@@ -23,8 +23,10 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { ensureNodeModules } from './worktree-link.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+ensureNodeModules(ROOT) // JayDispatch worktree 면 메인 폴더의 node_modules 를 잇는다
 const argv = process.argv.slice(2)
 const id = argv.find(a => !a.startsWith('--'))
 if (!id) {

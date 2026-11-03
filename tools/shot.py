@@ -81,6 +81,8 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if "--no-build" not in sys.argv:
+        # JayDispatch worktree 면 메인 폴더의 node_modules 를 잇는다 (tools/worktree-link.mjs)
+        subprocess.run(["node", str(ROOT / "tools" / "worktree-link.mjs")], cwd=ROOT, capture_output=True)
         env = dict(os.environ)
         if "--all" not in sys.argv:
             env["UIG_ONLY"] = sid
