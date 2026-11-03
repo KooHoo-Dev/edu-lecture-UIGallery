@@ -288,9 +288,10 @@
     opacity: 0;
   }
 }
+/* 키보드 후보 — 키보드를 쓴 뒤에만 붙는다 (마우스 · 터치를 쓰면 다시 뗀다) */
 .node[data-kb] {
   outline: 4px dashed #fff;
-  outline-offset: 12px;
+  outline-offset: 8px;
 }
 /* 범례 강조: 같은 종류만 굵은 고리, 나머지는 흐리게 */
 .root[data-hl] .node:not([data-hit]) {
@@ -582,6 +583,9 @@
 }
 .saveState[data-phase] {
   color: var(--accent);
+}
+.saveState[data-bad] {
+  color: #ff8a95;
 }
 
 /* ───── 세로(9:16) ───── */

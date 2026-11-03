@@ -5,7 +5,7 @@ import { KeyCap } from '../../core/input'
 import { bool, num, str } from '../../core/params'
 import { stageKeyDown } from '../../core/stageKeys'
 import type { SpecimenProps } from '../../core/types'
-import { KINDS, crossings, generate, reachable, saveRun, validPath, type Kind, type Mix, type RouteMap, type RouteNode, type RunSave } from './map'
+import { KINDS, MIX_WEIGHTS, checkSave, crossings, generate, reachable, saveRun, type Kind, type LoadCheck, type Mix, type RouteMap, type RouteNode, type RunSave } from './map'
 import s from './style.module.css'
 
 export { meta } from './meta'
@@ -16,6 +16,7 @@ const MANUAL_PAUSE = 6
 const SAVE_CLEAR = 0.7
 const SAVE_LOAD = 1.5
 const SAVE_DONE = 4.5
+const MIXES = Object.keys(MIX_WEIGHTS) as Mix[]
 
 const KIND_INFO: Record<Kind, { name: string; desc: string }> = {
   fight: { name: '교전', desc: '잔해 드론 무리 제압' },
@@ -40,11 +41,16 @@ interface Run {
   phase: '' | 'saved' | 'cleared' | 'loaded'
   phaseT: number
   saved: string
-  loadedOk: boolean
+  /** 옛 생성 규칙으로 만든 저장을 흉내 냈는가 (지문 불일치 시연) */
+  stale: boolean
+  loadCheck: LoadCheck | ''
   goalWait: number
+  startWait: number
   autoBad: boolean
   savedOnce: boolean
   hlAuto: number
+  /** 이 런에서 실제로 옮긴 칸 수 (자동 데모가 저장 · 범례 강조를 끼워 넣는 시점. 첫 화면은 미리 걸어 둬서 path 길이로는 못 잰다) */
+  moves: number
 }
 
 /** 화면 배치 (논리 px). 지도 창 · 오른쪽 레일 */
@@ -55,6 +61,10 @@ function frame(aspect: string) {
 }
 const PAD_T = 250
 const PAD_B = 150
+/** 흔들림(jx · jy, −0.5~0.5)을 그릴 때의 계수 — 열 폭 · 층 높이에 곱한다. 생성기는 그대로, 그리는 쪽만 정한다.
+ * 위아래 이웃 층도 층 높이의 0.7 이상 떨어져 커진 노드와 현재 노드가 겹치지 않는다 */
+const JX = 0.2
+const JY = 0.3
 
 /**
  * 분기 경로 맵.
@@ -85,14 +95,18 @@ export default function BranchingRouteMap(p: SpecimenProps) {
   const runRef = useRef<Run | null>(null)
   const fresh = (key: string, path: number[]): Run => ({
     key, path, kbSel: 0, follow: true, pinKind: null, rejectId: -1, rejectT: 0, toast: '', toastTone: '',
-    phase: '', phaseT: 0, saved: '', loadedOk: false, goalWait: 0, autoBad: true, savedOnce: false, hlAuto: 0,
+    phase: '', phaseT: 0, saved: '', stale: false, loadCheck: '', goalWait: 0, startWait: 0, autoBad: true, savedOnce: false, hlAuto: 0, moves: 0,
   })
+  const mounted = useRef(false)
   if (!runRef.current || runRef.current.key !== mapKey) {
-    // 처음 화면은 두 걸음 진행한 런 — 지나온 길과 다음 선택지가 함께 보이게
-    const first = !runRef.current
     runRef.current = fresh(mapKey, [])
-    if (first) for (let i = 0; i < 2; i++) runRef.current.path.push(autoChoice(map, runRef.current.path))
+    if (!mounted.current) {
+      // 처음 화면(썸네일)만 미리 걸어 둔 런 — 지나온 길과 함께 '갈라지는' 순간(선택지 2개 이상)이 보이게.
+      // 새 지도 · 조절 값 변경은 출발 전부터
+      runRef.current.path = firstBranch(map)
+    }
   }
+  mounted.current = true
   const R = runRef.current
   const [hoverKind, setHoverKind] = useState<Kind | null>(null)
   const hlKind = hoverKind ?? R.pinKind
@@ -101,9 +115,11 @@ export default function BranchingRouteMap(p: SpecimenProps) {
   const tall = p.aspect === '9:16'
   const colW = L.vw / cols
   const contentH = PAD_T + (floors - 1) * L.rowH + PAD_B
-  const nodeSize = Math.round(Math.min(80, colW * 0.62))
-  const px = (n: RouteNode) => (n.kind === 'goal' ? L.vw / 2 : (n.col + 0.5 + n.jx * 0.5) * colW)
-  const py = (n: RouteNode) => (n.kind === 'goal' ? 105 : contentH - PAD_B - (n.floor + n.jy * 0.36) * L.rowH)
+  /* 겹침 방지: 가로 흔들림은 열 폭의 ±0.1 (JX) → 이웃 노드 중심은 열 폭의 0.8 이상 떨어진다.
+   * 노드는 열 폭의 0.56 이하라 갈 수 있는 노드(1.18배)끼리도 0.66 < 0.8 로 겹치지 않는다. Unity 두 판도 같은 계수 */
+  const nodeSize = Math.round(Math.min(80, colW * 0.56))
+  const px = (n: RouteNode) => (n.kind === 'goal' ? L.vw / 2 : (n.col + 0.5 + n.jx * JX) * colW)
+  const py = (n: RouteNode) => (n.kind === 'goal' ? 105 : contentH - PAD_B - (n.floor + n.jy * JY) * L.rowH)
   const startY = contentH - PAD_B + 92
 
   const cur = R.path.length ? map.byId.get(R.path[R.path.length - 1])! : null
@@ -121,6 +137,15 @@ export default function BranchingRouteMap(p: SpecimenProps) {
   const real = () => {
     realAt.current = tRef.current
   }
+  /** 키보드 후보 점선 고리는 키보드를 쓴 뒤에만 (:focus-visible 과 같은 생각). 마우스 · 터치를 쓰면 다시 숨긴다 */
+  const kbUsed = useRef(false)
+  const onPointerDown = () => {
+    real()
+    if (kbUsed.current) {
+      kbUsed.current = false
+      rerender()
+    }
+  }
 
   const busy = () => R.phase === 'saved' || R.phase === 'cleared'
 
@@ -130,6 +155,7 @@ export default function BranchingRouteMap(p: SpecimenProps) {
     if (!n) return
     if (reach.includes(id)) {
       R.path = [...R.path, id]
+      R.moves++
       R.kbSel = 0
       R.follow = followScroll
       R.toast = `${KIND_INFO[n.kind].name} — ${KIND_INFO[n.kind].desc}`
@@ -163,25 +189,35 @@ export default function BranchingRouteMap(p: SpecimenProps) {
     R.pinKind = order[(order.indexOf(R.pinKind) + 1) % order.length]
     rerender()
   }
-  const saveLoad = () => {
+  /** stale = 옛 생성 규칙으로 만든 저장을 흉내 낸다. 종류 비율만 달랐던 옛 생성기의 지문을 넣는다
+   *  (간선은 같아 길 검사는 통과하지만 노드 종류가 다른 지도 — 지문만 잡아낸다) */
+  const saveLoad = (stale = false) => {
     if (busy()) return
-    R.saved = saveRun(map, R.path)
+    const oldMix = MIXES[(MIXES.indexOf(map.mix) + 1) % MIXES.length]
+    const oldPrint = stale ? generate(map.seed, map.floors, map.cols, map.paths, oldMix, preventCross).print : map.print
+    R.saved = saveRun(map, R.path, oldPrint)
+    R.stale = stale
     R.phase = 'saved'
     R.phaseT = 0
-    R.loadedOk = false
+    R.loadCheck = ''
     R.savedOnce = true
     rerender()
   }
-  /** 불러오기: 저장한 글자만 남기고 지도는 시드로 다시 만든다 */
+  /** 불러오기: 저장한 글자만 남기고 지도는 시드로 다시 만든다. 저장된 지문과 다시 만든 지도의 지문을 비교한다 */
   const load = () => {
     const sv = JSON.parse(R.saved) as RunSave
     const again = generate(sv.seed, sv.floors, sv.cols, sv.paths, sv.mix, preventCross)
-    const ok = again.print === map.print && validPath(again, sv.path)
-    R.path = ok ? sv.path.slice() : []
-    R.loadedOk = ok
+    const check = checkSave(sv, again)
+    R.path = check === 'ok' ? sv.path.slice() : []
+    R.loadCheck = check
     R.follow = true
-    R.toast = ok ? `불러옴 — 지문 ${again.print} 일치, 길 ${sv.path.length}칸 검증` : '불러오기 실패 — 처음부터'
-    R.toastTone = ok ? 'ok' : 'bad'
+    R.toast =
+      check === 'ok'
+        ? `불러옴 — 저장 지문 ${sv.print} = 다시 만든 지도 ${again.print}, 길 ${sv.path.length}칸 검증`
+        : check === 'print'
+          ? `지문 불일치 (저장 ${sv.print} ≠ 지금 ${again.print}) — 생성 규칙이 바뀌었다. 처음부터`
+          : '길 검증 실패 — 저장된 길이 이 지도에서 이어지지 않는다. 처음부터'
+    R.toastTone = check === 'ok' ? 'ok' : 'bad'
   }
 
   const handle = (id: string) => {
@@ -191,6 +227,7 @@ export default function BranchingRouteMap(p: SpecimenProps) {
     } else if (id === 'new-map') newMap()
     else if (id === 'legend') cycleLegend()
     else if (id === 'save-load') saveLoad()
+    else if (id === 'old-save') saveLoad(true)
     else if (id === 'restart') restart()
   }
   useTrigger(p.trigger, id => {
@@ -206,8 +243,8 @@ export default function BranchingRouteMap(p: SpecimenProps) {
     1.25,
     () => {
       if (tRef.current - realAt.current < MANUAL_PAUSE || busy()) return
-      if (R.hlAuto > 0) {
-        R.hlAuto = 0
+      if (R.hlAuto === 1) {
+        R.hlAuto = 2 // 한 런에 한 번만 (0 아직 · 1 켜 둠 · 2 끝)
         R.pinKind = null
         rerender()
         return
@@ -216,8 +253,10 @@ export default function BranchingRouteMap(p: SpecimenProps) {
         if (++R.goalWait >= 2) newMap()
         return
       }
-      if (R.path.length === 4 && !R.savedOnce) return saveLoad()
-      if (R.path.length === 6 && R.pinKind === null && !R.hlAuto) {
+      // 새 지도는 출발 전 화면(0층 노드가 모두 갈 수 있는 곳)을 한 박자 더 보여 준다
+      if (!R.path.length && R.startWait++ < 1) return
+      if (R.moves >= 2 && !R.savedOnce) return saveLoad()
+      if (R.moves >= 4 && R.pinKind === null && R.hlAuto === 0) {
         R.pinKind = 'rest'
         R.hlAuto = 1
         rerender()
@@ -306,25 +345,27 @@ export default function BranchingRouteMap(p: SpecimenProps) {
   }
 
   /* ───── 키보드: ←/→ 고르기, Enter · ↑ 이동 ─────
-   * Space 는 갤러리 재생 키라 쓰지 않는다. 고를 것이 없을 때(목표 도착 · 불러오는 중)의 ←/→ 는 갤러리로 흘려보낸다 */
+   * Space 는 갤러리 재생 키라 쓰지 않는다. ←/→/Enter/↑ 는 이 표본의 조작 키라
+   * 잠깐 할 일이 없을 때(저장 · 불러오는 중, 목표 도착)도 먹는다 — 같은 ← 가 때로는 해설을 넘기면 안 된다 */
   const onKeyDown = stageKeyDown<HTMLDivElement>(e => {
     if (p.thumbnail) return
     const k = e.key
     if ((e.target as Element).closest?.('[data-legend]') && k === 'Enter') return // 범례 버튼의 Enter 는 버튼에게
-    if (busy() || atGoal || !kbList.length) return
+    const control = k === 'ArrowLeft' || k === 'ArrowRight' || k === 'Enter' || k === 'ArrowUp'
+    if (!control) return
+    real()
+    if (!kbUsed.current) {
+      kbUsed.current = true
+      rerender()
+    }
+    if (busy() || atGoal || !kbList.length) return true
     if (k === 'ArrowLeft' || k === 'ArrowRight') {
       R.kbSel = (clamp(R.kbSel, 0, kbList.length - 1) + (k === 'ArrowRight' ? 1 : kbList.length - 1)) % kbList.length
-      real()
       rerender()
       return true
     }
-    if (k === 'Enter' || k === 'ArrowUp') {
-      if (!e.repeat) {
-        real()
-        tryMove(kbId)
-      }
-      return true
-    }
+    if (!e.repeat) tryMove(kbId) // Enter · ↑ — 누르고 있어도 한 칸만 (입력 소비)
+    return true
   })
 
   /* ───── 그리기 ───── */
@@ -348,13 +389,26 @@ export default function BranchingRouteMap(p: SpecimenProps) {
   }
   const startEdges = !cur && juice ? reach.map(id => map.byId.get(id)!) : []
 
-  // 해설 번호용: 갈 수 있는 노드를 감싼 영역
+  /* 해설 번호용: 갈 수 있는 노드를 감싼 영역. 목표에 도착해 고를 곳이 없어도 DOM 에 남기고 visibility 로만 숨긴다.
+   * 번호는 위쪽 대신 옆(같은 층의 이웃 칸이 빈 쪽)에 붙여 바로 위층 노드를 가리지 않게 한다 */
   const box = (() => {
-    const list = (juice ? reach : kbList).map(id => map.byId.get(id)!)
-    if (!list.length) return null
+    const list = (atGoal ? [] : juice ? reach : kbList).map(id => map.byId.get(id)!)
+    // 커진 노드(1.18배) · 목표(1.7배)를 감쌀 만큼
+    const pad = list.length && list[0].kind !== 'goal' ? nodeSize * 0.66 : nodeSize * 0.95
+    if (!list.length) {
+      const g = map.byId.get(map.goalId)!
+      return { style: { left: px(g) - pad, top: py(g) - pad, width: pad * 2, height: pad * 2, visibility: 'hidden' } as CSSProperties, pin: 'left' }
+    }
     const xs = list.map(px), ys = list.map(py)
-    const pad = nodeSize * 0.75
-    return { left: Math.min(...xs) - pad, top: Math.min(...ys) - pad, width: Math.max(...xs) - Math.min(...xs) + pad * 2, height: Math.max(...ys) - Math.min(...ys) + pad * 2 }
+    const fl = list[0].floor
+    const cs = list.map(n => n.col)
+    const lo = Math.min(...cs), hi = Math.max(...cs)
+    const taken = (c: number) => map.nodes.some(n => n.floor === fl && n.col === c && n.kind !== 'goal')
+    const pin = list[0].kind === 'goal' || (lo > 0 && !taken(lo - 1)) ? 'left' : hi < cols - 1 && !taken(hi + 1) ? 'right' : lo === 0 ? 'left' : 'top'
+    return {
+      style: { left: Math.min(...xs) - pad, top: Math.min(...ys) - pad, width: Math.max(...xs) - Math.min(...xs) + pad * 2, height: Math.max(...ys) - Math.min(...ys) + pad * 2 },
+      pin,
+    }
   })()
 
   const cross = preventCross ? [] : crossings(map)
@@ -378,7 +432,7 @@ export default function BranchingRouteMap(p: SpecimenProps) {
       tabIndex={p.thumbnail ? -1 : 0}
       aria-label="분기 경로 맵 (클릭 · 터치, 키보드: ←/→ 고르기 · Enter 이동)"
       onKeyDown={onKeyDown}
-      onPointerDownCapture={real}
+      onPointerDownCapture={onPointerDown}
     >
       <header className={s.head}>
         <div>
@@ -455,7 +509,8 @@ export default function BranchingRouteMap(p: SpecimenProps) {
               )
             })}
           </svg>
-          {box && <div className={s.nextBox} data-part="next" style={box} />}
+          <div className={s.nextBox} data-part="next" data-pin={box.pin} style={box.style} />
+
           {map.nodes.map(n => {
             const st = nodeState(n)
             const can = reach.includes(n.id)
@@ -466,7 +521,7 @@ export default function BranchingRouteMap(p: SpecimenProps) {
                 data-kind={n.kind}
                 data-state={st}
                 data-hit={hlKind === n.kind || undefined}
-                data-kb={n.id === kbId && !p.thumbnail ? true : undefined}
+                data-kb={n.id === kbId && kbUsed.current && !atGoal && !p.thumbnail ? true : undefined}
                 data-reject={R.rejectId === n.id || undefined}
                 data-goal={n.kind === 'goal' || undefined}
                 style={{ left: px(n), top: py(n) }}
@@ -564,15 +619,19 @@ export default function BranchingRouteMap(p: SpecimenProps) {
         <code className={s.json} data-fresh={R.phase === 'saved' || undefined}>
           {shownJson}
         </code>
-        <p className={s.saveState} data-phase={R.phase || undefined}>
+        <p className={s.saveState} data-phase={R.phase || undefined} data-bad={(R.phase === 'loaded' && R.loadCheck !== 'ok') || undefined}>
           {R.phase === 'saved'
-            ? '① 저장: 시드 + 지나온 길만 JSON 으로'
+            ? R.stale
+              ? '① 옛 생성기(종류 비율이 달랐다)로 만든 저장'
+              : '① 저장: 시드 + 지문 + 지나온 길만 JSON 으로'
             : R.phase === 'cleared'
               ? '② 지도와 진행을 메모리에서 버림'
               : R.phase === 'loaded'
-                ? R.loadedOk
-                  ? '③ 시드로 지도를 다시 만들고 길을 검증 ✓'
-                  : '③ 검증 실패 — 처음부터'
+                ? R.loadCheck === 'ok'
+                  ? '③ 다시 만든 지도의 지문 = 저장된 지문, 길 검증 ✓'
+                  : R.loadCheck === 'print'
+                    ? '③ 지문 불일치 — 생성 규칙이 바뀌었다. 처음부터'
+                    : '③ 길 검증 실패 — 처음부터'
                 : '저장 내용 (지도 자체는 저장하지 않는다)'}
         </p>
       </section>
@@ -584,6 +643,24 @@ export default function BranchingRouteMap(p: SpecimenProps) {
 function autoChoice(map: RouteMap, path: number[]): number {
   const list = reachable(map, path)
   return list[(path.length * 3 + map.seed) % list.length]
+}
+
+/** 첫 화면용 길 — 1층 이상에서 갈래가 둘 이상인 가장 낮은 노드까지, prev 를 따라 0층으로 거슬러 만든다.
+ *  없으면(드묾) 자동 선택으로 두 걸음 */
+function firstBranch(map: RouteMap): number[] {
+  for (let f = 1; f < map.floors - 1; f++) {
+    let n = map.nodes.find(m => m.floor === f && m.next.length >= 2)
+    if (!n) continue
+    const path = [n.id]
+    while (n.prev.length) {
+      n = map.byId.get(n.prev[0])!
+      path.unshift(n.id)
+    }
+    return path
+  }
+  const path: number[] = []
+  for (let i = 0; i < 2; i++) path.push(autoChoice(map, path))
+  return path
 }
 
 /** 종류 아이콘 — 색 없이 모양만으로도 구분된다 (삼각 · 겹삼각 · 십자 · 상자 · 마름모 · 전파 · 깃발) */

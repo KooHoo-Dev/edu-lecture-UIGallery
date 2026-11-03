@@ -55,6 +55,7 @@ namespace UIGallery.BranchingRouteMap
         [SerializeField] float followSpeed = 5f;
 
         const string SaveKey = "UIGallery.BranchingRouteMap.Run";
+        const float JitterX = 0.2f, JitterY = 0.3f;   // 웹 판 index.tsx 의 JX · JY 와 같은 값 (그리는 쪽 계수)
         static readonly string[] KindNames = { "교전", "강적", "정비", "보급", "회수", "미확인 신호", "최종 목표" };
         static readonly Color EdgeIdle = new(0.3f, 0.42f, 0.55f), EdgeNext = new(0.37f, 0.9f, 0.79f);
 
@@ -100,17 +101,32 @@ namespace UIGallery.BranchingRouteMap
             following = true;
         }
 
-        /// <summary>content 왼쪽 위 기준 좌표 (UGUI 는 y 가 위로 + 라 아래 방향은 음수)</summary>
+        /// <summary>content 왼쪽 위 기준 좌표 (UGUI 는 y 가 위로 + 라 아래 방향은 음수).
+        /// 흔들림 계수는 웹 판과 같다: 가로 열 폭의 ±0.1, 세로 층 높이의 ±0.15 → 이웃 노드 중심이 열 폭의 0.8 이상 떨어져
+        /// 1.18배로 커진 선택지끼리도 겹치지 않는다 (nodeSize 는 colWidth 의 0.6 이하로 둔다)</summary>
         Vector2 Pos(MapNode n)
         {
             bool goal = n.kind == NodeKind.Goal;
-            float x = goal ? Map.cols * colWidth / 2f : (n.col + 0.5f + n.jx * 0.5f) * colWidth;
-            float y = goal ? 105f : ContentHeight - padBottom - (n.floor + n.jy * 0.36f) * rowHeight;
+            float x = goal ? Map.cols * colWidth / 2f : (n.col + 0.5f + n.jx * JitterX) * colWidth;
+            float y = goal ? 105f : ContentHeight - padBottom - (n.floor + n.jy * JitterY) * rowHeight;
             return new Vector2(x, -y);
+        }
+
+        /// <summary>레이어를 content 에 꽉 차게 늘인다 (앵커 0→1, 여백 0). 노드 · 간선은 레이어의 왼쪽 위(0,1)를 기준으로 놓이므로
+        /// 기본값(가운데 100×100)이면 지도가 화면 밖으로 밀린다</summary>
+        static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
         }
 
         void Spawn()
         {
+            Stretch(edgeLayer);
+            Stretch(nodeLayer);
             foreach (Transform t in edgeLayer) Destroy(t.gameObject);
             foreach (Transform t in nodeLayer) Destroy(t.gameObject);
             views.Clear();
@@ -204,17 +220,21 @@ namespace UIGallery.BranchingRouteMap
                 rt.sizeDelta = new Vector2(rt.sizeDelta.x, trail ? 8f : next ? 6f : 4f);
             }
 
-            // 키보드 · 패드: 갈 수 있는 노드끼리만 좌우로 잇는다 (자동 Navigation 은 못 가는 노드로도 간다)
+            // 키보드 · 패드: 갈 수 있는 노드끼리만 좌우로 잇는다 (자동 Navigation 은 못 가는 노드로도 간다).
+            // 아래로는 첫 범례 버튼 — 패드로도 범례에 가서 Select 강조를 볼 수 있게
             List<RouteNodeView> list = reach.ConvertAll(id => views[id]);
             list.Sort((x, y) => x.Node.col.CompareTo(y.Node.col));
+            Button firstLegend = legend.Count > 0 ? legend[0].button : null;
             for (int i = 0; i < list.Count; i++)
                 list[i].Button.navigation = new Navigation
                 {
                     mode = Navigation.Mode.Explicit,
                     selectOnLeft = i > 0 ? list[i - 1].Button : null,
                     selectOnRight = i < list.Count - 1 ? list[i + 1].Button : null,
+                    selectOnDown = firstLegend,   // 범례 → 지도는 범례 버튼의 자동 Navigation 이 interactable 노드만 골라 돌아온다
                 };
-            if (select && EventSystem.current != null && list.Count > 0) EventSystem.current.SetSelectedGameObject(list[0].gameObject);
+            // 고를 곳이 없으면(목표 도착) 선택을 비워 포커스 고리가 도착한 노드에 남지 않게
+            if (select && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(list.Count > 0 ? list[0].gameObject : null);
 
             if (seedLabel != null) seedLabel.text = $"시드 {seed} · 지문 {Map.print}";
             if (hereLabel != null)
@@ -287,26 +307,25 @@ namespace UIGallery.BranchingRouteMap
 
         /* ───── 저장 · 불러오기 ───── */
 
-        /// <summary>지도는 저장하지 않는다 — 생성 입력과 지나온 길만. 불러올 때 시드로 다시 만든다</summary>
+        /// <summary>지도는 저장하지 않는다 — 생성 입력 + 지금 지도의 지문 + 지나온 길만. 불러올 때 시드로 다시 만든다</summary>
         public string Save()
         {
-            var s = new RunSave
-            {
-                seed = Map.seed, floors = Map.floors, cols = Map.cols, paths = Map.paths,
-                mix = RouteMapData.MixName(Map.mix), at = path.Count > 0 ? path[^1] : -1, path = new List<int>(path),
-            };
-            string json = JsonUtility.ToJson(s);
+            string json = JsonUtility.ToJson(RunSave.From(Map, path));
             PlayerPrefs.SetString(SaveKey, json);
             PlayerPrefs.Save();
             if (jsonLabel != null) jsonLabel.text = json;
             return json;
         }
 
-        public bool Load()
+        /// <summary>
+        /// 시드로 지도를 다시 만들고 ① 저장된 지문과 새 지도의 지문 ② 길이 이어지는지 를 검사한다.
+        /// 생성 규칙이 바뀌면 길은 우연히 이어져도 종류가 다른 지도일 수 있다 — 그것은 지문만 잡아낸다. 실패하면 처음부터
+        /// </summary>
+        public LoadResult Load()
         {
-            if (!PlayerPrefs.HasKey(SaveKey)) return false;
+            if (!PlayerPrefs.HasKey(SaveKey)) return LoadResult.NoSave;
             RunSave s = JsonUtility.FromJson<RunSave>(PlayerPrefs.GetString(SaveKey));
-            if (s == null || !Enum.TryParse(s.mix, true, out MapMix m)) return false;
+            if (s == null || !Enum.TryParse(s.mix, true, out MapMix m)) return LoadResult.NoSave;
             seed = s.seed;
             floors = s.floors;
             cols = s.cols;
@@ -314,12 +333,19 @@ namespace UIGallery.BranchingRouteMap
             mix = m;
             Map = RouteMapData.Generate(seed, floors, cols, paths, mix, preventCross);
             Spawn();
-            bool ok = Map.ValidPath(s.path);   // 생성 코드가 바뀌어 다른 지도가 나왔다면 여기서 걸러진다
+            LoadResult result = s.Check(Map);
             path.Clear();
-            if (ok) path.AddRange(s.path);
+            if (result == LoadResult.Ok) path.AddRange(s.path);
+            if (jsonLabel != null)
+                jsonLabel.text = result switch
+                {
+                    LoadResult.Ok => $"불러옴 — 저장 지문 {s.print} = 다시 만든 지도 {Map.print}, 길 {s.path.Count}칸 검증",
+                    LoadResult.PrintMismatch => $"지문 불일치 (저장 {s.print} ≠ 지금 {Map.print}) — 생성 규칙이 바뀌었다. 처음부터",
+                    _ => "길 검증 실패 — 처음부터",
+                };
             Refresh(false, true);
             following = true;
-            return ok;
+            return result;
         }
     }
 }
