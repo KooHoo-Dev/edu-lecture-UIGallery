@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace UIGallery.ContextLoreGlossary
@@ -15,7 +16,9 @@ namespace UIGallery.ContextLoreGlossary
         [Tooltip("0 = 대사, n = 툴팁 n-1 안의 글")]
         public int level;
         public TooltipStack stack;
-        [SerializeField] Image focusFrame;   // 키보드 · 패드로 고른 키워드 테두리 (Raycast Target 끔)
+        // 키보드 · 패드로 고른 키워드 표시 (Raycast Target 끔). 글의 **앞 형제**로 두어 글 뒤에 그린다 — 자식으로 두면 글 위에 그려지고,
+        // 스프라이트 없는 기본 흰 사각형이면 키워드를 가린다. 색은 반투명 노랑(#FFE066, alpha 0.35). 위치는 부모 좌표로 계산하므로 형제여도 맞다
+        [SerializeField] Image focusFrame;
 
         TMP_Text text;
         Canvas canvas;
@@ -29,7 +32,9 @@ namespace UIGallery.ContextLoreGlossary
         void Awake()
         {
             canvas = GetComponentInParent<Canvas>();
-            if (focusFrame != null) focusFrame.raycastTarget = false;
+            if (focusFrame == null) return;
+            focusFrame.raycastTarget = false;
+            if (focusFrame.transform.IsChildOf(transform)) Debug.LogWarning("FocusFrame 이 글의 자식이라 키워드 위에 그려진다 — 글의 앞 형제로 옮긴다", focusFrame);
         }
 
         void OnDisable()
@@ -67,9 +72,13 @@ namespace UIGallery.ContextLoreGlossary
         public void OnPointerClick(PointerEventData e)
         {
             // 터치는 PointerMove 가 오지 않을 수 있어 누른 자리에서 다시 판정한다
-            int i = TMP_TextUtilities.FindIntersectingLink(Text, e.position, Cam);
-            if (i >= 0) stack.KeywordClick(this, i, LinkId(i));
+            int i = LinkAt(e.position);
+            bool touch = e is ExtendedPointerEventData x && x.pointerType == UIPointerType.Touch;
+            if (i >= 0) stack.KeywordClick(this, i, LinkId(i), touch);
         }
+
+        /// 화면 좌표의 링크 번호 (-1 = 없음)
+        public int LinkAt(Vector2 screen) => TMP_TextUtilities.FindIntersectingLink(Text, screen, Cam);
 
         /// i 번째 링크가 차지한 사각형 (target 의 로컬 좌표). 여러 줄로 갈라지면 첫 글자가 있는 줄만 쓴다
         public Rect LinkRectIn(RectTransform target, int i)

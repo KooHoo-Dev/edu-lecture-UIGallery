@@ -271,7 +271,7 @@
   color: var(--kc);
 }
 .kwFlat::after {
-  content: '⋯';
+  content: '…';
   margin-left: 2px;
   color: var(--muted);
   font-weight: 400;

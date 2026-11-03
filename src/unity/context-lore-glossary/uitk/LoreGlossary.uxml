@@ -11,9 +11,9 @@
             <ui:Label class="hint" text="←→ 키워드 · ↓ 고정하고 안으로 · ↑ 바깥으로 · G 를 누르고 있으면 용어집" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement name="tooltip-layer" class="tooltip-layer" picking-mode="Ignore" />
-        <!-- 용어집: 닫힘은 visibility 로 끈다 (상속되어 안의 버튼도 포인터를 받지 않는다) -->
+        <!-- 용어집: 닫힘은 visibility 로 끈다 (상속되어 안의 버튼도 포인터를 받지 않는다). 열린 동안 dim 이 뒤의 키워드 포인터를 막는다 -->
         <ui:VisualElement name="glossary" class="glossary">
-            <ui:VisualElement class="glossary__dim" picking-mode="Ignore" />
+            <ui:VisualElement class="glossary__dim" />
             <ui:VisualElement class="glossary__panel">
                 <ui:VisualElement class="glossary__head">
                     <ui:Label name="glossary-title" class="glossary__title" />

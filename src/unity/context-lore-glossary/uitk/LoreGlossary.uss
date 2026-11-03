@@ -2,6 +2,8 @@
    USS 에는 gradient · box-shadow 가 없다 — 테두리 색과 반투명 배경으로만 층을 나눈다. */
 .lore {
     flex-grow: 1;
+    /* 한글 글리프가 있는 FontAsset 을 Panel Settings 의 Text Settings(또는 -unity-font-definition)로 지정한다.
+       모양 글자 ● ◆ ▼ ↑ … 도 그 폰트에 있어야 한다 (Arial 계열에는 ◆ 가 없다) */
     color: rgb(234, 242, 251);
     font-size: 26px;
 }
@@ -65,8 +67,8 @@
     border-color: rgba(255, 255, 255, 0.18);
     opacity: 0;
     translate: 0 10px;
-    transition-property: opacity, translate;
-    transition-duration: 0.14s;
+    transition-property: opacity, translate, border-color;
+    transition-duration: 0.14s, 0.14s, 0.3s;
     transition-timing-function: ease-out;
 }
 .tip--in {
@@ -76,9 +78,9 @@
 .tip--locked {
     border-color: rgb(255, 224, 102);
 }
+/* 순환 강조: C# 가 1.25Hz 로 켜고 끈다 — 색만 바꾼다 (두께를 바꾸면 크기가 바뀌어 다시 배치된다) */
 .tip--echo {
     border-color: rgb(255, 157, 122);
-    border-width: 4px;
 }
 .tip__note {
     position: absolute;
@@ -148,10 +150,14 @@
     bottom: 0;
     opacity: 0;
     transition-property: opacity;
-    transition-duration: 0.16s;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-out;
 }
 .glossary--open {
     opacity: 1;
+}
+.glossary--open .glossary__panel {
+    translate: 0 0;
 }
 .glossary__dim {
     position: absolute;
@@ -172,6 +178,10 @@
     background-color: rgb(11, 20, 32);
     border-width: 2px;
     border-color: rgba(255, 255, 255, 0.16);
+    translate: 0 16px;
+    transition-property: translate;
+    transition-duration: 0.14s;
+    transition-timing-function: ease-out;
 }
 .glossary__head {
     flex-direction: row;

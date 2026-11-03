@@ -39,7 +39,7 @@ type GlossMode = 'hold' | 'pause' | 'script'
 /* 자동 데모 대본 — 중첩 열기(잠금 링) → 닫기 → 용어집 → 다음 대사 → 순환 참조 */
 const SCRIPT = ['nest', 'wait', 'close', 'gloss', 'wait', 'glossClose', 'next', 'cycle', 'wait', 'close', 'next'] as const
 
-/** 첫 화면: 격납고 장면 두 줄째, "냉각 셀 → 궤도 정비 기지" 두 겹이 잠긴 채 열려 있다 (궤도 정비 기지 설명 안의 냉각 셀은 ↩ 순환 표시) */
+/** 첫 화면: 격납고 장면 두 줄째, "냉각 셀 → 궤도 정비 기지" 두 겹이 잠긴 채 열려 있다 (궤도 정비 기지 설명 안의 냉각 셀은 ↑ 순환 표시) */
 const START_STACK = (): Tip[] => [
   { entry: 'cell', anchor: 'd0.0', locked: true, owner: 'script' },
   { entry: 'base', anchor: 't0.0', locked: true, owner: 'script' },
@@ -88,14 +88,34 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
   live.current = { juice, lockMs, maxDepth, cycleMode, holdMode, edgeCorrection }
 
   const rootRef = useRef<HTMLDivElement>(null)
+  const dlgRef = useRef<HTMLElement>(null)
   const tipRefs = useRef<(HTMLDivElement | null)[]>([])
   const ringRefs = useRef<(SVGCircleElement | null)[]>([])
+  /** 마우스 위치 (논리 좌표). 무대를 벗어나면 null */
   const pointer = useRef<{ x: number; y: number } | null>(null)
+  const placed = useRef<Rect[]>([])
   const suppress = useRef(false)
+  /** 무대 안에 포커스가 있었나 — 포커스된 요소가 사라져도 blur 가 오지 않아 직접 기억한다 */
+  const focusIn = useRef(false)
+  /** 지난 그리기의 스택 앵커 — 줄어든 겹을 연 키워드를 찾는다 */
+  const prevAnchors = useRef<string[]>([])
 
   /* ───── 스택 규칙 ───── */
   const heldOf = (a: At) => (!a ? -1 : a.key && x.stack[a.tip + 1]?.anchor === a.key ? a.tip + 1 : a.tip)
-  const held = () => Math.max(heldOf(x.ptrAt), heldOf(x.focusAt))
+  /** 포인터 좌표가 들어 있는 가장 깊은 (보이는) 툴팁 — 새 겹이 키워드를 덮어 pointerleave 가 와도 붙잡은 것으로 본다 */
+  const ptrTip = () => {
+    const q = pointer.current
+    for (let i = x.stack.length - 1; q && i >= 0; i--) {
+      const r = placed.current[i]
+      if (r && q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h) return i
+    }
+    return -1
+  }
+  const held = () => Math.max(heldOf(x.ptrAt), heldOf(x.focusAt), ptrTip())
+  const track = (e: PointerEvent) => {
+    const r = rootRef.current?.getBoundingClientRect()
+    if (r && e.pointerType === 'mouse') pointer.current = { x: ((e.clientX - r.left) * W) / r.width, y: ((e.clientY - r.top) * W) / r.width }
+  }
   const human = () => (x.humanAt = x.t)
   const say = (text: string) => (x.toast = { text, until: x.t + 3.2 })
 
@@ -232,7 +252,7 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
       if (L.cycleMode === 'mark') {
         x.echo = 0
         x.echoUntil = x.t + 2.2
-        say(`'${b}' 설명 안의 '${a}' — 이미 위에 열려 있어 새로 쌓지 않고 ↩ 로 그 툴팁을 짚는다`)
+        say(`'${b}' 설명 안의 '${a}' — 이미 위에 열려 있어 새로 쌓지 않고 ↑ 로 그 툴팁을 짚는다`)
       } else say(`순환 허용: ${a} → ${b} → ${a} … 깊이 한도까지 같은 두 장이 반복된다`)
     }
     rerender()
@@ -301,6 +321,15 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     if (p.thumbnail || (x.gloss.open && x.gloss.mode !== 'script')) return
     openGloss('script', x.t + PEEK_SEC)
   })
+  // 가장자리 보정 · 잠금 시간은 시작 스택(모두 고정 · 뒤집기 없음)에서 안 보인다 → 중첩을 다시 연다 (마지막 겹은 고정 전부터 링이 찬다)
+  const shownNest = useRef(`${lockMs}|${edgeCorrection}`)
+  useEffect(() => {
+    if (shownNest.current === `${lockMs}|${edgeCorrection}`) return
+    shownNest.current = `${lockMs}|${edgeCorrection}`
+    if (p.thumbnail) return
+    human()
+    nest()
+  })
 
   /* ───── 갤러리 이벤트 · 자동 데모 ───── */
   const handle = (id: string) => {
@@ -324,6 +353,7 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     p.timeScale,
     1.9,
     () => {
+      // 사람이 툴팁 안에 커서를 두거나 무대에 포커스를 두고 읽는 중이면 쉰다 (게임 루프가 그동안 humanAt 을 갱신한다)
       if (x.t - x.humanAt < HUMAN_IDLE || (x.gloss.open && x.gloss.mode !== 'script')) return
       const a = SCRIPT[x.step++ % SCRIPT.length]
       if (a === 'nest') nest()
@@ -344,6 +374,7 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     x.t += dt
     let dirty = false
     const h = held()
+    if (h >= 0 || rootRef.current?.contains(document.activeElement)) human()
     if (L.juice) {
       x.stack.forEach((t, i) => {
         if (t.locked || (i > h && t.owner !== 'script')) return
@@ -395,8 +426,8 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
 
   /* ───── 배치: 크기를 잰 뒤 → 1겹은 키워드 위, 하위 겹은 부모 오른쪽 → 넘치면 뒤집기 → 고정 ───── */
   const lastEntry = useRef<(string | null)[]>([null, null, null, null])
-  const placed = useRef<Rect[]>([])
   const sides = useRef<Side[]>([])
+  const noted = useRef<boolean[]>([])
   const toLogical = (r: DOMRect): Rect => {
     const root = rootRef.current!.getBoundingClientRect()
     const k = W / root.width
@@ -405,6 +436,14 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
   const place = () => {
     const L = live.current
     const bounds = { x: EDGE, y: EDGE, w: p.width - EDGE * 2, h: p.height - EDGE * 2 }
+    const bottom = bounds.y + bounds.h
+    // 툴팁 칸은 Tab 순서 때문에 대사 상자 안에 있다 — 무대 좌표에서 상자의 안쪽(padding box) 원점을 뺀다
+    const d = dlgRef.current
+    const off = d ? toLogical(d.getBoundingClientRect()) : { x: 0, y: 0 }
+    if (d) {
+      off.x += d.clientLeft
+      off.y += d.clientTop
+    }
     x.stack.forEach((t, i) => {
       const el = tipRefs.current[i]
       const a = kwEl(t.anchor)
@@ -424,31 +463,62 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
         // 셋째 겹부터는 부모가 놓인 방향으로 이어 가고 되돌아 뒤집지 않는다 — 되돌아가면 첫 겹을 통째로 덮는다. 모자라면 고정만
         const prefer = i === 0 ? 'top' : i > 1 && correct ? (sides.current[i - 1] ?? 'right') : 'right'
         const pl = placeFloating(anchor, size, i > 1 ? { x: -1e5, y: bounds.y, w: 2e5, h: bounds.h } : bounds, prefer, i === 0 ? 14 : 12)
+        const name = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽' }
+        const to = { top: '위로', bottom: '아래로', left: '왼쪽으로', right: '오른쪽으로' }
+        let stackNote = ''
         if (i > 1) {
           const cx = Math.min(Math.max(pl.x, bounds.x), bounds.x + bounds.w - size.w)
-          if (cx !== pl.x && parent) {
-            // 옆자리가 모자라 부모와 겹치면 44px 위로 비켜 계단처럼 — 부모의 깊이 표시가 아래에 남는다
-            pl.y = Math.max(bounds.y, Math.min(pl.y, parent.y - 44))
+          const squeezed = cx !== pl.x
+          pl.x = cx
+          if (squeezed && parent) {
+            // 옆자리가 모자라면 부모 위 → 부모 반대쪽 → 부모 아래 중 앞 겹들과 겹치지 않는 첫 자리 (없으면 부모만 피하는 자리).
+            // 부모 안의 여는 키워드를 덮으면 열림 → 키워드가 가려짐 → pointerleave → 닫힘 → 다시 열림이 반복된다. 모두 안 되면 여는 키워드 줄만 피한다
+            const back: Side = pl.side === 'left' ? 'right' : 'left'
+            const cands: [number, number, string, Side][] = [
+              [cx, parent.y - 14 - size.h - (noted.current[i - 1] ? 40 : 0), '옆 공간 부족 → 부모 위로', pl.side],
+              [back === 'right' ? parent.x + parent.w + 12 : parent.x - 12 - size.w, pl.y, `${name[pl.side]} 공간 부족 → ${to[back]}`, back],
+              [cx, parent.y + parent.h + 14, '옆 공간 부족 → 부모 아래로', pl.side],
+            ]
+            const clear = (c: [number, number, ...unknown[]], n: number) =>
+              c[0] >= bounds.x && c[0] + size.w <= bounds.x + bounds.w && c[1] >= bounds.y && c[1] + size.h <= bottom &&
+              placed.current.slice(n, i).every(r => c[0] >= r.x + r.w || c[0] + size.w <= r.x || c[1] >= r.y + r.h || c[1] + size.h <= r.y)
+            const c = cands.find(c => clear(c, 0)) ?? cands.find(c => clear(c, i - 1))
+            if (c) [pl.x, pl.y, stackNote, pl.side] = c
+            else pl.y = Math.min(Math.max(ar.y - 14 - size.h >= bounds.y ? ar.y - 14 - size.h : ar.y + ar.h + 14, bounds.y), bottom - size.h)
             pl.clamped = true
           }
-          pl.x = cx
         }
         sides.current[i] = pl.side
         if (correct) {
           pos = pl
-          const name = { top: '위', bottom: '아래', left: '왼쪽', right: '오른쪽' }
-          note = [pl.flipped ? `${name[prefer]} 공간 부족 → ${name[pl.side]}으로` : '', pl.clamped ? '화면 안으로 고정' : ''].filter(Boolean).join(' · ')
+          note = stackNote || [pl.flipped ? `${name[prefer]} 공간 부족 → ${to[pl.side]}` : '', pl.clamped ? '화면 안으로 고정' : ''].filter(Boolean).join(' · ')
         } else if (prefer === 'top') pos = { x: anchor.x + anchor.w / 2 - size.w / 2, y: anchor.y - 14 - size.h }
         else pos = { x: anchor.x + anchor.w + 12, y: anchor.y }
       }
       placed.current[i] = { x: pos.x, y: pos.y, w: size.w, h: size.h }
-      el.style.transform = `translate(${Math.round(pos.x)}px, ${Math.round(pos.y)}px)`
+      el.style.transform = `translate(${Math.round(pos.x - off.x)}px, ${Math.round(pos.y - off.y)}px)`
+      noted.current[i] = !!note
       const n = el.querySelector<HTMLElement>('[data-note]')
       if (n) {
         n.textContent = note
         n.hidden = !note
       }
     })
+  }
+  /** 스택이 줄어 포커스가 닫힌 겹 안(또는 사라진 요소)에 남았으면 그 겹을 연 키워드로, 없으면 무대 루트로 (창을 닫을 때와 같은 원리) */
+  const rescueFocus = (anchors: string[]) => {
+    const root = rootRef.current
+    const ae = document.activeElement
+    if (!root || p.thumbnail) return
+    const tip = ae instanceof HTMLElement && root.contains(ae) ? ae.closest<HTMLElement>('[data-tip]') : null
+    const lv = tip ? Number(tip.dataset.tip) : -1
+    if (lv < x.stack.length && !(focusIn.current && (!ae || ae === document.body))) return
+    for (let j = lv; j >= 0; j--) {
+      const el = anchors[j] ? kwEl(anchors[j]) : null
+      if (el && Number(el.dataset.lv) <= x.stack.length) return focusKw(anchors[j], true)
+    }
+    x.focusAt = null
+    root.focus({ preventScroll: true })
   }
   useLayoutEffect(() => {
     place()
@@ -464,7 +534,9 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     // 창 · 겹을 열고 닫을 때 포커스 옮기기
     const f = x.pendingFocus
     x.pendingFocus = null
-    if (!f) return
+    const anchors = prevAnchors.current
+    prevAnchors.current = x.stack.map(t => t.anchor)
+    if (!f) return rescueFocus(anchors)
     if (f.kind === 'into') {
       const first = tipRefs.current[f.level]?.querySelector<HTMLElement>(`button[data-lv="${f.level + 1}"]`)
       if (first) first.focus({ preventScroll: true })
@@ -603,7 +675,9 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     if (e.code === 'KeyG' || e.key === 'g' || e.key === 'G') releaseGloss()
   }
   const onRootBlur = (e: FocusEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) releaseGloss() // 누른 채 무대를 떠나면 뗀 신호가 오지 않는다
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+    focusIn.current = false
+    releaseGloss() // 누른 채 무대를 떠나면 뗀 신호가 오지 않는다
   }
   const onRootPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as Element).closest('[data-keep]')) return
@@ -611,11 +685,13 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
     closeAll()
   }
   const onRootPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!rootRef.current || e.pointerType !== 'mouse') return
-    const r = rootRef.current.getBoundingClientRect()
-    const k = W / r.width
-    pointer.current = { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k }
+    if (e.pointerType !== 'mouse') return
+    track(e)
     if (!live.current.juice && x.stack.length) place()
+  }
+  const onRootPointerLeave = () => {
+    pointer.current = null
+    prune()
   }
   const onHoldDown = (e: PointerEvent<HTMLDivElement>) => {
     if (p.thumbnail) return
@@ -659,15 +735,15 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
         data-part={key === keywordPart ? 'keyword' : undefined}
         data-pin="below"
         tabIndex={p.thumbnail ? -1 : 0}
-        onPointerEnter={e => e.pointerType === 'mouse' && onKwEnter(level, key, id)}
-        onPointerLeave={e => e.pointerType === 'mouse' && onKwLeave(level)}
+        onPointerEnter={e => e.pointerType === 'mouse' && (track(e), onKwEnter(level, key, id))}
+        onPointerLeave={e => e.pointerType === 'mouse' && (track(e), onKwLeave(level))}
         onFocus={() => onKwFocus(level, key, id)}
         onBlur={onKwBlur}
         onClick={e => onKwClick(level, key, id, (e.nativeEvent as globalThis.PointerEvent).pointerType ?? '')}
       >
         <KindMark kind={kind} size={level === 0 ? 22 : 18} />
         {label}
-        {state === 'cycle' && <i className={s.cycleMark}>↩</i>}
+        {state === 'cycle' && <i className={s.cycleMark}>↑</i>}
       </button>
     )
   }
@@ -699,8 +775,8 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
         data-echo={x.echo === i || undefined}
         data-part={i === 1 ? 'nested' : undefined}
         style={{ width: TIP_W }}
-        onPointerEnter={e2 => e2.pointerType === 'mouse' && onTipEnter(i)}
-        onPointerLeave={e2 => e2.pointerType === 'mouse' && onTipLeave()}
+        onPointerEnter={e2 => e2.pointerType === 'mouse' && (track(e2), onTipEnter(i))}
+        onPointerLeave={e2 => e2.pointerType === 'mouse' && (track(e2), onTipLeave())}
       >
         <span className={s.note} data-note hidden />
         <div className={s.card} data-card data-kind={e.kind}>
@@ -900,9 +976,11 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
       aria-label="맥락 용어집 데모 (키워드에서 ↓ · Enter 로 툴팁 안으로, Esc 로 닫기, G 를 누르고 있으면 용어집)"
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
+      onFocus={() => (focusIn.current = true)}
       onBlur={onRootBlur}
       onPointerDown={onRootPointerDown}
       onPointerMove={onRootPointerMove}
+      onPointerLeave={onRootPointerLeave}
     >
       <SceneArt scene={x.scene} />
 
@@ -945,8 +1023,10 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
         </div>
       </div>
 
-      <section className={s.dialogue}>
+      <section ref={dlgRef} className={s.dialogue}>
         <div className={s.lines}>{lines}</div>
+        {/* 툴팁 칸은 대사 바로 뒤 DOM — Tab 으로도 대사 키워드 다음에 툴팁 안 키워드로 들어간다 (자리는 place() 가 무대 좌표로 잡는다) */}
+        {slots}
         <div className={s.dlgFoot}>
           <div className={s.hints}>
             {hint.map(([g, t], i) => (
@@ -962,7 +1042,6 @@ export default function ContextLoreGlossary(p: SpecimenProps) {
         </div>
       </section>
 
-      {slots}
       {glossary}
     </div>
   )

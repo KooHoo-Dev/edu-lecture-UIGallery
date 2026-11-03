@@ -79,7 +79,7 @@ namespace UIGallery.ContextLoreGlossary
 
         public static string KindLabel(LoreKind k) => k switch { LoreKind.Person => "인물", LoreKind.Place => "장소", _ => "용어" };
 
-        /// 모양 글자 — 색만으로 종류를 나누지 않는다 (폰트에 이 글자가 있어야 한다)
+        /// 모양 글자 — 색만으로 종류를 나누지 않는다. 한글 폰트 에셋(맑은 고딕 · Noto Sans KR)에는 있지만 Arial 계열에는 ◆ 가 없다
         public static string KindGlyph(LoreKind k) => k switch { LoreKind.Person => "●", LoreKind.Place => "▼", _ => "◆" };
 
         public static string KindHex(LoreKind k) => k switch { LoreKind.Person => "#7FD3FF", LoreKind.Place => "#8FE07A", _ => "#FFC861" };
@@ -103,8 +103,8 @@ namespace UIGallery.ContextLoreGlossary
                     sb.Append($"<b><color={hex}>{label}</color></b>…");
                 else
                 {
-                    // 링크는 색 + 모양 + 밑줄. 순환 링크는 ↩ 를 붙인다. 포커스는 노란 글자 + 굵게
-                    string inner = $"<size=70%>{glyph}</size>{label}{(st == LinkState.Cycle ? " ↩" : "")}";
+                    // 링크는 색 + 모양 + 밑줄. 순환 링크는 ↑(이미 위에 열림)를 붙인다 — ↩ 는 맑은 고딕 · Arial 에 없어 □ 로 나온다. 포커스는 노란 글자 + 굵게
+                    string inner = $"<size=70%>{glyph}</size>{label}{(st == LinkState.Cycle ? " ↑" : "")}";
                     sb.Append($"<link=\"{id}\"><color={(focus ? "#FFE066" : hex)}>{(focus ? "<b>" : "")}<u>{inner}</u>{(focus ? "</b>" : "")}</color></link>");
                 }
                 last = m.Index + m.Length;
