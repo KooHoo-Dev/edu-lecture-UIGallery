@@ -1,0 +1,49 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <!-- 출석판 + 탐사 연료 (UI Toolkit). 출석 칸 7개는 TimeGatedUITK.cs 가 #days 에 만들어 넣는다 (flex-wrap 그리드) -->
+    <Style src="TimeGated.uss" />
+    <ui:VisualElement name="root" class="tg">
+        <ui:VisualElement class="tg__top">
+            <ui:Label text="출석 보급 · 탐사 연료" class="tg__title" />
+            <ui:Label name="clock" text="서버 동기화 중" class="tg__clock" />
+        </ui:VisualElement>
+        <ui:VisualElement class="tg__panels">
+            <ui:VisualElement class="panel panel--cal">
+                <ui:VisualElement class="row">
+                    <ui:Label text="7일 출석 보급" class="panel__title" />
+                    <ui:Label name="rule" class="chip" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row reset">
+                    <ui:Label name="reset-label" text="다음 초기화" class="reset__label" />
+                    <ui:Label name="reset" text="--:--" class="reset__time" />
+                </ui:VisualElement>
+                <ui:Label name="broke" class="broke" />
+                <ui:VisualElement name="days" class="days" />
+                <ui:Button name="claim" text="보급 받기" class="btn btn--claim" />
+            </ui:VisualElement>
+            <ui:VisualElement class="panel panel--fuel">
+                <ui:Label text="탐사 연료" class="panel__title" />
+                <ui:VisualElement class="row meter">
+                    <ui:Label name="fuel-value" text="0" class="meter__value" />
+                    <ui:Label name="fuel-max" text="/ 60" class="meter__max" />
+                    <ui:Label name="over-tag" text="초과" class="meter__over" />
+                </ui:VisualElement>
+                <ui:VisualElement class="bar">
+                    <ui:VisualElement name="fuel-fill" class="bar__fill" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row">
+                    <ui:VisualElement class="timer">
+                        <ui:Label text="다음 +1 까지" class="timer__label" />
+                        <ui:Label name="next" class="timer__value" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="timer">
+                        <ui:Label text="가득 찰 때까지" class="timer__label" />
+                        <ui:Label name="full" class="timer__value" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label name="over-msg" text="최대치 초과 — 회복 정지. 최대치 아래로 내려가면 다시 회복" class="over-msg" />
+                <ui:Label name="notify" class="notify" />
+                <ui:Button name="enter" text="탐사 출발" class="btn btn--enter" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
