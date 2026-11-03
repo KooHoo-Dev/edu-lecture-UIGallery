@@ -11,7 +11,7 @@ namespace UIGallery.ContextLoreGlossary
     //   ① 키워드에 올리면(또는 키보드로 고르면) 그 깊이의 툴팁을 열고 더 깊은 것은 닫는다
     //   ② 머무는 동안 잠금 링이 차고(lockSeconds), 다 차면 고정 → 그때부터 포인터가 툴팁 안으로 들어갈 수 있다
     //   ③ 고정 안 된 툴팁은 포인터가 떠나는 즉시, 고정된 툴팁은 closeGrace 동안 기다렸다가 닫는다
-    //   ④ 깊이 한도(maxDepth)의 마지막 겹 안 키워드는 링크가 아니다. 이미 위에 열린 항목(순환)은 ↩ 로 표시하고 그 툴팁을 짚는다
+    //   ④ 깊이 한도(maxDepth)의 마지막 겹 안 키워드는 링크가 아니다. 이미 위에 열린 항목(순환)은 ↑ 로 표시하고 그 툴팁을 짚는다
     //   ⑤ 위치: 크기 확정(ForceRebuildLayoutImmediate) → 1겹은 키워드 위, 하위 겹은 부모 오른쪽 → 넘치면 뒤집기 → 화면 안으로 Clamp
     // 툴팁은 프리팹 하나를 풀에서 꺼내 쓴다. 코루틴을 쓰지 않고 Update 에서 값으로 처리한다 (꺼질 때 멈춘 상태가 남지 않게).
     public class TooltipStack : MonoBehaviour
@@ -30,7 +30,7 @@ namespace UIGallery.ContextLoreGlossary
         [SerializeField] bool edgeCorrection = true;
         [Tooltip("끄면 나쁜 예: 잠금이 없어 하위 키워드에 갈 수 없다")]
         [SerializeField] bool lockEnabled = true;
-        [SerializeField] float gap = 14f, margin = 24f, fadeTime = 0.12f;
+        [SerializeField] float gap = 14f, margin = 24f, fadeTime = 0.14f;
 
         [Header("입력 (UI 액션 맵의 Navigate · Submit · Cancel)")]
         [SerializeField] InputActionReference navigate;
@@ -41,8 +41,11 @@ namespace UIGallery.ContextLoreGlossary
         [SerializeField] Color idleFrame = new(1f, 1f, 1f, 0.18f);
         [SerializeField] Color lockedFrame = new(1f, 0.88f, 0.4f, 1f);
 
-        /// 용어집이 열려 있는 동안 LoreSceneView 가 켠다 — 방향키가 두 곳에서 동시에 처리되지 않게
-        [HideInInspector] public bool inputBlocked;
+        /// 용어집이 열려 있는 동안 켜진다(Block) — 방향키가 두 곳에서 동시에 처리되지 않게, 스택은 멈춰 둔다
+        bool inputBlocked;
+        KeywordText savedText;     // 용어집을 열 때의 키보드 위치 (글, 링크 번호)
+        int savedLink = -1;
+        int touchPin = -1;         // 터치 탭으로 붙잡은 겹 — 손을 떼면 UI 모듈이 exit 를 보내도 다른 곳을 탭할 때까지 닫지 않는다
 
         class Panel
         {
@@ -91,8 +94,28 @@ namespace UIGallery.ContextLoreGlossary
             if (focusText != null) focusText.ShowFocus(-1);
             focusText = hoverText = null;
             focusLink = hoverLink = -1;
-            echo = -1;
+            echo = touchPin = -1;
             inputBlocked = false;
+            savedText = null;
+        }
+
+        /// LoreSceneView 가 용어집을 열고 닫을 때 부른다. 여는 동안 머무름 · 닫힘 유예를 멈추고, 닫으면 키보드 위치로 돌아온다
+        public void Block(bool on)
+        {
+            if (on == inputBlocked) return;
+            inputBlocked = on;
+            if (on)
+            {
+                savedText = focusText;
+                savedLink = focusLink;
+                return;
+            }
+            var t = savedText;
+            savedText = null;
+            // 다른 버튼으로 선택을 돌려준 경우(일시정지 메뉴에서 열었을 때)는 그쪽을 둔다
+            bool free = EventSystem.current == null || EventSystem.current.currentSelectedGameObject == null;
+            if (free && t != null && t.isActiveAndEnabled && savedLink >= 0 && savedLink < t.LinkCount) SetFocus(t, savedLink, false);
+            else if (!free) ReleaseFocus();
         }
 
         // ───────── KeywordText 가 부른다 ─────────
@@ -111,12 +134,14 @@ namespace UIGallery.ContextLoreGlossary
             PruneUnlocked();
         }
 
-        public void KeywordClick(KeywordText src, int link, string id)
+        public void KeywordClick(KeywordText src, int link, string id, bool touch)
         {
             hoverText = src;
             hoverLink = link;
             Open(src.level, src, link, id);
-            if (stack.Count > src.level && stack[src.level].from == src && stack[src.level].link == link) Lock(src.level);   // 누르면 바로 고정
+            if (stack.Count <= src.level || stack[src.level].from != src || stack[src.level].link != link) return;
+            Lock(src.level);                        // 누르면 바로 고정
+            touchPin = touch ? src.level : -1;      // 터치는 다른 곳을 탭할 때까지 붙잡는다 (웹과 같다)
         }
 
         // ───────── 스택 ─────────
@@ -162,12 +187,13 @@ namespace UIGallery.ContextLoreGlossary
                 stack.RemoveAt(stack.Count - 1);
             }
             if (echo >= n) echo = -1;
+            touchPin = Mathf.Min(touchPin, n - 1);
         }
 
-        /// 포인터 · 포커스가 붙잡고 있는 가장 깊은 겹 (-1 = 없음)
+        /// 포인터 · 포커스 · 터치 탭이 붙잡고 있는 가장 깊은 겹 (-1 = 없음)
         int Held()
         {
-            int h = Mathf.Max(HeldBy(hoverText, hoverLink), HeldBy(focusText, focusLink));
+            int h = Mathf.Max(HeldBy(hoverText, hoverLink), HeldBy(focusText, focusLink), touchPin);
             if (Pointer.current != null)
             {
                 Vector2 pos = Pointer.current.position.ReadValue();
@@ -186,6 +212,7 @@ namespace UIGallery.ContextLoreGlossary
 
         void PruneUnlocked()
         {
+            if (inputBlocked) return;   // 용어집이 열린 동안은 그대로 둔다
             int h = Held();
             int n = stack.Count;
             while (n - 1 > h && n > 0 && !stack[n - 1].locked) n--;
@@ -195,8 +222,29 @@ namespace UIGallery.ContextLoreGlossary
         void Update()
         {
             float dt = Time.unscaledDeltaTime;   // 일시정지 메뉴(timeScale 0)에서도 툴팁은 움직인다
-            if (!inputBlocked) HandleKeys();
+            if (!inputBlocked)
+            {
+                HandleKeys();
+                HandleTouch();
+                Tick(dt);   // 용어집이 열린 동안은 머무름 · 닫힘 유예를 멈춘다 (닫으면 그 자리로)
+            }
+            if (echo >= 0 && Time.unscaledTime >= echoUntil) echo = -1;
+            for (int i = 0; i < stack.Count; i++) Paint(i, dt);
+        }
 
+        /// 터치로 붙잡은 툴팁은 툴팁 · 대사 키워드 밖을 탭하면 모두 닫는다
+        void HandleTouch()
+        {
+            var ts = Touchscreen.current;
+            if (touchPin < 0 || ts == null || !ts.primaryTouch.press.wasPressedThisFrame) return;
+            Vector2 pos = ts.primaryTouch.position.ReadValue();
+            if (dialogue.LinkAt(pos) >= 0) return;
+            foreach (var L in stack) if (RectTransformUtility.RectangleContainsScreenPoint(L.panel.rect, pos, Cam)) return;
+            Truncate(0);
+        }
+
+        void Tick(float dt)
+        {
             int h = Held();
             for (int i = 0; i < stack.Count; i++)
             {
@@ -217,9 +265,6 @@ namespace UIGallery.ContextLoreGlossary
                 if (L.grace >= closeGrace) cut = i;
             }
             Truncate(cut);
-            if (echo >= 0 && Time.unscaledTime >= echoUntil) echo = -1;
-
-            for (int i = 0; i < stack.Count; i++) Paint(i, dt);
         }
 
         void Paint(int i, float dt)
@@ -230,8 +275,8 @@ namespace UIGallery.ContextLoreGlossary
             p.ring.fillAmount = L.locked ? 1f : Mathf.Clamp01(L.dwell);
             p.ring.enabled = lockEnabled;
             Color frame = L.locked ? lockedFrame : idleFrame;
-            if (i == echo) frame = Color.Lerp(frame, lockedFrame, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 3f));   // 1.5Hz 맥동
-            p.frame.color = frame;
+            if (i == echo) frame = Color.Lerp(frame, lockedFrame, 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 2.5f));   // 1.25Hz 맥동 (웹 · UI Toolkit 과 같게)
+            p.frame.color = frame;   // Frame(루트 Image) 색만 바꾼다 — 어두운 판은 자식 Background 가 2px 안쪽에 그린다
             p.status.text = !lockEnabled ? "잠금 없음" : L.locked ? "고정됨 · 안으로 들어갈 수 있다" : "머무르면 고정";
         }
 
@@ -250,6 +295,8 @@ namespace UIGallery.ContextLoreGlossary
             var r = Instantiate(panelPrefab, layer);
             r.pivot = Vector2.zero;
             r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);   // anchoredPosition = 레이어 로컬 좌표
+            // 루트 Image = Frame(테두리 색). 그 안 2px 에 어두운 Background(Image)가 있어야 고정됐을 때 노란 판이 되지 않는다
+            if (r.Find("Background") == null) Debug.LogWarning("TooltipPanel 에 Background(Image, 2px 안쪽)가 없다 — 고정되면 툴팁 전체가 테두리 색으로 칠해진다", r);
             var p = new Panel
             {
                 rect = r,
@@ -344,9 +391,34 @@ namespace UIGallery.ContextLoreGlossary
             if (edgeCorrection)
             {
                 float cx = Mathf.Clamp(x, xMin, xMax - size.x);
-                if (i > 1 && cx != x) y = Mathf.Max(y, stack[i - 1].placed.yMin + 44f);   // 옆자리가 모자라 부모와 겹치면 위로 비켜 계단처럼
+                bool stacked = false;
+                if (i > 1 && cx != x)
+                {
+                    // 옆자리가 모자라면 부모 위 → 부모 반대쪽 → 부모 아래 중 앞 겹들과 겹치지 않는 첫 자리 (없으면 부모만 피하는 자리).
+                    // 부모 안의 여는 키워드를 덮으면 키워드가 가려져 exit → 닫힘 → 다시 열림이 반복된다. 모두 안 되면 여는 키워드 줄만 피한다 (y 는 위로 증가)
+                    var pl = stack[i - 1];
+                    Rect par = pl.placed, area = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+                    bool lf = L.left;
+                    var cands = new (float x, float y, string note, bool left)[]
+                    {
+                        (cx, par.yMax + gap + (pl.panel.note.gameObject.activeSelf ? 40f : 0f), "옆 공간 부족 → 부모 위로", lf),
+                        (lf ? par.xMax + gap : par.xMin - gap - size.x, y, lf ? "왼쪽 공간 부족 → 오른쪽으로" : "오른쪽 공간 부족 → 왼쪽으로", !lf),
+                        (cx, par.yMin - gap - size.y, "옆 공간 부족 → 부모 아래로", lf),
+                    };
+                    int pick = -1;
+                    for (int pass = 0; pass < 2 && pick < 0; pass++)
+                        for (int c = 0; c < cands.Length && pick < 0; c++)
+                            if (Clear(new Rect(cands[c].x, cands[c].y, size.x, size.y), area, pass == 0 ? 0 : i - 1, i)) pick = c;
+                    stacked = pick >= 0;
+                    if (stacked)
+                    {
+                        (x, y, note, L.left) = cands[pick];
+                        cx = x;
+                    }
+                    else y = a.yMax + gap + size.y <= yMax ? a.yMax + gap : a.yMin - gap - size.y;
+                }
                 float cy = Mathf.Clamp(y, yMin, yMax - size.y);
-                if (cx != x || cy != y) note = note.Length > 0 ? note + " · 화면 안으로 고정" : "화면 안으로 고정";
+                if (!stacked && (cx != x || cy != y)) note = note.Length > 0 ? note + " · 화면 안으로 고정" : "화면 안으로 고정";
                 x = cx;
                 y = cy;
             }
@@ -354,6 +426,14 @@ namespace UIGallery.ContextLoreGlossary
             L.placed = new Rect(x, y, size.x, size.y);
             p.note.text = note;
             p.note.gameObject.SetActive(note.Length > 0);   // Note 는 LayoutElement.ignoreLayout — 켜고 꺼도 툴팁 크기가 바뀌지 않는다
+        }
+
+        /// r 이 area 안에 있고 앞 겹(from..upTo-1)과 겹치지 않는가
+        bool Clear(Rect r, Rect area, int from, int upTo)
+        {
+            if (r.xMin < area.xMin || r.xMax > area.xMax || r.yMin < area.yMin || r.yMax > area.yMax) return false;
+            for (int k = from; k < upTo; k++) if (stack[k].placed.Overlaps(r)) return false;
+            return true;
         }
 
         // ───────── 키보드 · 패드 ─────────

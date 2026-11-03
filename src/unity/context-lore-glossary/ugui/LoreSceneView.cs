@@ -10,8 +10,8 @@ namespace UIGallery.ContextLoreGlossary
 {
     // 장면 · 대사 표시 + 맥락 용어집.
     // 용어집은 LoreDatabase.Query 로 "지금 장면에서 지금까지 나온 항목" 만 받아 그린다 (scope 로 비교 가능).
-    //   누르고 있기(holdToOpen): 누르는 동안만 열고 떼면 닫는다 — 포커스는 옮기지 않는다 (슬쩍 보기)
-    //   일시정지 · 토글: 열 때 첫 항목으로 선택을 옮기고(SetSelectedGameObject), 닫을 때 연 요소로 돌려준다
+    //   누르고 있기(holdToOpen): 누르는 동안만 열고 떼면 닫는다 — 선택을 옮기지 않고, 떼면 고르던 키워드로 돌아온다 (슬쩍 보기)
+    //   일시정지 · 토글: 열 때 마지막에 고른 항목(처음엔 첫 항목)으로 선택을 옮기고(SetSelectedGameObject), 닫을 때 연 요소로 돌려준다
     // 시험용: glossaryAction(G · 패드 Select) · nextLineAction(N · 패드 오른쪽 어깨).
     public class LoreSceneView : MonoBehaviour
     {
@@ -34,6 +34,7 @@ namespace UIGallery.ContextLoreGlossary
         [SerializeField] TMP_Text detailBody;
         [SerializeField] GlossaryScope scope = GlossaryScope.Scene;
         [SerializeField] bool holdToOpen = true;
+        [SerializeField] float fadeTime = 0.14f;   // 웹 · UI Toolkit 과 같은 페이드
 
         [Header("입력")]
         [SerializeField] InputActionReference glossaryAction;
@@ -44,6 +45,7 @@ namespace UIGallery.ContextLoreGlossary
         readonly List<LoreEntry> shown = new();
         bool open, held;
         GameObject opener, lastSelected;
+        string lastId;   // 마지막에 고른 항목 — 다시 열면 그 줄부터 (웹과 같다)
 
         void OnEnable()
         {
@@ -53,6 +55,7 @@ namespace UIGallery.ContextLoreGlossary
             scene = Mathf.Clamp(scene, 0, Mathf.Max(0, db.scenes.Count - 1));
             line = Mathf.Clamp(line, 0, Mathf.Max(0, db.scenes[scene].lines.Count - 1));
             SetGlossary(false, restoreFocus: false);
+            glossary.alpha = 0f;
             RenderScene();
         }
 
@@ -60,7 +63,8 @@ namespace UIGallery.ContextLoreGlossary
         {
             // 열린 창 · 막아 둔 입력을 되돌린다
             SetGlossary(false, restoreFocus: false);
-            if (tooltips != null) tooltips.inputBlocked = false;
+            glossary.alpha = 0f;
+            if (tooltips != null) tooltips.Block(false);
         }
 
         void OnApplicationFocus(bool focus)
@@ -79,6 +83,7 @@ namespace UIGallery.ContextLoreGlossary
             if (g != null && g.WasReleasedThisFrame() && open && held) SetGlossary(false, restoreFocus: false);
             if (open && !held && cancelAction != null && cancelAction.action.WasPressedThisFrame()) SetGlossary(false, restoreFocus: true);
             if (!open && nextLineAction != null && nextLineAction.action.WasPressedThisFrame()) NextLine();
+            glossary.alpha = Mathf.MoveTowards(glossary.alpha, open ? 1f : 0f, Time.unscaledDeltaTime / Mathf.Max(0.01f, fadeTime));
 
             // 키보드 · 패드로 고른 줄이 바뀌면 오른쪽 설명을 바꾼다
             var sel = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
@@ -148,25 +153,22 @@ namespace UIGallery.ContextLoreGlossary
                 bool inside = sel != null && sel.transform.IsChildOf(glossary.transform);
                 if (restoreFocus || inside) EventSystem.current.SetSelectedGameObject(restoreFocus && opener != null && opener.activeInHierarchy ? opener : null);
             }
-            glossary.alpha = on ? 1f : 0f;
+            // alpha 는 Update 에서 fadeTime 동안 바뀐다. 포인터 · 선택은 바로 켜고 끈다
             glossary.blocksRaycasts = on;
             glossary.interactable = on && !held;   // 누르고 있기는 보기만 — 버튼을 고르지 않는다
-            if (tooltips != null)
-            {
-                tooltips.inputBlocked = on;
-                if (on) tooltips.ReleaseFocus();
-            }
+            if (tooltips != null) tooltips.Block(on);   // 키보드 위치를 저장해 두고 닫히면 돌아온다 · 열린 동안 닫힘 유예를 멈춘다
             if (!on)
             {
                 lastSelected = null;
                 opener = null;
                 return;
             }
-            BuildList();
-            if (!held && rows.Count > 0 && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(rows[0].gameObject);
+            int k = BuildList();
+            if (!held && rows.Count > 0 && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(rows[k].gameObject);
         }
 
-        void BuildList()
+        /// 목록을 다시 그리고 보여 줄 줄 번호(마지막에 고른 항목, 없으면 0)를 돌려준다
+        int BuildList()
         {
             shown.Clear();
             shown.AddRange(db.Query(scope, scene, line));
@@ -196,11 +198,14 @@ namespace UIGallery.ContextLoreGlossary
                 rows[i].GetComponentInChildren<TMP_Text>().text =
                     $"<color={LoreDatabase.KindHex(e.kind)}>{LoreDatabase.KindGlyph(e.kind)} <b>{e.displayName}</b></color>  <color=#9FB4C9><size=85%>{LoreDatabase.KindLabel(e.kind)} · {e.role}</size></color>{(fresh ? "  <mark=#FFE06655>새</mark>" : "")}";
             }
-            if (shown.Count > 0) ShowDetail(shown[0]);
+            int k = Mathf.Max(0, shown.FindIndex(e => e.id == lastId));
+            if (shown.Count > 0) ShowDetail(shown[k]);
+            return k;
         }
 
         void ShowDetail(LoreEntry e)
         {
+            lastId = e.id;
             detailTitle.text = $"<color={LoreDatabase.KindHex(e.kind)}>{LoreDatabase.KindGlyph(e.kind)} {e.displayName}</color>\n<size=60%><color=#9FB4C9>{LoreDatabase.KindLabel(e.kind)} · {e.role}</color></size>";
             // 용어집 설명 안 키워드는 링크가 아니라 강조만 — 여기서는 읽기에 집중한다
             detailBody.text = db.ToRichText(e.body, _ => LinkState.Flat).Replace("…", "");

@@ -12,6 +12,7 @@ namespace UIGallery.ContextLoreGlossary
     // Experimental 이라 다음 버전에서 이름 · 위치가 바뀔 수 있다. 툴팁은 VisualElement 를 풀에서 꺼내 #tooltip-layer 에 쌓는다.
     // 규칙은 UGUI 판 TooltipStack 과 같다: 머무르면 고정 → 안으로 · 고정 안 된 겹은 즉시 닫힘 · 깊이 한도 · 순환 표시 · 뒤집기 → Clamp.
     // 키보드 · 패드: 글(Label)이 포커스를 받고 NavigationMoveEvent 로 ←→ 키워드 · ↓ 고정하고 안으로 · ↑ 바깥으로.
+    // 콜백은 OnEnable 에서 달고 OnDisable 에서 뗀다 — 컴포넌트만 껐다 켜면 같은 트리에 두 번 달려 이동이 두 번 처리된다.
     [RequireComponent(typeof(UIDocument))]
     public class LoreGlossaryUITK : MonoBehaviour
     {
@@ -51,7 +52,7 @@ namespace UIGallery.ContextLoreGlossary
             public Rect anchor, placed;
         }
 
-        VisualElement layer, glossary;
+        VisualElement root, layer, glossary;
         Label sceneTitle, dialogue, glossaryTitle, glossaryCount, detailTitle, detailBody;
         ScrollView list;
         readonly List<Tip> stack = new();
@@ -68,11 +69,17 @@ namespace UIGallery.ContextLoreGlossary
         float echoUntil;
         bool open, held;
         Focusable opener;
+        Label savedLabel;          // 용어집을 열 때의 키보드 위치 (글, 링크 번호) — 닫으면 그 자리로
+        int savedLink = -1;
+        string lastId;             // 용어집에서 마지막에 고른 항목 (다시 열면 그 줄부터)
+        int touchPin = -1;         // 터치 탭으로 붙잡은 겹 — 다른 곳을 탭할 때까지 닫지 않는다
+        bool touchDown;            // 지금 누른 포인터가 터치인가
+        int pressFrame = -10;      // 포인터를 누른 프레임 — 마우스로 눌러 온 FocusIn 을 가린다
 
         void OnEnable()
         {
-            // UIDocument 는 켜질 때마다 트리를 새로 만든다 → 참조와 목록을 다시 모은다
-            var root = GetComponent<UIDocument>().rootVisualElement;
+            // UIDocument 를 다시 켜면 트리가 새로 만들어진다 → 참조와 목록을 다시 모은다
+            root = GetComponent<UIDocument>().rootVisualElement;
             layer = root.Q("tooltip-layer");
             glossary = root.Q("glossary");
             sceneTitle = root.Q<Label>("scene-title");
@@ -86,11 +93,15 @@ namespace UIGallery.ContextLoreGlossary
             pool.Clear();
             rows.Clear();
             shown.Clear();
-            hoverLabel = focusLabel = null;
-            hoverLink = focusLink = pendingLink = echo = -1;
+            list.Clear();   // 컴포넌트만 껐다 켜면 트리가 그대로라 지난 행이 남아 있다
+            hoverLabel = focusLabel = savedLabel = null;
+            hoverLink = focusLink = pendingLink = echo = touchPin = -1;
+            open = held = false;
 
             layer.pickingMode = PickingMode.Ignore;   // 레이어 자신만 통과. 자식 툴팁은 포인터를 받는다 (pickingMode 는 상속되지 않는다)
-            root.RegisterCallback<PointerMoveEvent>(e => pointer = e.position, TrickleDown.TrickleDown);
+            root.RegisterCallback<PointerMoveEvent>(OnRootMove, TrickleDown.TrickleDown);
+            root.RegisterCallback<PointerDownEvent>(OnRootDown, TrickleDown.TrickleDown);
+            glossary.RegisterCallback<NavigationCancelEvent>(OnGlossaryCancel);
             dialogue.userData = new Source { level = 0 };
             Hook(dialogue);
 
@@ -104,8 +115,40 @@ namespace UIGallery.ContextLoreGlossary
 
         void OnDisable()
         {
-            Truncate(0);
+            if (root == null) return;
+            // 단 콜백을 뗀다 — 남기면 다시 켤 때 두 번 달린다
+            root.UnregisterCallback<PointerMoveEvent>(OnRootMove, TrickleDown.TrickleDown);
+            root.UnregisterCallback<PointerDownEvent>(OnRootDown, TrickleDown.TrickleDown);
+            glossary.UnregisterCallback<NavigationCancelEvent>(OnGlossaryCancel);
+            Unhook(dialogue);
             SetGlossary(false, false);
+            Truncate(0);
+        }
+
+        void OnApplicationFocus(bool focus)
+        {
+            if (!focus && open && held) SetGlossary(false, false);   // 누른 채 창을 떠나면 뗀 신호가 오지 않는다
+        }
+
+        void OnRootMove(PointerMoveEvent e) => pointer = e.position;
+
+        void OnRootDown(PointerDownEvent e)
+        {
+            pressFrame = Time.frameCount;
+            touchDown = e.pointerType == UnityEngine.UIElements.PointerType.touch;
+            if (!touchDown || touchPin < 0) return;
+            // 터치로 붙잡은 툴팁은 바깥(툴팁 · 대사 밖)을 탭하면 모두 닫는다
+            Vector2 p = e.position;
+            bool inside = dialogue.worldBound.Contains(p);
+            foreach (var t in stack) inside |= t.el.worldBound.Contains(p);
+            if (!inside) Truncate(0);
+        }
+
+        void OnGlossaryCancel(NavigationCancelEvent e)
+        {
+            if (!open || held) return;
+            SetGlossary(false, true);
+            e.StopPropagation();
         }
 
         // ───────── 글 · 링크 이벤트 ─────────
@@ -114,49 +157,95 @@ namespace UIGallery.ContextLoreGlossary
         {
             l.enableRichText = true;
             l.focusable = true;
-            l.RegisterCallback<PointerOverLinkTagEvent>(e =>
-            {
-                hoverLabel = l;
-                hoverLink = IndexOf(l, e.linkID);
-                Open(l, hoverLink, e.linkID, new Rect(e.position.x - 6f, e.position.y - 22f, 12f, 30f));
-            });
-            l.RegisterCallback<PointerOutLinkTagEvent>(_ =>
-            {
-                if (hoverLabel == l) { hoverLabel = null; hoverLink = -1; }
-                echo = -1;
-                PruneUnlocked();
-            });
-            l.RegisterCallback<PointerUpLinkTagEvent>(e =>
-            {
-                int k = IndexOf(l, e.linkID);
-                Open(l, k, e.linkID, new Rect(e.position.x - 6f, e.position.y - 22f, 12f, 30f));
-                int lv = Src(l).level;
-                if (lv < stack.Count && stack[lv].from == l && stack[lv].link == k) Lock(lv);   // 누르면(터치 포함) 바로 고정
-            });
-            l.RegisterCallback<FocusInEvent>(_ =>
-            {
-                var prev = focusLabel;
-                focusLabel = l;
-                focusLink = pendingLink >= 0 ? pendingLink : 0;
-                bool openNow = pendingOpen;
-                pendingLink = -1;
-                pendingOpen = true;
-                if (prev != null && prev != l) Render(prev);
-                Render(l);
-                if (openNow) OpenFocused();
-            });
-            l.RegisterCallback<FocusOutEvent>(e =>
-            {
-                if (focusLabel != l) return;
-                if (e.relatedTarget is Label next && next.userData is Source) return;   // 다른 글로 옮기는 중 — 그쪽 FocusIn 이 처리
-                focusLabel = null;
-                focusLink = -1;
-                Render(l);
-                PruneUnlocked();
-            });
-            l.RegisterCallback<NavigationMoveEvent>(e => Move(l, e));
-            l.RegisterCallback<NavigationSubmitEvent>(e => { Descend(l); e.StopPropagation(); });
-            l.RegisterCallback<NavigationCancelEvent>(e => { CloseTop(); e.StopPropagation(); });
+            l.RegisterCallback<PointerOverLinkTagEvent>(OnLinkOver);
+            l.RegisterCallback<PointerOutLinkTagEvent>(OnLinkOut);
+            l.RegisterCallback<PointerUpLinkTagEvent>(OnLinkUp);
+            l.RegisterCallback<FocusInEvent>(OnTextFocusIn);
+            l.RegisterCallback<FocusOutEvent>(OnTextFocusOut);
+            l.RegisterCallback<NavigationMoveEvent>(OnTextMove);
+            l.RegisterCallback<NavigationSubmitEvent>(OnTextSubmit);
+            l.RegisterCallback<NavigationCancelEvent>(OnTextCancel);
+        }
+
+        void Unhook(Label l)
+        {
+            l.UnregisterCallback<PointerOverLinkTagEvent>(OnLinkOver);
+            l.UnregisterCallback<PointerOutLinkTagEvent>(OnLinkOut);
+            l.UnregisterCallback<PointerUpLinkTagEvent>(OnLinkUp);
+            l.UnregisterCallback<FocusInEvent>(OnTextFocusIn);
+            l.UnregisterCallback<FocusOutEvent>(OnTextFocusOut);
+            l.UnregisterCallback<NavigationMoveEvent>(OnTextMove);
+            l.UnregisterCallback<NavigationSubmitEvent>(OnTextSubmit);
+            l.UnregisterCallback<NavigationCancelEvent>(OnTextCancel);
+        }
+
+        static Rect PointAnchor(Vector2 p) => new(p.x - 6f, p.y - 22f, 12f, 30f);
+
+        void OnLinkOver(PointerOverLinkTagEvent e)
+        {
+            var l = (Label)e.currentTarget;
+            hoverLabel = l;
+            hoverLink = IndexOf(l, e.linkID);
+            Open(l, hoverLink, e.linkID, PointAnchor(e.position));
+        }
+
+        void OnLinkOut(PointerOutLinkTagEvent e)
+        {
+            var l = (Label)e.currentTarget;
+            if (hoverLabel == l) { hoverLabel = null; hoverLink = -1; }
+            echo = -1;
+            PruneUnlocked();
+        }
+
+        void OnLinkUp(PointerUpLinkTagEvent e)
+        {
+            var l = (Label)e.currentTarget;
+            int k = IndexOf(l, e.linkID);
+            Open(l, k, e.linkID, PointAnchor(e.position));
+            int lv = Src(l).level;
+            if (lv >= stack.Count || stack[lv].from != l || stack[lv].link != k) return;
+            Lock(lv);                            // 누르면(터치 포함) 바로 고정
+            touchPin = touchDown ? lv : -1;      // 터치는 손을 떼면 포인터가 나간다 — 다른 곳을 탭할 때까지 붙잡는다
+        }
+
+        void OnTextFocusIn(FocusInEvent e)
+        {
+            var l = (Label)e.currentTarget;
+            var prev = focusLabel;
+            bool byPointer = pendingLink < 0 && Time.frameCount - pressFrame <= 1;   // 마우스 · 터치로 눌러 온 포커스 — 0번 키워드를 열지 않는다
+            focusLabel = l;
+            focusLink = pendingLink >= 0 ? pendingLink : byPointer ? -1 : 0;
+            bool openNow = pendingOpen && !byPointer;
+            pendingLink = -1;
+            pendingOpen = true;
+            if (prev != null && prev != l) Render(prev);
+            Render(l);
+            if (openNow) OpenFocused();
+        }
+
+        void OnTextFocusOut(FocusOutEvent e)
+        {
+            var l = (Label)e.currentTarget;
+            if (focusLabel != l || open) return;   // 용어집이 열린 동안은 키보드 위치를 그대로 둔다 (닫으면 돌아온다)
+            if (e.relatedTarget is Label next && next.userData is Source) return;   // 다른 글로 옮기는 중 — 그쪽 FocusIn 이 처리
+            focusLabel = null;
+            focusLink = -1;
+            Render(l);
+            PruneUnlocked();
+        }
+
+        void OnTextMove(NavigationMoveEvent e) => Move((Label)e.currentTarget, e);
+
+        void OnTextSubmit(NavigationSubmitEvent e)
+        {
+            Descend((Label)e.currentTarget);
+            e.StopPropagation();
+        }
+
+        void OnTextCancel(NavigationCancelEvent e)
+        {
+            CloseTop();
+            e.StopPropagation();
         }
 
         static Source Src(Label l) => (Source)l.userData;
@@ -237,6 +326,7 @@ namespace UIGallery.ContextLoreGlossary
                 stack.RemoveAt(stack.Count - 1);
             }
             if (echo >= n) echo = -1;
+            touchPin = Mathf.Min(touchPin, n - 1);
         }
 
         bool InStack(string id, int upTo)
@@ -254,22 +344,21 @@ namespace UIGallery.ContextLoreGlossary
 
         int Held()
         {
-            int h = Mathf.Max(HeldBy(hoverLabel, hoverLink), HeldBy(focusLabel, focusLink));
+            int h = Mathf.Max(HeldBy(hoverLabel, hoverLink), HeldBy(focusLabel, focusLink), touchPin);
             for (int i = 0; i < stack.Count; i++) if (stack[i].el.worldBound.Contains(pointer)) h = Mathf.Max(h, i);
             return h;
         }
 
         void PruneUnlocked()
         {
+            if (open) return;   // 용어집이 열린 동안은 스택을 그대로 둔다
             int h = Held(), n = stack.Count;
             while (n - 1 > h && n > 0 && !stack[n - 1].locked) n--;
             Truncate(n);
         }
 
-        void Update()
+        void Tick(float dt)
         {
-            float dt = Time.unscaledDeltaTime;
-            HandleGlossaryInput();
             int h = Held();
             for (int i = 0; i < stack.Count; i++)
             {
@@ -285,13 +374,21 @@ namespace UIGallery.ContextLoreGlossary
                 if ((t.grace += dt) >= closeGrace) cut = i;
             }
             Truncate(cut);
+        }
+
+        void Update()
+        {
+            float dt = Time.unscaledDeltaTime;
+            HandleGlossaryInput();
+            if (!open) Tick(dt);   // 용어집이 열린 동안은 머무름 · 닫힘 유예를 멈춘다 (닫으면 그 자리로)
             if (echo >= 0 && Time.unscaledTime >= echoUntil) echo = -1;
+            bool beat = Mathf.Repeat(Time.unscaledTime * 1.25f, 1f) < 0.5f;   // 순환 강조 맥동 1.25Hz (웹 · UGUI 와 같게, USS border-color transition)
             for (int i = 0; i < stack.Count; i++)
             {
                 var t = stack[i];
                 t.lockFill.style.width = Length.Percent((t.locked ? 1f : Mathf.Clamp01(t.dwell)) * 100f);
                 t.el.EnableInClassList("tip--locked", t.locked);
-                t.el.EnableInClassList("tip--echo", i == echo);
+                t.el.EnableInClassList("tip--echo", i == echo && beat);
                 t.status.text = t.locked ? "고정됨 · 안으로 들어갈 수 있다" : "머무르면 고정";
             }
         }
@@ -367,9 +464,34 @@ namespace UIGallery.ContextLoreGlossary
             if (edgeCorrection)
             {
                 float cx = Mathf.Clamp(x, edgeMargin, b.width - edgeMargin - w);
-                if (i > 1 && cx != x) y = Mathf.Min(y, stack[i - 1].placed.yMin - 44f);   // 옆자리가 모자라 부모와 겹치면 위로 비켜 계단처럼
+                bool stacked = false;
+                if (i > 1 && cx != x)
+                {
+                    // 옆자리가 모자라면 부모 위 → 부모 반대쪽 → 부모 아래 중 앞 겹들과 겹치지 않는 첫 자리 (없으면 부모만 피하는 자리).
+                    // 부모 안의 여는 키워드를 덮으면 키워드가 가려져 나감 → 닫힘 → 다시 열림이 반복된다. 모두 안 되면 여는 키워드 줄만 피한다
+                    var pt = stack[i - 1];
+                    Rect par = pt.placed, area = Rect.MinMaxRect(edgeMargin, edgeMargin, b.width - edgeMargin, b.height - edgeMargin);
+                    bool lf = t.left;
+                    var cands = new (float x, float y, string note, bool left)[]
+                    {
+                        (cx, par.yMin - gap - h - (pt.note.ClassListContains("hidden") ? 0f : 40f), "옆 공간 부족 → 부모 위로", lf),
+                        (lf ? par.xMax + gap : par.xMin - gap - w, y, lf ? "왼쪽 공간 부족 → 오른쪽으로" : "오른쪽 공간 부족 → 왼쪽으로", !lf),
+                        (cx, par.yMax + gap, "옆 공간 부족 → 부모 아래로", lf),
+                    };
+                    int pick = -1;
+                    for (int pass = 0; pass < 2 && pick < 0; pass++)
+                        for (int c = 0; c < cands.Length && pick < 0; c++)
+                            if (Clear(new Rect(cands[c].x, cands[c].y, w, h), area, pass == 0 ? 0 : i - 1, i)) pick = c;
+                    stacked = pick >= 0;
+                    if (stacked)
+                    {
+                        (x, y, note, t.left) = cands[pick];
+                        cx = x;
+                    }
+                    else y = a.yMin - gap - h >= edgeMargin ? a.yMin - gap - h : a.yMax + gap;
+                }
                 float cy = Mathf.Clamp(y, edgeMargin, b.height - edgeMargin - h);
-                if (cx != x || cy != y) note = note.Length > 0 ? note + " · 화면 안으로 고정" : "화면 안으로 고정";
+                if (!stacked && (cx != x || cy != y)) note = note.Length > 0 ? note + " · 화면 안으로 고정" : "화면 안으로 고정";
                 x = cx;
                 y = cy;
             }
@@ -380,6 +502,14 @@ namespace UIGallery.ContextLoreGlossary
             t.note.EnableInClassList("hidden", note.Length == 0);
             // 하위 겹은 부모 위치를 따라가므로 이어서 다시 놓는다
             if (i + 1 < stack.Count) Place(i + 1);
+        }
+
+        /// r 이 area 안에 있고 앞 겹(from..upTo-1)과 겹치지 않는가
+        bool Clear(Rect r, Rect area, int from, int upTo)
+        {
+            if (r.xMin < area.xMin || r.xMax > area.xMax || r.yMin < area.yMin || r.yMax > area.yMax) return false;
+            for (int k = from; k < upTo; k++) if (stack[k].placed.Overlaps(r)) return false;
+            return true;
         }
 
         // ───────── 키보드 · 패드 ─────────
@@ -453,7 +583,12 @@ namespace UIGallery.ContextLoreGlossary
             }
             pendingLink = link;
             pendingOpen = openTip;
-            l.Focus();
+            // 막 붙인 툴팁 글은 아직 배치 전이라 같은 프레임의 Focus() 가 실패할 수 있다 → 한 프레임 미룬다
+            l.schedule.Execute(() =>
+            {
+                if (l.panel != null) l.Focus();
+                else pendingLink = -1;
+            });
         }
 
         // ───────── 장면 · 용어집 ─────────
@@ -496,7 +631,7 @@ namespace UIGallery.ContextLoreGlossary
             if (!open && nextLineAction != null && nextLineAction.action.WasPressedThisFrame()) NextLine();
         }
 
-        /// 일시정지 메뉴에서 부른다 — 포커스를 첫 항목으로 옮긴다
+        /// 일시정지 메뉴에서 부른다 — 포커스를 마지막에 고른 항목(처음엔 첫 항목)으로 옮긴다
         public void OpenPaused()
         {
             held = false;
@@ -506,24 +641,45 @@ namespace UIGallery.ContextLoreGlossary
         void SetGlossary(bool on, bool restore)
         {
             var fc = glossary.focusController;
-            if (on && !open) opener = held ? null : fc?.focusedElement;
+            if (on && !open)
+            {
+                opener = held ? null : fc?.focusedElement;
+                savedLabel = focusLabel;   // 키보드 위치 (글, 링크 번호) — 툴팁 스택도 닫지 않고 멈춰 둔다
+                savedLink = focusLink;
+            }
             open = on;
             glossary.EnableInClassList("glossary--open", on);
             // opacity 만 0 으로 두면 포인터를 받는다 — visibility(상속됨)로 끈다
             glossary.style.visibility = on ? Visibility.Visible : Visibility.Hidden;
             if (!on)
             {
-                if (restore && opener is VisualElement ve && ve.panel != null) ve.Focus();
+                bool back = restore && opener is VisualElement ve && ve.panel != null;
+                if (back)
+                {
+                    if (opener == savedLabel) { focusLink = pendingLink = savedLink; pendingOpen = false; }   // 고르던 키워드로 돌아온다
+                    ((VisualElement)opener).Focus();
+                }
                 else if (fc?.focusedElement is VisualElement f && glossary.Contains(f)) f.Blur();
+                if (focusLabel != null && fc?.focusedElement != focusLabel && !(back && opener == focusLabel))
+                {
+                    var l = focusLabel;   // 포커스가 글로 돌아오지 않았다 — 키보드 위치를 푼다
+                    focusLabel = null;
+                    focusLink = -1;
+                    Render(l);
+                    PruneUnlocked();
+                }
                 opener = null;
+                savedLabel = null;
                 return;
             }
-            Truncate(0);
-            BuildList();
-            if (!held && rows.Count > 0) rows[0].Focus();
+            int k = BuildList();
+            if (held || rows.Count == 0) return;
+            var row = rows[k];
+            row.schedule.Execute(() => row.Focus());   // 막 보이게 한 요소는 한 프레임 뒤에 Focus() (같은 프레임이면 실패할 수 있다)
         }
 
-        void BuildList()
+        /// 목록을 다시 그리고 보여 줄 행 번호(마지막에 고른 항목, 없으면 0)를 돌려준다
+        int BuildList()
         {
             shown.Clear();
             shown.AddRange(db.Query(scope, scene, line));
@@ -552,11 +708,14 @@ namespace UIGallery.ContextLoreGlossary
                 var e = shown[i];
                 rows[i].text = $"<color={LoreDatabase.KindHex(e.kind)}>{LoreDatabase.KindGlyph(e.kind)} <b>{e.displayName}</b></color>  <size=80%>{LoreDatabase.KindLabel(e.kind)} · {e.role}</size>{(db.IsFresh(e.id, scene, line) ? "  <b><color=#FFE066>새</color></b>" : "")}";
             }
-            if (shown.Count > 0) ShowDetail(shown[0]);
+            int k = Mathf.Max(0, shown.FindIndex(e => e.id == lastId));
+            if (shown.Count > 0) ShowDetail(shown[k]);
+            return k;
         }
 
         void ShowDetail(LoreEntry e)
         {
+            lastId = e.id;
             detailTitle.text = $"<color={LoreDatabase.KindHex(e.kind)}>{LoreDatabase.KindGlyph(e.kind)} {e.displayName}</color>";
             var (s, l) = db.FirstSeen(e.id);
             bool seen = s >= 0 && (s < scene || (s == scene && l <= line));

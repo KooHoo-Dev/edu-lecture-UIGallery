@@ -33,9 +33,9 @@ export const KIND_ORDER: Kind[] = ['person', 'place', 'term']
 export const ENTRIES: Entry[] = [
   { id: 'harin', name: '하린', kind: 'person', role: '탐사대장', body: '외곽 탐사대 대장. [[doyun]]의 정비 보고와 [[sera]]의 신호 분석을 듣고 회수 경로를 정한다.' },
   { id: 'doyun', name: '도윤', kind: 'person', role: '정비사', body: '[[base]]의 정비사. 동력로의 [[cell]]을 직접 갈아 끼운다. 대장 [[harin]]과 오래 일했다.' },
-  { id: 'sera', name: '세라', kind: 'person', role: '통신 담당', body: '[[tower]]가 끊긴 뒤로 [[drone]] 신호를 손으로 골라낸다. 찾은 것은 [[harin]]에게 바로 보고한다.' },
+  { id: 'sera', name: '세라', kind: 'person', role: '통신 담당', body: '[[tower]]이 끊긴 뒤로 [[drone]] 신호를 손으로 골라낸다. 찾은 것은 [[harin]]에게 바로 보고한다.' },
   { id: 'base', name: '궤도 정비 기지', kind: 'place', role: '탐사대 거점', body: '행성 궤도에 떠 있는 탐사대 거점. 동력은 [[cell]]에 기대고, 정비는 [[doyun]]이 맡는다.' },
-  { id: 'surface', name: '지표 탐사 구역', kind: 'place', role: '행성 표면', body: '기지 아래 행성 표면. 북쪽 끝에 [[tower]]가 있고, 숨을 쉬려면 [[oxygen]]이 필요하다.' },
+  { id: 'surface', name: '지표 탐사 구역', kind: 'place', role: '행성 표면', body: '기지 아래 행성 표면. 북쪽 끝에 [[tower]]이 있고, 숨을 쉬려면 [[oxygen]]이 필요하다.' },
   { id: 'tower', name: '북쪽 통신탑', kind: 'place', role: '무너진 중계탑', body: '[[surface]] 북쪽의 중계탑. 무너진 뒤로 [[drone]]이 모여든다. 고치려면 [[circuit]]이 필요하다.' },
   { id: 'cell', name: '냉각 셀', kind: 'term', role: '동력로 소모품', body: '동력로의 열을 빼는 소모품. 다 쓰면 [[base]] 동력이 내려간다. 남은 열이 [[drone]]을 끌어들인다.' },
   { id: 'drone', name: '잔해 드론', kind: 'term', role: '적 · 무인기', body: '부서진 위성 조각으로 움직이는 무인기. [[cell]]의 열을 따라온다. 잔해에서 [[circuit]]이 나온다.' },
