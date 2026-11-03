@@ -224,7 +224,13 @@ namespace UIGallery.BranchingRouteMap
         }
     }
 
-    /// <summary>저장 형식 — 지도는 저장하지 않는다. 생성 입력과 지나온 길만. 웹 판 JSON 과 필드 순서까지 같다</summary>
+    /// <summary>불러오기 결과 — PrintMismatch = 저장된 지문과 다시 만든 지도의 지문이 다르다(생성 규칙이 바뀌었다)</summary>
+    public enum LoadResult { NoSave, Ok, PrintMismatch, BadPath }
+
+    /// <summary>
+    /// 저장 형식 — 지도는 저장하지 않는다. 생성 입력 + 그때의 지문 + 지나온 길만.
+    /// JsonUtility 는 선언 순서대로 쓰므로 웹 판 JSON(seed, floors, cols, paths, mix, print, at, path)과 필드 순서까지 같다
+    /// </summary>
     [Serializable]
     public class RunSave
     {
@@ -233,7 +239,22 @@ namespace UIGallery.BranchingRouteMap
         public int cols;
         public int paths;
         public string mix;
+        public string print;
         public int at;
         public List<int> path = new();
+
+        public static RunSave From(RouteMapData map, List<int> path) => new()
+        {
+            seed = map.seed, floors = map.floors, cols = map.cols, paths = map.paths,
+            mix = RouteMapData.MixName(map.mix), print = map.print,
+            at = path.Count > 0 ? path[^1] : -1, path = new List<int>(path),
+        };
+
+        /// <summary>① 저장된 지문 = 다시 만든 지도의 지문 (생성 규칙이 그대로인가) ② 길이 그 지도에서 이어지는가. 웹 판 checkSave 와 같다</summary>
+        public LoadResult Check(RouteMapData again)
+        {
+            if (print != again.print) return LoadResult.PrintMismatch;
+            return again.ValidPath(path) ? LoadResult.Ok : LoadResult.BadPath;
+        }
     }
 }

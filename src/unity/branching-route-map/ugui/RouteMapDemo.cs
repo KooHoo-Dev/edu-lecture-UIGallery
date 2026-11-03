@@ -26,7 +26,14 @@ namespace UIGallery.BranchingRouteMap
                 if (kb.rKey.wasPressedThisFrame) view.Restart();
                 if (kb.hKey.wasPressedThisFrame) view.CycleLegend();
                 if (kb.sKey.wasPressedThisFrame) Debug.Log($"저장: {view.Save()}");
-                if (kb.lKey.wasPressedThisFrame) Debug.Log(view.Load() ? $"불러옴 — 지문 {view.Map.print}, 길 {view.Path.Count}칸" : "불러오기 실패 (저장 없음 또는 길이 지도와 맞지 않음)");
+                if (kb.lKey.wasPressedThisFrame)
+                    Debug.Log(view.Load() switch
+                    {
+                        LoadResult.Ok => $"불러옴 — 지문 {view.Map.print} 일치, 길 {view.Path.Count}칸",
+                        LoadResult.PrintMismatch => $"불러오기 실패 — 저장된 지문과 다시 만든 지도({view.Map.print})가 다르다. 생성 규칙이 바뀌었다",
+                        LoadResult.BadPath => "불러오기 실패 — 저장된 길이 지도와 맞지 않음",
+                        _ => "불러오기 실패 — 저장 없음",
+                    });
                 if (kb.pKey.wasPressedThisFrame) autoplay = !autoplay;
                 if (kb.anyKey.wasPressedThisFrame) timer = -4f;   // 사람이 만지면 자동 데모를 잠시 쉰다
             }

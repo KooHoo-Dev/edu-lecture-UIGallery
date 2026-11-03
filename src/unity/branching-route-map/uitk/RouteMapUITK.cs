@@ -32,6 +32,7 @@ namespace UIGallery.BranchingRouteMap
         [SerializeField] float followSpeed = 5f;
 
         const string SaveKey = "UIGallery.BranchingRouteMap.Run";
+        const float JitterX = 0.2f, JitterY = 0.3f;   // 웹 판 JX · JY, UGUI 판과 같은 값 (그리는 쪽 계수)
         static readonly string[] KindNames = { "교전", "강적", "정비", "보급", "회수", "미확인 신호", "최종 목표" };
         static readonly string[] KindClass = { "kind-fight", "kind-elite", "kind-rest", "kind-shop", "kind-loot", "kind-signal", "kind-goal" };
 
@@ -41,6 +42,7 @@ namespace UIGallery.BranchingRouteMap
         ScrollView scroll;
         EdgeLayer edgeLayer;
         Label here, seedLabel, json;
+        Button btnSave, btnLoad, btnNew;
         readonly Dictionary<int, Button> nodes = new();
         readonly List<(NodeKind kind, Button button)> legend = new();
         NodeKind? hover, pinned;
@@ -59,9 +61,12 @@ namespace UIGallery.BranchingRouteMap
             here = root.Q<Label>("here");
             seedLabel = root.Q<Label>("seed");
             json = root.Q<Label>("json");
-            root.Q<Button>("btn-save").clicked += OnSave;
-            root.Q<Button>("btn-load").clicked += OnLoad;
-            root.Q<Button>("btn-new").clicked += OnNewMap;
+            btnSave = root.Q<Button>("btn-save");
+            btnLoad = root.Q<Button>("btn-load");
+            btnNew = root.Q<Button>("btn-new");
+            btnSave.clicked += OnSave;
+            btnLoad.clicked += OnLoad;
+            btnNew.clicked += OnNewMap;
 
             edgeLayer = new EdgeLayer();
             // 사람이 휠을 굴리거나 지도를 누르면 따라가기를 멈춘다 (다음 이동 때 다시)
@@ -75,7 +80,11 @@ namespace UIGallery.BranchingRouteMap
 
         void OnDisable()
         {
-            // UIDocument 를 다시 켜면 UXML 트리가 새로 만들어진다 — 이전 요소에 붙인 것을 정리
+            // 이 컴포넌트만 껐다 켜면 UXML 트리가 그대로 남는다 — 붙인 핸들러를 떼지 않으면 두 번 걸려
+            // '새 지도' 한 번에 시드가 2씩 오른다. 이전 요소에 붙인 것을 모두 정리
+            if (btnSave != null) btnSave.clicked -= OnSave;
+            if (btnLoad != null) btnLoad.clicked -= OnLoad;
+            if (btnNew != null) btnNew.clicked -= OnNewMap;
             beat?.Pause();
             scroll?.UnregisterCallback<WheelEvent>(StopFollow, TrickleDown.TrickleDown);
             scroll?.UnregisterCallback<PointerDownEvent>(StopFollow, TrickleDown.TrickleDown);
@@ -100,12 +109,13 @@ namespace UIGallery.BranchingRouteMap
 
         void OnNewMap() => Build(seed + 1);
 
-        /// <summary>content 왼쪽 위 기준 좌표 (UI Toolkit 은 y 가 아래로 +)</summary>
+        /// <summary>content 왼쪽 위 기준 좌표 (UI Toolkit 은 y 가 아래로 +).
+        /// 흔들림 계수는 웹 · UGUI 판과 같다 — 이웃 노드 중심이 열 폭의 0.8 이상 떨어져 커진 선택지끼리도 겹치지 않는다</summary>
         Vector2 Pos(MapNode n)
         {
             bool goal = n.kind == NodeKind.Goal;
-            float x = goal ? map.cols * colWidth / 2f : (n.col + 0.5f + n.jx * 0.5f) * colWidth;
-            float y = goal ? 105f : ContentHeight - padBottom - (n.floor + n.jy * 0.36f) * rowHeight;
+            float x = goal ? map.cols * colWidth / 2f : (n.col + 0.5f + n.jx * JitterX) * colWidth;
+            float y = goal ? 105f : ContentHeight - padBottom - (n.floor + n.jy * JitterY) * rowHeight;
             return new Vector2(x, y);
         }
 
@@ -153,7 +163,11 @@ namespace UIGallery.BranchingRouteMap
             Refresh(true);
         }
 
-        /// <summary>키보드 · 패드 좌우: 갈 수 있는 노드끼리만 옮겨 다닌다 (기본 포커스 이동은 화면상 가장 가까운 요소로 간다)</summary>
+        /// <summary>
+        /// 키보드 · 패드 좌우: 갈 수 있는 노드끼리만 옮겨 다닌다 (기본 포커스 이동은 화면상 가장 가까운 요소로 간다).
+        /// StopPropagation 은 부모에게 가는 것만 막는다. 기본 포커스 이동은 이벤트가 끝난 뒤 FocusController 가 따로 하는데
+        /// IgnoreEvent 한 이벤트만 건너뛴다 — 둘 다 부르지 않으면 우리가 옮긴 뒤 한 칸 더 가서 가운데 노드를 건너뛴다
+        /// </summary>
         void OnNavigate(NavigationMoveEvent e, int id)
         {
             List<int> reach = map.Reachable(path);
@@ -161,8 +175,10 @@ namespace UIGallery.BranchingRouteMap
             if (i < 0) return;
             int d = e.direction == NavigationMoveEvent.Direction.Left ? -1 : e.direction == NavigationMoveEvent.Direction.Right ? 1 : 0;
             if (d == 0) return;
+            Button from = nodes[id];
             nodes[reach[(i + d + reach.Count) % reach.Count]].Focus();
             e.StopPropagation();
+            from.focusController?.IgnoreEvent(e);
         }
 
         /* ───── 그리기 ───── */
@@ -275,12 +291,7 @@ namespace UIGallery.BranchingRouteMap
 
         void OnSave()
         {
-            var s = new RunSave
-            {
-                seed = map.seed, floors = map.floors, cols = map.cols, paths = map.paths,
-                mix = RouteMapData.MixName(map.mix), at = path.Count > 0 ? path[^1] : -1, path = new List<int>(path),
-            };
-            string text = JsonUtility.ToJson(s);
+            string text = JsonUtility.ToJson(RunSave.From(map, path));   // 시드 · 조절 값 · 지문 · 지나온 길
             PlayerPrefs.SetString(SaveKey, text);
             PlayerPrefs.Save();
             json.text = text;
@@ -299,9 +310,15 @@ namespace UIGallery.BranchingRouteMap
             map = RouteMapData.Generate(seed, floors, cols, paths, mix, preventCross);
             Spawn();
             path.Clear();
-            bool ok = map.ValidPath(s.path);   // 지도는 시드로 다시 만들고, 길이 그 지도에서 이어지는지 검사
-            if (ok) path.AddRange(s.path);
-            json.text = ok ? $"불러옴 — 길 {s.path.Count}칸 검증" : "불러오기 실패 — 처음부터";
+            // 지도는 시드로 다시 만들고, 저장된 지문과 새 지도의 지문 → 길이 그 지도에서 이어지는지 순서로 검사
+            LoadResult result = s.Check(map);
+            if (result == LoadResult.Ok) path.AddRange(s.path);
+            json.text = result switch
+            {
+                LoadResult.Ok => $"불러옴 — 저장 지문 {s.print} = 다시 만든 지도 {map.print}, 길 {s.path.Count}칸 검증",
+                LoadResult.PrintMismatch => $"지문 불일치 (저장 {s.print} ≠ 지금 {map.print}) — 생성 규칙이 바뀌었다. 처음부터",
+                _ => "길 검증 실패 — 처음부터",
+            };
             Refresh(true);
             following = true;
         }

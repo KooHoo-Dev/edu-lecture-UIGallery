@@ -162,20 +162,31 @@ function fingerprint(F: number, C: number, P: number, nodes: RouteNode[]) {
   return (h >>> 0).toString(16).toUpperCase().padStart(8, '0')
 }
 
-/** 저장 형식 — Unity 의 JsonUtility.ToJson(RunSave) 와 필드 순서까지 같다 */
+/** 저장 형식 — Unity 의 JsonUtility.ToJson(RunSave) 와 필드 순서까지 같다.
+ * print = 저장할 때 지도의 지문. 불러올 때 다시 만든 지도의 지문과 비교해 생성 규칙이 바뀌었는지 안다 */
 export interface RunSave {
   seed: number
   floors: number
   cols: number
   paths: number
   mix: Mix
+  print: string
   at: number
   path: number[]
 }
 
-export function saveRun(map: RouteMap, path: number[]): string {
-  const s: RunSave = { seed: map.seed, floors: map.floors, cols: map.cols, paths: map.paths, mix: map.mix, at: path.length ? path[path.length - 1] : -1, path }
+/** print 를 따로 주면 그 지문으로 저장한다 (옛 생성 규칙으로 만든 저장을 흉내 낼 때) */
+export function saveRun(map: RouteMap, path: number[], print = map.print): string {
+  const s: RunSave = { seed: map.seed, floors: map.floors, cols: map.cols, paths: map.paths, mix: map.mix, print, at: path.length ? path[path.length - 1] : -1, path }
   return JSON.stringify(s)
+}
+
+export type LoadCheck = 'ok' | 'print' | 'path'
+
+/** 불러오기 검사: ① 저장된 지문 = 다시 만든 지도의 지문 (생성 규칙이 그대로인가) ② 길이 그 지도에서 이어지는가 */
+export function checkSave(sv: RunSave, again: RouteMap): LoadCheck {
+  if (sv.print !== again.print) return 'print'
+  return validPath(again, sv.path) ? 'ok' : 'path'
 }
 
 /** 불러오기: 지도는 저장하지 않고 시드로 다시 만든다. 지나온 길이 그 지도에서 실제로 이어지는지 검사한다 */

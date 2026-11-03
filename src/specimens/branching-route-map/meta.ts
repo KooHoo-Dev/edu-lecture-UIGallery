@@ -12,7 +12,7 @@ export const meta: SpecimenMeta = {
     '층 × 열 격자에서 경로를 위로 그어 **교차하지 않는 분기 지도(DAG)** 를 만들고, 종류를 **비율 + 제약**으로 배정할 수 있다',
     '**시드 난수기**를 따로 두어 같은 시드면 같은 지도가 나오게 하고, 그것이 버그 재현 · 공정한 공유 · 저장에 왜 필요한지 설명할 수 있다',
     '갈 수 있는 다음 노드만 강조 · 활성화하고, 지나온 길과 현재 위치(스크롤 따라가기)를 보여 주는 지도 UI 를 만들 수 있다',
-    '진행 상태를 지도 전체가 아니라 **시드 + 지나온 길**의 JSON 으로 저장하고, 불러올 때 다시 만든 지도에서 길을 검증할 수 있다',
+    '진행 상태를 지도 전체가 아니라 **시드 + 지문 + 지나온 길**의 JSON 으로 저장하고, 불러올 때 다시 만든 지도의 지문과 길을 검증할 수 있다',
   ],
   principles: ['어포던스', '가독성', '인지 부하', '즉각 피드백', '일관성', '접근성'],
   platforms: ['pc', 'mobile', 'console'],
@@ -73,6 +73,7 @@ export const meta: SpecimenMeta = {
     { id: 'legend', label: '범례 강조 순환' },
     { id: 'save-load', label: '저장 후 다시 불러오기' },
     { id: 'restart', label: '같은 시드로 처음부터' },
+    { id: 'old-save', label: '옛 생성 규칙의 저장 불러오기 (지문 불일치)' },
   ],
   hotspots: [
     {
@@ -110,7 +111,7 @@ export const meta: SpecimenMeta = {
       n: 5,
       part: 'seed',
       title: '시드 하나로 같은 지도를 다시',
-      body: '지도는 `Math.random` 대신 **시드 난수기(mulberry32)** 로 만든다. 같은 시드면 같은 지도라 "시드 7 의 9층에서 멈춤" 같은 버그를 그대로 재현하고, 친구와 같은 지도로 겨루고, 저장은 시드와 지나온 길만 하면 된다. 아래 **지문**은 지도 전체의 해시 — Unity 판이 콘솔에 찍는 값과 같으면 두 구현이 같은 지도를 만든 것이다.',
+      body: '지도는 `Math.random` 대신 **시드 난수기(mulberry32)** 로 만든다. 같은 시드면 같은 지도라 "시드 7 의 9층에서 멈춤" 같은 버그를 그대로 재현하고, 친구와 같은 지도로 겨루고, 저장은 시드 · 지문 · 지나온 길만 하면 된다. 아래 **지문**은 노드 종류 · 위치(층 · 열) · 연결의 해시다(배치 흔들림은 넣지 않는다). Unity 판이 콘솔에 찍는 값과 같으면 두 구현이 같은 지도를 만든 것이다. 불러올 때는 저장된 지문과 다시 만든 지도의 지문을 비교해 생성 규칙이 바뀌었는지 안다.',
       principle: '일관성',
     },
   ],
@@ -133,11 +134,11 @@ export const meta: SpecimenMeta = {
     },
     {
       title: '생성 코드를 바꾸고 옛 저장을 그대로 불러옴',
-      body: '시드만 저장했는데 생성 규칙이 바뀌면 같은 시드가 다른 지도를 만들어 저장된 길이 엉뚱한 곳을 가리킨다. 불러올 때 길이 다시 만든 지도에서 이어지는지 검사하고, 저장에 생성 규칙 버전이나 지문을 함께 넣는다.',
+      body: '시드만 저장했는데 생성 규칙이 바뀌면 같은 시드가 다른 지도를 만들어 저장된 길이 엉뚱한 곳을 가리킨다. 종류 비율만 바뀌면 간선은 그대로라 **길 검사는 통과**하는데 칸의 종류가 달라진다. 그래서 저장에 **지문**을 함께 넣고, 불러올 때 다시 만든 지도의 지문과 비교한다. 다르면 "생성 규칙이 바뀌었다" 고 알리고 처음부터, 같을 때만 길을 검사해 복원한다. 이벤트 \'옛 생성 규칙의 저장 불러오기\' 로 볼 수 있다.',
     },
   ],
   juiceOff:
-    '흔한 실수인 **갈 수 있는 곳을 표시하지 않는 지도**다. 다음 노드 강조 · 흐르는 간선 · 지난 층 흐리기를 모두 끄고 모든 노드를 누를 수 있게 둔다. 그래서 못 가는 노드를 눌러 보고 나서야 "갈 수 없는 경로입니다" 가 뜨고 노드가 흔들린다. 자동 데모도 못 가는 노드를 먼저 눌러 본다. 지나온 길 · 범례 · 스크롤 따라가기는 그대로 둬서 이 실수 하나만 비교한다.',
+    '흔한 실수인 **갈 수 있는 곳을 표시하지 않는 지도**다. 다음 노드 강조 · 흐르는 간선 · 지난 층 흐리기를 모두 끄고 모든 노드를 누를 수 있게 둔다. 그래서 못 가는 노드를 눌러 보고 나서야 "갈 수 없는 경로입니다" 가 뜨고 노드가 흔들린다. 자동 데모도 못 가는 노드를 먼저 눌러 본다. 함께 꺼지는 연출은 탐사대 표시의 이동 애니메이션(순간 이동)과 안내 문구의 등장 애니메이션(실패 문구는 그대로) 둘뿐이다. 지나온 길 · 범례 · 스크롤 따라가기는 그대로 둬서 "갈 수 있는 곳 표시" 의 차이를 비교한다.',
   timings: [
     { event: '이동 → 탐사대 표시 이동', ms: 350, easing: 'ease-in-out', note: '권장값. 짧게 — 고른 뒤 다음 선택을 기다리게 하지 않는다' },
     { event: '스크롤 따라가기', ms: 600, easing: '지수 감쇠 (λ = 5)', note: '권장값. 현재 위치를 창 아래쪽 2/3 지점으로' },
@@ -151,23 +152,26 @@ export const meta: SpecimenMeta = {
 ├─ Map (ScrollRect · Vertical만 · Movement Type: Clamped + RouteMapView.cs)
 │  └─ Viewport (RectMask2D)
 │     └─ Content (앵커·피벗: 위 가운데 — 크기는 코드가 정한다)
-│        ├─ Edges  (간선 Image 들이 들어갈 빈 RectTransform — 먼저 그려진다)
-│        └─ Nodes  (RouteNodeView 프리팹들이 들어간다)
+│        ├─ Edges  (빈 RectTransform · 늘이기: 앵커 0→1, 여백 0 — 간선 Image 가 먼저 그려진다)
+│        └─ Nodes  (빈 RectTransform · 늘이기: 앵커 0→1, 여백 0 — RouteNodeView 프리팹들)
+│           ※ 두 레이어의 왼쪽 위가 좌표 기준이다. 코드(Spawn)도 늘이기로 다시 맞춘다
 ├─ Legend (버튼 7개 · LegendEntry 로 kind · Button · 개수 TMP 연결)
 ├─ HereLabel · SeedLabel · JsonLabel (TextMeshProUGUI)
 └─ EventSystem (InputSystemUIInputModule)
-Prefab_Node (Button + RouteNodeView.cs)
+Prefab_Node (Button + RouteNodeView.cs · 크기 80 — 열 폭 135 의 0.6 이하)
 ├─ Fill (Image 원) · Frame (Image 원 테두리) · Icon (Image)
 ├─ PulseRing (Image 고리) · Check (Image)
+├─ FocusRing (Image 흰 고리 · 노드의 1.2배 · Raycast Target 끔 — 키보드 · 패드로 고른 노드에만 켠다)
 └─ Caption (TextMeshProUGUI · 선택)
 Prefab_Edge (Image · 높이 4 · Raycast Target 끔)
 RouteMapData.cs (순수 C# — 생성기 · 저장 형식) · RouteMapDemo.cs (시험 입력)`,
       steps: [
         '`RouteMapData.Generate(seed, floors, cols, paths, mix)` 가 지도를 만든다. MonoBehaviour 가 아니라서 에디터 테스트로도 돌릴 수 있고, UI Toolkit 판도 같은 클래스를 쓴다. 콘솔에 찍히는 **지문**이 웹 판 화면의 지문과 같은지 비교해 보자.',
-        '`RouteMapView` 를 ScrollRect 와 **같은 오브젝트**에 붙인다. 노드는 `anchoredPosition = (x, −y)` 로 놓고, 간선은 피벗을 왼쪽 가운데에 둔 Image 를 두 점 거리만큼 늘리고 `Atan2` 각도로 돌린다.',
-        '이동할 때마다 `Refresh()` 가 갈 수 있는 노드만 `interactable = true` 로, 나머지는 끈다. 갈 수 있는 노드끼리만 `Navigation.Mode.Explicit` 로 좌우를 잇고 첫 노드를 선택해 키보드 · 패드로도 고를 수 있게 한다.',
-        '범례 버튼에는 코드가 `EventTrigger` 를 붙여 PointerEnter · **Select** 에서 강조를 켜고 PointerExit · Deselect 에서 끈다. 마우스와 패드 포커스가 같은 강조를 만든다.',
-        '`Save()` 는 `RunSave` 를 `JsonUtility.ToJson` 해 `PlayerPrefs` 에 넣는다. `Load()` 는 시드로 지도를 다시 만들고 `ValidPath` 로 길을 검사한 뒤 복원한다.',
+        '`RouteMapView` 를 ScrollRect 와 **같은 오브젝트**에 붙인다. 노드는 레이어 왼쪽 위 기준 `anchoredPosition = (x, −y)` 로 놓고, 간선은 피벗을 왼쪽 가운데에 둔 Image 를 두 점 거리만큼 늘리고 `Atan2` 각도로 돌린다. 흔들림은 열 폭의 ±0.1 · 층 높이의 ±0.15 로만 그려 커진 선택지끼리도 겹치지 않게 한다.',
+        '이동할 때마다 `Refresh()` 가 갈 수 있는 노드만 `interactable = true` 로, 나머지는 끈다. 갈 수 있는 노드끼리만 `Navigation.Mode.Explicit` 로 좌우를 잇고(아래는 첫 범례 버튼) 첫 노드를 선택해 키보드 · 패드로도 고를 수 있게 한다.',
+        '노드 Button 은 `transition = None` 이라 선택돼도 모양이 바뀌지 않는다. `RouteNodeView` 가 `ISelectHandler` · `IDeselectHandler` 로 **FocusRing** 을 켜고 꺼서 지금 고른 노드를 보여 준다(웹 판의 점선 고리).',
+        '범례 버튼에는 코드가 `EventTrigger` 를 붙여 PointerEnter · **Select** 에서 강조를 켜고 PointerExit · Deselect 에서 끈다. 패드로 노드에서 아래를 누르면 범례로 가므로 마우스와 패드 포커스가 같은 강조를 만든다.',
+        '`Save()` 는 `RunSave`(시드 · 조절 값 · **지문** · 지나온 길)를 `JsonUtility.ToJson` 해 `PlayerPrefs` 에 넣는다. 필드 순서가 웹 판 JSON 과 같다. `Load()` 는 시드로 지도를 다시 만들고 저장된 지문과 새 지도의 지문을 비교한 뒤(다르면 `PrintMismatch` = 생성 규칙이 바뀌었다) `ValidPath` 로 길을 검사해 복원한다.',
       ],
       pitfalls: [
         '`UnityEngine.Random.InitState(seed)` 는 **전역** 상태라 다른 스크립트가 같은 프레임에 `Random` 을 쓰면 지도가 바뀐다. 생성기 전용 난수기(`Mulberry32`)를 둔다.',
@@ -193,8 +197,11 @@ RouteMapUITK.cs (UIDocument 와 같은 오브젝트) + RouteMapData.cs (UGUI 폴
         '노드는 `Button` 을 `ClearClassList()` 로 기본 모양을 떼고 `.node` · `.kind-*` 클래스를 붙여 `style.left/top` 으로 놓는다. 상태는 `EnableInClassList("node--next", …)` 처럼 클래스로만 바꾼다.',
         '간선은 `EdgeLayer` 하나가 모두 그린다. `MarkDirtyRepaint()` 를 부르면 `generateVisualContent` 에서 `Painter2D.BezierCurveTo` 로 세로 접선 곡선을 다시 그린다. 흐린 선 → 다음 길 → 지나온 길 순서로 그려 밝은 선이 위에 온다.',
         '따라가기는 `Update` 에서 `scrollOffset` 을 목표로 지수 감쇠한다. `WheelEvent` · `PointerDownEvent` 를 TrickleDown 으로 받아 사람이 스크롤하면 멈춘다.',
+        '저장 · 불러오기는 UGUI 판과 같은 키 · 같은 JSON 이다. 불러올 때 `RunSave.Check()` 가 지문 → 길 순서로 검사하고 결과를 `#json` 글에 적는다.',
       ],
       pitfalls: [
+        '좌우 이동을 직접 처리할 때 `NavigationMoveEvent` 에 `StopPropagation()` 만 부르면 기본 포커스 이동이 한 번 더 일어나 가운데 노드를 건너뛴다. 기본 이동은 이벤트가 끝난 뒤 `FocusController` 가 하는데 `focusController.IgnoreEvent(e)` 한 이벤트만 건너뛴다 — 둘을 함께 부른다.',
+        '`clicked +=` 로 건 핸들러는 `OnDisable` 에서 `-=` 로 뗀다. 컴포넌트만 껐다 켜면 트리가 그대로라 두 번 걸린다(새 지도 한 번에 시드가 2씩 오른다).',
         '`SetEnabled(false)` 인 버튼은 포커스를 받지 못해 키보드 이동에서 빠진다(좋다). 다만 기본 테마가 흐리게 만들므로 USS 에서 `.node:disabled { opacity: 1 }` 로 되돌리고 흐리기는 우리 클래스로 정한다.',
         'Painter2D 에는 점선이 없다. 점선이 필요하면 곡선을 짧은 조각으로 나눠 하나씩 `Stroke()` 한다.',
         '첫 프레임에는 `contentViewport.layout.height` 가 NaN 이다. 레이아웃이 끝난 뒤(`GeometryChangedEvent` 또는 다음 프레임)에 스크롤 위치를 계산한다.',
