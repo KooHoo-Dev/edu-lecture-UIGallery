@@ -20,7 +20,7 @@ cp -r "$WT/src/unity/$ID/"* "$OUT/unity/"
 (
   cd "$WT"
   python tools/shot.py "$ID" "$@"
-  node tools/live.mjs "$ID" --no-build wait:4000 stage:live-4s
+  node tools/live.mjs "$ID" --no-build wait:4000 stage:live-4s wait:8000 stage:live-12s wait:12000 stage:live-24s   # 자동 데모 두 바퀴째 버그를 잡는다
 ) > "$OUT/shots.log" 2>&1
 cp "$WT/_shots/$ID/"*.png "$OUT/shots/"
 node -e "require('fs').rmSync(process.argv[1], { recursive: true, force: true })" "$WT"

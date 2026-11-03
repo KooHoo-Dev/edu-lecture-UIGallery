@@ -78,6 +78,14 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 - 조합키(Ctrl · Alt · ⌘)와 입력 칸의 키는 가드가 거른다. 새로고침 · 확대 · 복사를 막지 않는다.
 - 자동 데모가 키를 쓰는 상태(대기 · 고스트 · 결과 창)를 열면 `useStageKeys` 의 `autoOpen` · `takeOver` 로 넘겨받는다. 무대 밖에서 온 키는 넘겨받은 뒤 흘려보낸다.
 - 숫자 키 1~9 는 갤러리 이벤트다. 표본 메뉴의 단축키로 쓰지 않는다(메뉴 · 탭 순환은 Q · E 나 ←/→).
+- Tab 은 가로채지 않는다 (키보드 갇힘). 장르가 Tab 을 쓰는 화면(스코어보드 등)은 다른 키와 화면 버튼으로 보여 주고 Tab 은 해설에서 다룬다. Ctrl+휠(브라우저 확대)도 가로채지 않는다.
+- 창(모달)을 열면 포커스를 창 안의 기본 버튼으로 옮기고, 닫으면 창을 연 요소로 돌려준다. 안 그러면 다음 Enter 가 창을 다시 연다. Unity 도 같다(UGUI `SetSelectedGameObject`, UI Toolkit `Focus()`).
+
+### 상태와 다시 그리기
+
+- param · 프리셋이 바뀌어도 표본은 다시 마운트되지 않는다. 예산 · 최대치 · 목록 같은 한계를 낮추는 변경 뒤에는 남은 상태를 그 안으로 맞춘다 (예: 포인트를 줄였는데 쓴 포인트가 남아 −4 가 되는 실수).
+- 흔들림 · 재생 애니메이션을 React `key` 를 바꿔 다시 마운트하는 방식으로 하지 않는다. 포커스가 body 로 빠져 키가 무대에 닿지 않는다. 클래스를 뺐다 넣거나 Web Animations API 로 재생한다.
+- 모든 param 은 바뀌는 즉시 화면에 보여야 한다. 평소 닫혀 있는 패널에만 보이는 값이면 바꿀 때 그 패널을 잠깐 연다.
 - 확인: 무대를 클릭해 포커스를 두고 `js:` 로 Space · J · 숫자를 보내 갤러리가 반응하는지 본다 (`tools/live.mjs` 의 `key:Space` 는 제대로 못 보낸다).
 
 ### 공통 용어 (해설에서 같은 말로 쓴다)
@@ -111,7 +119,8 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
 
 ## 4. 해설 번호 (hotspots)
 
-- meta.hotspots 의 `part` 마다 HUD 안에 `data-part="<part>"` 요소가 **항상** 있어야 한다 (숨김 상태여도 DOM 에는 존재).
+- meta.hotspots 의 `part` 마다 HUD 안에 `data-part="<part>"` 요소가 **항상** 있어야 한다 (숨김 상태여도 DOM 에는 존재). `cond ? <el data-part> : …` 처럼 조건부로 그리지 않는다. 검색 결과 없음, 목록 끝, 목표 도착, 모두 받은 날처럼 끝 상태에서 자주 빠진다.
+- 크기가 0 인 요소(위치만 잡는 감싸개)에 달지 않는다. 번호가 대상을 덮고 강조 테두리가 점이 된다.
 - 번호는 요소의 위쪽 가운데에 붙는다. 넓은 요소(예: 바 전체) 대신 **설명하려는 부분만 감싼 영역**에 붙인다 (기준 구현의 `trail` 영역 참고).
 - 위쪽이 막혀 있으면 hotspot 의 `pin: 'below' | 'left' | 'right' | 'inside'`, 상태에 따라 바꾸려면 요소에 `data-pin="…"`.
 - 대상이 지금 보이지 않으면(opacity 0 · visibility hidden) 번호는 자동으로 흐려진다. 숨은 요소를 가리키려고 자리 표시 요소를 따로 만들 필요는 없다.
@@ -150,6 +159,15 @@ src/unity/<id>/uitk/*.uxml *.uss *.cs UI Toolkit 구현
   - `[UxmlElement]` 요소는 UXML 에 namespace 를 포함한 이름으로 쓴다 (`<UIGallery.DialogueChoices.SkewFrame />`).
 - UI Toolkit 에서 기본 탐색(`NavigationMoveEvent`)을 직접 처리하면 `evt.StopPropagation()` 과 함께 `focusController?.IgnoreEvent(evt)` 를 부른다. Unity 6.3 은 전파가 멈춰도 기본 포커스 이동을 한 번 더 해서 한 칸씩 건너뛴다 (`inventory-grid-tooltip` 참고, 2026-11-03 리뷰에서 확인).
 - UGUI 에서 `Selectable.transition = None` 으로 두면 선택 표시를 `ISelectHandler` · `IDeselectHandler` 로 직접 그린다. 안 그리면 키보드 · 패드로 고른 것이 화면에 보이지 않는다.
+- UGUI `interactable = false` 는 그 버튼이 선택돼 있으면 선택을 해제한다 (패드로 더 못 움직인다). 끄기 전에 다른 버튼으로 선택을 옮긴다.
+- 컴포넌트를 `enabled = false` 로 꺼도 코루틴은 멈추지 않는다. `OnDisable` 에서 `StopCoroutine` 과 상태 변수 초기화를 함께 하고, 꺼진 동안 코루틴을 새로 시작하지 않는다(`isActiveAndEnabled`).
+- `OnDisable` 에서는 열린 창 · 비활성 버튼 · 진행 표시처럼 화면에 남는 상태도 되돌린다.
+- UI Toolkit `width` 는 padding · border 를 포함한다. flex-wrap 그리드의 칸 수는 안쪽 폭(width − padding − border)으로 계산한다.
+- UI Toolkit 에서 막 붙인 요소의 진입 transition 은 `schedule.Execute(...).StartingIn(16)` 이나 `GeometryChangedEvent` 뒤에 클래스를 바꾼다. 지연 없는 `schedule.Execute` 는 스타일 계산 전에 돌 수 있다.
+- UI Toolkit `pickingMode` 는 자식에게 상속되지 않는다. 숨긴 패널은 `visibility` 나 `display` 로 끄거나 하위 요소까지 `Ignore` 로 둔다 (opacity 0 만으로는 포인터를 막는다).
+- 입력 칸 포커스 판정은 `f == field || field.Contains(f)` 로 한다 (`Contains` 는 자기 자신을 포함하지 않는다).
+- 날짜 · 숫자 표기는 문화권과 무관하게 쓴다 (`ToString("M/d")` 는 ko-KR 에서 "11-3" 이 된다 → `$"{d.Month}/{d.Day}"` 나 `CultureInfo.InvariantCulture`).
+- 웹과 같은 데이터를 읽는 표(TSV)는 엑셀에서 붙여 넣은 공백까지 같게 처리한다 (`Trim`). 하드코딩한 id 로 시작 상태를 만들지 않는다.
 - UXML 주석 `<!-- -->` 안에 `--` 를 쓰지 않는다. XML 규칙이라 Unity 가 그 UXML 을 임포트하지 못한다. BEM 수식 클래스(`.card--rare`)를 주석에 적을 때 특히 주의한다 ("`.card` 의 수식 클래스 rare" 처럼 쓴다). `python tools/check.py` 가 UXML 을 XML 로 읽어 확인한다.
 
 ## 9. 검사 체크리스트
