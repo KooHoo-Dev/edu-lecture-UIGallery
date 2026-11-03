@@ -1,3 +1,5 @@
+import { decompress } from 'fzstd'
+import { data as unityPacked, index as unityIndex } from 'virtual:unity-pack'
 import type { PlannedSpecimen, SpecimenModule } from './types'
 
 /* 표본 자동 등록 — src/specimens/<id>/index.tsx 를 만들기만 하면 갤러리에 나타난다. */
@@ -16,8 +18,16 @@ export const findSpecimen = (id: string) => SPECIMENS.find(s => s.meta.id === id
 /* 옛 ID → 새 ID (ID는 영구 불변이 원칙. 이름을 바꿔야 할 때만 여기에 추가) */
 export const ALIASES: Record<string, string> = {}
 
-/* Unity 코드 — src/unity/<id>/<ugui|uitk>/<파일> 을 원문 문자열로 수집 */
-const unityRaw = import.meta.glob<string>('../unity/*/*/*', { query: '?raw', import: 'default', eager: true })
+/* Unity 코드 — src/unity/<id>/<ugui|uitk>/<파일>. 빌드가 zstd 한 덩어리로 묶어 넣고(vite.config.ts 의 unity-pack),
+   처음 쓸 때 한 번 풀어 둔다 (전체 1.6MB 를 푸는 데 20ms 안팎) */
+let unitySources: Map<string, string> | null = null
+function unityRaw() {
+  if (unitySources) return unitySources
+  const all = decompress(Uint8Array.from(atob(unityPacked), c => c.charCodeAt(0)))
+  const utf8 = new TextDecoder()
+  unitySources = new Map(unityIndex.map(([p, from, to]) => [p, utf8.decode(all.subarray(from, to))]))
+  return unitySources
+}
 
 export interface UnityFile {
   name: string
@@ -26,8 +36,8 @@ export interface UnityFile {
 }
 
 export function unityFiles(id: string, kind: 'ugui' | 'uitk'): UnityFile[] {
-  const prefix = `../unity/${id}/${kind}/`
-  return Object.entries(unityRaw)
+  const prefix = `${id}/${kind}/`
+  return [...unityRaw()]
     .filter(([p]) => p.startsWith(prefix))
     .map(([p, code]) => {
       const name = p.slice(prefix.length)
