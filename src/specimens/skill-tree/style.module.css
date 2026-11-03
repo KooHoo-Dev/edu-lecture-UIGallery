@@ -1,0 +1,632 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  color: #eaf2fb;
+  outline: none;
+  user-select: none;
+  background: linear-gradient(170deg, #0b1522, #14263a 55%, #0c1724);
+  --line: #2f4a66;
+  --accent: #5ee6c9;
+  --dim: #6a7f95;
+  --ns: 70px;
+}
+.root:focus-visible {
+  box-shadow: inset 0 0 0 4px var(--accent);
+}
+.root[data-paused] * {
+  animation-play-state: paused !important;
+}
+.num {
+  font-family: 'Chakra Petch', 'Malgun Gothic', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 갈래 색 — 상태는 색이 아니라 모양 · 테두리 · 표식 · 글자로도 읽힌다 */
+.root [data-branch='harin'] { --bc: #5ee6c9; }
+.root [data-branch='sera'] { --bc: #8fb8ff; }
+.root [data-branch='doyun'] { --bc: #ffb35c; }
+.root [data-branch='core'] { --bc: #e8eef5; }
+
+/* ───── 머리 ───── */
+.head {
+  position: absolute;
+  left: 40px;
+  top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.head > b {
+  font-size: 36px;
+}
+.branches {
+  display: flex;
+  gap: 14px;
+}
+.branches em {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 16px 3px 10px;
+  border: 2px solid var(--bc);
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 24px;
+  color: var(--bc);
+}
+.chipIcon,
+.tipIcon {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* ───── 지도 창 ───── */
+.viewport {
+  position: absolute;
+  overflow: hidden;
+  border: 2px solid var(--line);
+  border-radius: 24px;
+  background: #08111bcc;
+  cursor: grab;
+  touch-action: none;
+}
+.viewport:active {
+  cursor: grabbing;
+}
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+.edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+}
+.edges line {
+  stroke: var(--line);
+  stroke-width: 4;
+  stroke-dasharray: 3 10;
+  stroke-linecap: round;
+}
+.edges line[data-state='half'] {
+  stroke: var(--bc);
+  stroke-opacity: 0.45;
+  stroke-dasharray: none;
+}
+.edges line[data-state='open'] {
+  stroke: var(--bc);
+  stroke-width: 5;
+  stroke-dasharray: 12 9;
+}
+.root[data-hl] .edges line[data-state='open'] {
+  animation: flow calc(0.8s / var(--ts)) linear infinite;
+}
+.edges line[data-state='done'] {
+  stroke: var(--bc);
+  stroke-width: 7;
+  stroke-dasharray: none;
+}
+.edges line[data-need] {
+  stroke: #ff6b7d;
+  stroke-width: 6;
+  stroke-opacity: 1;
+  stroke-dasharray: 10 8;
+}
+@keyframes flow {
+  to { stroke-dashoffset: -21; }
+}
+
+/* ───── 노드 — 중심이 (0,0). 크기 --ns 는 코드가 확대에 맞춰 정한다 ───── */
+.node {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+.shape {
+  position: absolute;
+  width: var(--ns);
+  height: var(--ns);
+  left: calc(var(--ns) / -2);
+  top: calc(var(--ns) / -2);
+  overflow: visible;
+  cursor: pointer;
+}
+.body {
+  stroke-width: 4;
+}
+.outer {
+  fill: none;
+  stroke: none;
+}
+.glyph {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* 네 상태: 점선 원 → 밝은 고리 → 채운 원 → 육각 이중 테두리 */
+[data-state='locked'] .body {
+  fill: #0f1b28;
+  stroke: var(--dim);
+  stroke-dasharray: 9 7;
+}
+[data-state='locked'] .glyph {
+  stroke: var(--dim);
+}
+[data-state='available'] .body {
+  fill: color-mix(in srgb, var(--bc) 20%, #0d1a28);
+  stroke: var(--bc);
+  stroke-width: 6;
+}
+[data-state='available'] .outer {
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+[data-state='available'] .glyph {
+  stroke: var(--bc);
+}
+[data-state='acquired'] .body {
+  fill: var(--bc);
+  stroke: #fff;
+  stroke-width: 3;
+}
+[data-state='maxed'] .body {
+  fill: var(--bc);
+  stroke: #0b1622;
+  stroke-width: 3;
+}
+[data-state='maxed'] .outer {
+  fill: #0b1622;
+  stroke: var(--bc);
+  stroke-width: 4;
+}
+[data-state='acquired'] .glyph,
+[data-state='maxed'] .glyph {
+  stroke: #0b1622;
+}
+/* 지금 습득할 수 있는 노드(선행 충족 + 포인트 충분) — 1Hz 로 퍼지는 고리 */
+.root[data-hl] .node[data-can] .outer {
+  stroke: #fff;
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulse calc(1s / var(--ts)) ease-out infinite;
+}
+@keyframes pulse {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.25); opacity: 0; }
+}
+
+.badge {
+  position: absolute;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  left: calc(var(--ns) * 0.2);
+  top: calc(var(--ns) * -0.5 - 12px);
+  padding: 4px;
+  border: 2px solid var(--bc);
+  border-radius: 50%;
+  background: #0b1622;
+  fill: none;
+  stroke: var(--bc);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.badge [data-fill] {
+  fill: var(--bc);
+  stroke: none;
+}
+[data-state='locked'] > .badge {
+  border-color: var(--dim);
+  stroke: #a9b8c8;
+}
+[data-state='maxed'] > .badge {
+  fill: var(--bc);
+}
+
+.selRing {
+  position: absolute;
+  box-sizing: border-box;
+  width: calc(var(--ns) + 28px);
+  height: calc(var(--ns) + 28px);
+  left: calc(var(--ns) / -2 - 14px);
+  top: calc(var(--ns) / -2 - 14px);
+  border: 3px dashed #fff;
+  border-radius: 50%;
+  display: none;
+  pointer-events: none;
+}
+.node[data-sel] .selRing {
+  display: block;
+  animation: spin calc(8s / var(--ts)) linear infinite;
+}
+.node[data-need] .selRing {
+  display: block;
+  border: 4px solid #ff6b7d;
+  animation: none;
+}
+.node[data-shake] .shape,
+.node[data-shake] .badge {
+  animation: shake calc(0.4s / var(--ts)) ease-out;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shake {
+  20% { translate: -7px 0; }
+  45% { translate: 6px 0; }
+  70% { translate: -4px 0; }
+}
+
+/* 글자 — 좋은 예는 확대와 무관하게 이 크기. 정보 단계(data-lod)에 따라 무엇을 보일지만 바꾼다 */
+.label {
+  position: absolute;
+  left: 0;
+  top: calc(var(--ns) / 2 + 8px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.name {
+  padding: 0 8px;
+  border-radius: 8px;
+  background: #08111be0;
+  font-size: 26px;
+}
+.line2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rank {
+  padding: 0 10px;
+  border: 2px solid var(--bc);
+  border-radius: 999px;
+  background: #0b1622;
+  font-family: 'Chakra Petch', 'Malgun Gothic', sans-serif;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 24px;
+}
+[data-state='locked'] .rank {
+  border-style: dashed;
+  border-color: var(--dim);
+  color: #b4c2d0;
+}
+[data-state='maxed'] .rank {
+  background: var(--bc);
+  color: #0b1622;
+}
+.next {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #08111be0;
+  font-size: 22px;
+  color: #cfe0f0;
+}
+.root[data-lod='far'] .label {
+  display: none;
+}
+.root[data-lod='mid'] .name,
+.root[data-lod='mid'] .next {
+  display: none;
+}
+
+/* 나쁜 예 파라미터: 색만으로 상태 구분 — 모양 · 표식 · 글자를 모두 뺀다 */
+.root[data-cue='color-only'] .body {
+  stroke: none;
+}
+.root[data-cue='color-only'] .outer {
+  stroke: none !important;
+  animation: none !important;
+}
+.root[data-cue='color-only'] .badge,
+.root[data-cue='color-only'] .line2 {
+  display: none;
+}
+.root[data-cue='color-only'] [data-state='locked'] .body {
+  fill: #3e5d7a;
+}
+.root[data-cue='color-only'] [data-state='available'] .body {
+  fill: #4a7092;
+}
+.root[data-cue='color-only'] [data-state='maxed'] .body {
+  fill: color-mix(in srgb, var(--bc) 65%, #fff);
+}
+.root[data-cue='color-only'] [data-state] .glyph {
+  stroke: #0b1622;
+}
+
+/* ───── 툴팁 ───── */
+.tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  width: 400px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 2px solid var(--bc);
+  border-radius: 16px;
+  background: #0b1622f2;
+  box-shadow: 0 10px 30px #000a;
+  font-size: 24px;
+  pointer-events: none;
+}
+.tip p {
+  margin: 0;
+}
+.tipHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.tipHead > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tipHead b {
+  font-size: 28px;
+}
+.tipHead span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  color: var(--bc);
+}
+.tipHead em {
+  padding: 0 12px;
+  border: 2px solid var(--bc);
+  border-radius: 999px;
+  font-style: normal;
+  color: #eaf2fb;
+}
+.tipHead em i {
+  font-style: normal;
+}
+.tipHead em[data-state='locked'] {
+  border-style: dashed;
+  border-color: var(--dim);
+}
+.tipIcon {
+  width: 48px;
+  height: 48px;
+  stroke: var(--bc);
+}
+.tipNext b {
+  color: var(--bc);
+}
+.tipReq {
+  margin: 0;
+  padding: 8px 0 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 22px;
+}
+.tipReq li {
+  color: #ff8a99;
+}
+.tipReq li[data-ok] {
+  color: #7be3a7;
+}
+.tipReq li:first-child {
+  width: 100%;
+  color: #9fb4c9;
+}
+.tipFoot {
+  font-size: 22px;
+  color: #9fb4c9;
+}
+.tipFoot[data-bad] {
+  color: #ffb0ba;
+}
+
+/* ───── 확대 막대 ───── */
+.zoomBar {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px 10px 10px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: #0b1622e8;
+}
+.zoomBar button,
+.actions button {
+  height: 56px;
+  min-width: 56px;
+  border: 2px solid #4a6a8a;
+  border-radius: 12px;
+  background: #12233a;
+  color: inherit;
+  font: inherit;
+  font-size: 32px;
+  cursor: pointer;
+}
+.zoomBar .fitBtn {
+  padding: 0 14px;
+  font-size: 24px;
+}
+.zoomBar b {
+  min-width: 86px;
+  text-align: center;
+  font-size: 28px;
+}
+.zoomBar span {
+  margin-left: 6px;
+  font-size: 22px;
+  color: #cfe0f0;
+}
+.root:not([data-juice]) .zoomBar span {
+  color: #ffb0ba;
+}
+
+/* ───── 오른쪽 패널 ───── */
+.side {
+  position: absolute;
+  width: 470px;
+  height: 890px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.points,
+.legend,
+.data {
+  margin: 0;
+  padding: 12px 18px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: #0d1a28;
+}
+.points {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 24px;
+}
+.points b {
+  font-size: 64px;
+  line-height: 1;
+  color: var(--accent);
+}
+.points b[data-low] {
+  color: #ffb35c;
+}
+.root[data-juice] .points b[data-flash] {
+  animation: pop calc(0.5s / var(--ts)) ease-out;
+}
+@keyframes pop {
+  30% { transform: scale(1.3); }
+}
+.legend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legend li {
+  position: relative;
+  --ns: 56px;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  column-gap: 18px;
+  align-items: center;
+}
+.legend .shape {
+  position: relative;
+  left: auto;
+  top: auto;
+  grid-row: span 2;
+}
+.legend .badge {
+  left: 36px;
+  top: -6px;
+  width: 30px;
+  height: 30px;
+}
+.legend b {
+  font-size: 24px;
+}
+.legend span {
+  font-size: 22px;
+  color: #9fb4c9;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.actions button {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-size: 24px;
+}
+.actions button[data-off] {
+  opacity: 0.45;
+}
+.actions button:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 2px;
+}
+.data h4 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #9fb4c9;
+}
+.data code {
+  display: block;
+  font-family: Consolas, 'Malgun Gothic', monospace;
+  font-size: 22px;
+  line-height: 1.35;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.data p {
+  margin: 6px 0 0;
+  font-size: 22px;
+  line-height: 1.3;
+  color: #9fb4c9;
+}
+.toast {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 4px solid #4a6a8a;
+  background: #0d1a28;
+  font-size: 24px;
+  line-height: 1.35;
+}
+.toast[data-tone='ok'] {
+  border-color: var(--accent);
+}
+.toast[data-tone='bad'] {
+  border-color: #ff6b7d;
+  color: #ffd0d6;
+}
+.root[data-juice] .toast {
+  animation: rise calc(0.25s / var(--ts)) ease-out;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+}

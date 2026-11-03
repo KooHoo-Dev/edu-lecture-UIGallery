@@ -1,0 +1,30 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="SkillTree.uss" />
+    <!-- 스킬트리 (1920×1080). 노드 · 연결선은 C# 가 표(TSV)에서 만들어 #world 에 넣는다 -->
+    <ui:VisualElement name="screen" class="screen">
+        <ui:Label class="title" text="외곽 탐사대 · 기술 트리" />
+        <ui:VisualElement class="body">
+            <ui:VisualElement name="viewport" class="viewport">
+                <!-- C# 가 translate(팬) 와 scale(줌) 을 준다. 첫 자식은 연결선 레이어 -->
+                <ui:VisualElement name="world" class="world" />
+                <ui:VisualElement name="tooltip" class="tooltip" picking-mode="Ignore">
+                    <ui:Label name="tip-title" class="tooltip__title" picking-mode="Ignore" />
+                    <ui:Label name="tip-body" class="tooltip__body" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement class="zoombar">
+                    <ui:Button name="btn-out" class="zoombar__btn" text="−" />
+                    <ui:Label name="zoom" class="zoombar__value" text="75%" />
+                    <ui:Button name="btn-in" class="zoombar__btn" text="+" />
+                    <ui:Label name="lod" class="zoombar__lod" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="side">
+                <ui:Label name="points" class="side__points" />
+                <ui:Button name="btn-learn" class="side__btn" text="습득" />
+                <ui:Button name="btn-refund" class="side__btn" text="되돌리기" />
+                <ui:Button name="btn-reset" class="side__btn" text="전체 초기화" />
+                <ui:Label name="toast" class="side__toast" text="노드를 고르면 효과 · 다음 단계 · 필요한 선행이 툴팁에 나온다" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
