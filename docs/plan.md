@@ -273,7 +273,7 @@ Dead Space · Metroid Prime Remastered · Persona 5 Royal · NieR:Automata · De
 
 ## 10. API 워커로 표본 만들기 (2026-11-03)
 
-Shader Gallery 에서 쓰던 분업을 옮겼다. 구독 세션은 후보 고르기, 명세, 리뷰, 병합을 맡고, 표본 구현과 리뷰 반영은 JayDispatch 워커(`C:\Users\user\JayTools\JayDispatch`)가 한다. 워커는 Opus 5.5(effort high)이고 프로필 `org`(회사 플랜 크레딧)로 돈다. 회사 크레딧은 11월 19일(UTC)에 만료되고 이월되지 않는다. Shader Gallery 와 교안 갤러리 kit 이 같은 잔액을 쓴다.
+Shader Gallery 에서 쓰던 분업을 옮겼다. 구독 세션은 후보 고르기, 명세, 리뷰, 병합을 맡고, 표본 구현과 리뷰 반영은 JayDispatch 워커(`C:\Users\user\JayTools\JayDispatch`)가 한다. 워커는 Opus 5.5(effort high)이고 프로필 `org`(회사 플랜 크레딧)를 먼저 쓰고, 소진되면 `sub`(Jay 계정 구독, `~/.claude-worker` 로그인)로 넘어간다 (2026-11-08부터 잡의 `allowProfiles: [org, sub]`). 구독 워커는 Jay 의 대화형 세션과 같은 사용 한도를 쓴다. 회사 크레딧은 11월 19일(UTC)에 만료되고 이월되지 않는다. Shader Gallery 와 교안 갤러리 kit 이 같은 잔액을 쓴다.
 
 ### 흐름
 

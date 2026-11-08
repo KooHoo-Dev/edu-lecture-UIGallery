@@ -22,7 +22,8 @@ allowedTools: [${ALLOWED.join(', ')}]
 writePaths:
   - src/specimens/${spec.id}/**
   - src/unity/${spec.id}/**
-allowProfiles: [org]
+# 회사 크레딧(org)을 먼저 쓰고, 소진되면 Jay 계정 구독(sub)으로 넘어간다 (2026-11-08)
+allowProfiles: [org, sub]
 verifyTimeoutMinutes: 15
 timeoutMinutes: 60
 maxRetries: 2
